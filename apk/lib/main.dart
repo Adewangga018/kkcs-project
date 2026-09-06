@@ -650,7 +650,7 @@ class HomePage extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-          NavigationDestination(icon: Icon(Icons.request_quote_outlined), label: 'E-Loan'),
+          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Simpan Pinjam'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
           NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
         ],
@@ -702,7 +702,7 @@ class _ServiceShell extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-          NavigationDestination(icon: Icon(Icons.request_quote_outlined), label: 'E-Loan'),
+          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Simpan Pinjam'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
           NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
         ],
@@ -1035,10 +1035,16 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
     );
   }
 
+  void _showSavingsComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pencatatan simpanan akan tersedia setelah API transaksi diaktifkan.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pengajuan Pinjaman (E-Loan)')),
+      appBar: AppBar(title: const Text('Simpanan & Pinjaman Digital')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -1049,10 +1055,28 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Ajukan pinjaman secara paperless dan simulasikan cicilan sebelum mengirim pengajuan.',
+              'Catat simpanan dan ajukan pinjaman secara paperless dari satu halaman.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
             ),
             const SizedBox(height: 20),
+            _AccountSectionCard(
+              icon: Icons.savings_outlined,
+              title: 'Multi-Simpanan',
+              subtitle: 'Pencatatan otomatis untuk seluruh jenis simpanan anggota.',
+              children: [
+                const _InfoRow(label: 'Simpanan pokok', value: 'Belum tersedia'),
+                const _InfoRow(label: 'Simpanan wajib', value: 'Belum tersedia'),
+                const _InfoRow(label: 'Simpanan sukarela', value: 'Belum tersedia'),
+                const _InfoRow(label: 'Simpanan berjangka', value: 'Belum tersedia'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _showSavingsComingSoon(context),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Catat simpanan'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _AccountSectionCard(
               icon: Icons.request_quote_outlined,
               title: 'Pengajuan Pinjaman / E-Loan',

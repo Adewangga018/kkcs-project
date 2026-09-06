@@ -34,7 +34,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -360));
     await tester.pump();
     expect(find.text('Beranda'), findsOneWidget);
-    expect(find.text('E-Loan'), findsOneWidget);
+    expect(find.text('Simpan Pinjam'), findsOneWidget);
     expect(find.text('Katalog'), findsNWidgets(2));
     expect(find.text('E-RAT'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -57,14 +57,19 @@ void main() {
     expect(find.text('Unduh laporan tahunan'), findsOneWidget);
   });
 
-  testWidgets('modul simpan pinjam menampilkan formulir E-Loan dan simulasi cicilan', (WidgetTester tester) async {
+  testWidgets('modul simpan pinjam menampilkan simpanan, E-Loan, dan simulasi cicilan', (WidgetTester tester) async {
     const session = AuthSession(
       token: 'test-token',
       user: AuthUser(id: 1, namaLengkap: 'Test User', nomorIndukKaryawan: 'NIK-001', email: 'test@example.com'),
     );
     await tester.pumpWidget(MaterialApp(home: DigitalSavingsLoanPage(session: session)));
 
-    expect(find.text('Pengajuan Pinjaman (E-Loan)'), findsOneWidget);
+    expect(find.text('Simpanan & Pinjaman Digital'), findsOneWidget);
+    expect(find.text('Multi-Simpanan'), findsOneWidget);
+    expect(find.text('Simpanan pokok'), findsOneWidget);
+    expect(find.text('Simpanan wajib'), findsOneWidget);
+    expect(find.text('Simpanan sukarela'), findsOneWidget);
+    expect(find.text('Simpanan berjangka'), findsOneWidget);
     expect(find.text('Pengajuan Pinjaman / E-Loan'), findsOneWidget);
     expect(find.text('Nominal pinjaman'), findsOneWidget);
     expect(find.text('Tenor pinjaman'), findsOneWidget);
@@ -74,7 +79,6 @@ void main() {
     expect(find.text('Simulasi Cicilan'), findsOneWidget);
     expect(find.text('Estimasi cicilan per bulan'), findsOneWidget);
     expect(find.text('Ajukan pinjaman'), findsOneWidget);
-    expect(find.text('Multi-Simpanan'), findsNothing);
     expect(find.text('Approval Workflow'), findsNothing);
   });
 
