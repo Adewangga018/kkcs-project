@@ -29,7 +29,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "Pengurus"));
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FlutterDevelopment", policy =>
@@ -127,6 +130,36 @@ app.MapGet("/api/auth/me", async (ClaimsPrincipal principal, KkcsDbContext db) =
         : Results.Ok(ToUserResponse(pengguna));
 }).RequireAuthorization();
 
+app.MapGet("/api/admin/pengguna", async (KkcsDbContext db) =>
+    Results.Ok(await db.Pengguna.AsNoTracking()
+        .OrderBy(pengguna => pengguna.NamaLengkap)
+        .Select(pengguna => new AdminUserResponse(
+            pengguna.Id,
+            pengguna.NamaLengkap,
+            pengguna.NomorIndukKaryawan,
+            pengguna.Email,
+            pengguna.Peran,
+            pengguna.Aktif,
+            pengguna.DibuatPada))
+        .ToListAsync()))
+    .RequireAuthorization("AdminOnly");
+
+app.MapPatch("/api/admin/pengguna/{id:int}/status", async (int id, ToggleUserStatusRequest request, KkcsDbContext db) =>
+{
+    var pengguna = await db.Pengguna.FirstOrDefaultAsync(item => item.Id == id);
+    if (pengguna is null) return Results.NotFound();
+    pengguna.Aktif = request.Aktif;
+    await db.SaveChangesAsync();
+    return Results.Ok(new AdminUserResponse(
+        pengguna.Id,
+        pengguna.NamaLengkap,
+        pengguna.NomorIndukKaryawan,
+        pengguna.Email,
+        pengguna.Peran,
+        pengguna.Aktif,
+        pengguna.DibuatPada));
+}).RequireAuthorization("AdminOnly");
+
 app.MapPut("/api/auth/profile", async (ClaimsPrincipal principal, ProfileRequest request, KkcsDbContext db) =>
 {
     var pengguna = await FindCurrentUser(principal, db);
@@ -191,6 +224,81 @@ app.MapPost("/api/auth/profile/photo", async (ClaimsPrincipal principal, IFormFi
     await db.SaveChangesAsync();
     return Results.Ok(ToUserResponse(pengguna));
 }).RequireAuthorization().DisableAntiforgery();
+
+app.MapGet("/api/produk", async (KkcsDbContext db) =>
+    Results.Ok(await db.Produk.AsNoTracking().Where(produk => produk.Aktif).OrderByDescending(produk => produk.DiperbaruiPada).ThenBy(produk => produk.Nama).ToListAsync()))
+    .RequireAuthorization();
+
+app.MapGet("/api/simpanan/jenis", async (KkcsDbContext db) =>
+    Results.Ok(await db.JenisSimpanan.AsNoTracking().Where(jenis => jenis.Aktif).OrderBy(jenis => jenis.Id).ToListAsync()))
+    .RequireAuthorization();
+
+app.MapGet("/api/simpanan/saya", async (ClaimsPrincipal principal, KkcsDbContext db) =>
+{
+    var pengguna = await FindCurrentUser(principal, db);
+    return pengguna is null
+        ? Results.Unauthorized()
+        : Results.Ok(await db.Simpanan.AsNoTracking().Include(simpanan => simpanan.JenisSimpanan)
+            .Where(simpanan => simpanan.PenggunaId == pengguna.Id && simpanan.Aktif)
+            .OrderBy(simpanan => simpanan.JenisSimpananId).ToListAsync());
+}).RequireAuthorization();
+
+app.MapPost("/api/pinjaman", async (ClaimsPrincipal principal, PengajuanPinjamanRequest request, KkcsDbContext db) =>
+{
+    var pengguna = await FindCurrentUser(principal, db);
+    if (pengguna is null) return Results.Unauthorized();
+    if (request.Nominal <= 0 || request.TenorBulan <= 0 || string.IsNullOrWhiteSpace(request.Tujuan))
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["pinjaman"] = ["Nominal, tenor, dan tujuan pinjaman wajib diisi dengan benar."]
+        });
+    }
+
+    const decimal bungaBulanan = 0.01m;
+    var pengajuan = new PengajuanPinjaman
+    {
+        PenggunaId = pengguna.Id,
+        NomorPengajuan = $"PLJ-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+        Nominal = request.Nominal,
+        TenorBulan = request.TenorBulan,
+        BungaBulanan = bungaBulanan,
+        EstimasiCicilanBulanan = Math.Round((request.Nominal / request.TenorBulan) + (request.Nominal * bungaBulanan), 2),
+        Tujuan = request.Tujuan.Trim(),
+        Status = "Diajukan"
+    };
+    db.PengajuanPinjaman.Add(pengajuan);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/pinjaman/{pengajuan.Id}", pengajuan);
+}).RequireAuthorization();
+
+app.MapGet("/api/erat/agenda", async (KkcsDbContext db) =>
+    Results.Ok(await db.EratAgenda.AsNoTracking().Include(agenda => agenda.Opsi)
+        .Where(agenda => agenda.Status == "Aktif").OrderByDescending(agenda => agenda.MulaiPada).ToListAsync()))
+    .RequireAuthorization();
+
+app.MapPost("/api/erat/agenda/{agendaId:int}/suara", async (int agendaId, ClaimsPrincipal principal, EratVoteRequest request, KkcsDbContext db) =>
+{
+    var pengguna = await FindCurrentUser(principal, db);
+    if (pengguna is null) return Results.Unauthorized();
+    var agenda = await db.EratAgenda.AsNoTracking().FirstOrDefaultAsync(item => item.Id == agendaId && item.Status == "Aktif");
+    if (agenda is null) return Results.NotFound(new { message = "Agenda E-RAT tidak aktif atau tidak ditemukan." });
+    var opsi = await db.EratOpsi.AsNoTracking().FirstOrDefaultAsync(item => item.Id == request.OpsiId && item.EratAgendaId == agendaId);
+    if (opsi is null) return Results.BadRequest(new { message = "Pilihan voting tidak valid." });
+    if (await db.EratSuara.AnyAsync(suara => suara.EratAgendaId == agendaId && suara.PenggunaId == pengguna.Id))
+    {
+        return Results.Conflict(new { message = "Anda sudah memberikan suara pada agenda ini." });
+    }
+
+    db.EratSuara.Add(new EratSuara { EratAgendaId = agendaId, EratOpsiId = opsi.Id, PenggunaId = pengguna.Id });
+    await db.SaveChangesAsync();
+    return Results.Ok(new { message = "Suara berhasil dicatat." });
+}).RequireAuthorization();
+
+app.MapGet("/api/erat/laporan-tahunan", async (KkcsDbContext db) =>
+    Results.Ok(await db.LaporanTahunan.AsNoTracking().Where(laporan => laporan.Aktif)
+        .OrderByDescending(laporan => laporan.Tahun).ToListAsync()))
+    .RequireAuthorization();
 
 app.MapGet("/api/anggota", async (KkcsDbContext db) =>
     Results.Ok(await db.Anggota.AsNoTracking().OrderBy(anggota => anggota.NamaLengkap).ToListAsync()))
@@ -317,6 +425,7 @@ static UserResponse ToUserResponse(Pengguna pengguna) => new(
     pengguna.Id,
     pengguna.NamaLengkap,
     pengguna.NomorIndukKaryawan,
+    pengguna.Peran,
     pengguna.Email,
     pengguna.NomorTelepon,
     pengguna.Alamat,
@@ -345,6 +454,7 @@ record UserResponse(
     int Id,
     string NamaLengkap,
     string NomorIndukKaryawan,
+    string Peran,
     string? Email,
     string? NomorTelepon,
     string? Alamat,
@@ -353,3 +463,18 @@ record UserResponse(
 record AuthResponse(string Token, UserResponse User);
 
 record ProfileRequest(string NamaLengkap, string? Email, string? NomorTelepon, string? Alamat);
+
+record PengajuanPinjamanRequest(decimal Nominal, int TenorBulan, string Tujuan);
+
+record EratVoteRequest(int OpsiId);
+
+record ToggleUserStatusRequest(bool Aktif);
+
+record AdminUserResponse(
+    int Id,
+    string NamaLengkap,
+    string NomorIndukKaryawan,
+    string? Email,
+    string Peran,
+    bool Aktif,
+    DateTime DibuatPada);

@@ -153,6 +153,31 @@ class AuthService {
     return AuthUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<List<Map<String, dynamic>>> getProducts() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/produk'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> submitLoan({required double nominal, required int tenorBulan, required String tujuan}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/pinjaman'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'nominal': nominal,
+            'tenorBulan': tenorBulan,
+            'tujuan': tujuan.trim(),
+          }),
+        ));
+    _ensureSuccess(response);
+  }
+
   Future<void> logout() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_tokenKey);
@@ -1008,6 +1033,7 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
   final _amountController = TextEditingController(text: '10000000');
   final _purposeController = TextEditingController();
   int _tenor = 12;
+  bool _submittingLoan = false;
 
   @override
   void dispose() {
@@ -1029,13 +1055,33 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
     return 'Rp $withSeparators';
   }
 
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pengajuan pinjaman akan tersedia setelah API E-Loan diaktifkan.')),
-    );
+  Future<void> _submitLoan() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _submittingLoan = true);
+    try {
+      await AuthService().submitLoan(
+        nominal: _amount,
+        tenorBulan: _tenor,
+        tujuan: _purposeController.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pengajuan pinjaman berhasil dikirim.')),
+      );
+      _purposeController.clear();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submittingLoan = false);
+    }
   }
 
   void _showSavingsComingSoon(BuildContext context) {
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Pencatatan simpanan akan tersedia setelah API transaksi diaktifkan.')),
     );
@@ -1124,11 +1170,11 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
                 _InfoRow(label: 'Estimasi cicilan per bulan', value: _formatRupiah(_monthlyInstallment)),
                 const SizedBox(height: 10),
                 FilledButton.icon(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) _showComingSoon(context);
-                  },
-                  icon: const Icon(Icons.send_outlined),
-                  label: const Text('Ajukan pinjaman'),
+                  onPressed: _submittingLoan ? null : _submitLoan,
+                  icon: _submittingLoan
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.send_outlined),
+                  label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman'),
                 ),
               ],
             ),
@@ -1139,17 +1185,43 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
   }
 }
 
-class BusinessUnitPage extends StatelessWidget {
+class BusinessUnitPage extends StatefulWidget {
   const BusinessUnitPage({required this.session, super.key});
 
   final AuthSession session;
 
-  static const products = [
+  @override
+  State<BusinessUnitPage> createState() => _BusinessUnitPageState();
+}
+
+class _BusinessUnitPageState extends State<BusinessUnitPage> {
+  static const fallbackProducts = [
     _CatalogProduct('Beras Premium 5 kg', 'Rp 78.000', 'Tersedia', Icons.shopping_bag_outlined),
     _CatalogProduct('Minyak Goreng 2 L', 'Rp 36.500', 'Tersedia', Icons.local_drink_outlined),
     _CatalogProduct('Gula Pasir 1 kg', 'Rp 17.000', 'Stok terbatas', Icons.inventory_2_outlined),
     _CatalogProduct('Paket Sembako Hemat', 'Rp 125.000', 'Tersedia', Icons.local_mall_outlined),
   ];
+
+  List<_CatalogProduct> _products = fallbackProducts;
+  bool _loadingProducts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await AuthService().getProducts();
+      if (!mounted || products.isEmpty) return;
+      setState(() => _products = products.map(_CatalogProduct.fromJson).toList());
+    } catch (_) {
+      // Keep the local preview while the inventory API is unavailable.
+    } finally {
+      if (mounted) setState(() => _loadingProducts = false);
+    }
+  }
 
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1183,7 +1255,8 @@ class BusinessUnitPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            ...products.map((product) => _CatalogProductTile(product: product)),
+            if (_loadingProducts) const LinearProgressIndicator(minHeight: 2),
+            ..._products.map((product) => _CatalogProductTile(product: product)),
             const SizedBox(height: 8),
             Card(
               color: Theme.of(context).colorScheme.secondaryContainer,
@@ -1218,7 +1291,7 @@ class BusinessUnitPage extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
             ),
             const SizedBox(height: 8),
-            Text('Untuk ${session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
+            Text('Untuk ${widget.session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
       ),
@@ -1228,6 +1301,16 @@ class BusinessUnitPage extends StatelessWidget {
 
 class _CatalogProduct {
   const _CatalogProduct(this.name, this.price, this.availability, this.icon);
+
+  factory _CatalogProduct.fromJson(Map<String, dynamic> json) {
+    final stock = (json['stok'] as num?)?.toDouble() ?? 0;
+    return _CatalogProduct(
+      json['nama'] as String,
+      _formatCatalogPrice((json['harga'] as num?)?.toDouble() ?? 0),
+      stock > 0 ? (stock < 5 ? 'Stok terbatas' : 'Tersedia') : 'Stok belum tersedia',
+      Icons.shopping_bag_outlined,
+    );
+  }
 
   final String name;
   final String price;
@@ -1260,6 +1343,11 @@ class _CatalogProductTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatCatalogPrice(double value) {
+  final rounded = value.round().toString();
+  return 'Rp ${rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.')}';
 }
 
 class _ProfileAvatar extends StatelessWidget {

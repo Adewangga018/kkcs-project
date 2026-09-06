@@ -6,6 +6,8 @@ public class Pengguna
 
     public string NomorIndukKaryawan { get; set; } = string.Empty;
 
+    public string Peran { get; set; } = "Anggota";
+
     public string? Email { get; set; }
 
     public string? NomorTelepon { get; set; }

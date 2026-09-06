@@ -17,7 +17,8 @@ public class JwtTokenService(IConfiguration configuration)
         {
             new Claim(JwtRegisteredClaimNames.Sub, pengguna.Id.ToString()),
             new Claim("nik", pengguna.NomorIndukKaryawan),
-            new Claim(ClaimTypes.Name, pengguna.NamaLengkap)
+            new Claim(ClaimTypes.Name, pengguna.NamaLengkap),
+            new Claim(ClaimTypes.Role, pengguna.Peran)
         };
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
