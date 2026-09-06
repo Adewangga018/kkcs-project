@@ -45,8 +45,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseCors("FlutterDevelopment");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -168,7 +168,7 @@ app.MapPost("/api/auth/profile/photo", async (ClaimsPrincipal principal, IFormFi
     var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
     if (!allowedExtensions.Contains(extension) || !file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
     {
-        return Results.BadRequest(new { message = "Format foto harus JPG, PNG, atau WEBP." });
+        return Results.BadRequest(new { message = $"Format foto harus JPG, PNG, atau WEBP. File: {extension}, Content-Type: {file.ContentType}" });
     }
 
     var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
@@ -190,7 +190,7 @@ app.MapPost("/api/auth/profile/photo", async (ClaimsPrincipal principal, IFormFi
     pengguna.FotoUrl = $"/uploads/profile/{fileName}";
     await db.SaveChangesAsync();
     return Results.Ok(ToUserResponse(pengguna));
-}).RequireAuthorization();
+}).RequireAuthorization().DisableAntiforgery();
 
 app.MapGet("/api/anggota", async (KkcsDbContext db) =>
     Results.Ok(await db.Anggota.AsNoTracking().OrderBy(anggota => anggota.NamaLengkap).ToListAsync()))

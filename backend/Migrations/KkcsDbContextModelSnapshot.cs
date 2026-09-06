@@ -79,12 +79,19 @@ namespace backend.Migrations
                     b.Property<bool>("Aktif")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Alamat")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("DibuatPada")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("FotoUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("NamaLengkap")
                         .IsRequired()
@@ -93,6 +100,10 @@ namespace backend.Migrations
 
                     b.Property<string>("NomorIndukKaryawan")
                         .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("NomorTelepon")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 

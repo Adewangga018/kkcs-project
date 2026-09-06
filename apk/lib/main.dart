@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -182,10 +183,29 @@ class AuthService {
     final token = await _getToken();
     final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/auth/profile/photo'))
       ..headers['Authorization'] = 'Bearer $token';
-    request.files.add(http.MultipartFile.fromBytes('file', await photo.readAsBytes(), filename: photo.name));
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      await photo.readAsBytes(),
+      filename: photo.name,
+      contentType: _photoMediaType(photo),
+    ));
     final response = await http.Response.fromStream(await request.send());
     _ensureSuccess(response);
     return AuthUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  MediaType _photoMediaType(XFile photo) {
+    final mimeType = photo.mimeType;
+    if (mimeType != null && mimeType.startsWith('image/')) {
+      return MediaType.parse(mimeType);
+    }
+
+    final extension = photo.name.toLowerCase().split('.').last;
+    return switch (extension) {
+      'jpg' || 'jpeg' => MediaType('image', 'jpeg'),
+      'webp' => MediaType('image', 'webp'),
+      _ => MediaType('image', 'png'),
+    };
   }
 
   Future<String> _getToken() async {
@@ -286,7 +306,7 @@ class LandingPage extends StatelessWidget {
                   const _BrandMark(),
                   const SizedBox(height: 32),
                   Text(
-                    'Koperasi yang tumbuh\nbersama anggotanya.',
+                    'Layanan koperasi\ndalam satu ruang.',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           height: 1.05,
@@ -294,7 +314,7 @@ class LandingPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Selamat datang di KKCS. Kelola perjalanan koperasi Anda dalam satu ruang yang sederhana.',
+                    'Selamat datang di KKCS. Akses layanan anggota dengan mudah, transparan, dan terarah.',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.5,
@@ -484,7 +504,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: 'Buat akun KKCS',
-      subtitle: 'Daftarkan diri untuk mulai menggunakan layanan koperasi.',
+      subtitle: 'Daftarkan akun anggota untuk mengakses layanan koperasi.',
       child: Form(
         key: _formKey,
         child: Column(
@@ -582,45 +602,438 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Pilih modul untuk melanjutkan aktivitas koperasi Anda.',
+              'Akses layanan anggota dan transparansi koperasi dalam satu tempat.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
             ),
+            const SizedBox(height: 20),
+            const _TransparencyDashboard(),
             const SizedBox(height: 24),
-            Text('Modul KKCS', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            _ModuleTile(
-              icon: Icons.groups_outlined,
-              title: 'Manajemen Anggota & HR Integration',
-              subtitle: 'Anggota, HRIS, payroll, impor data, dan portal mandiri',
-              enabled: true,
+            _HomeAnnouncementCard(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => AccountPage(auth: auth, session: session)),
+                MaterialPageRoute(builder: (_) => EratPage(session: session)),
               ),
             ),
-            const _ModuleTile(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Simpan Pinjam Digital',
-              subtitle: 'Simpanan, pengajuan pinjaman, dan persetujuan',
-              enabled: false,
+            const SizedBox(height: 20),
+            const _LatestProductsPreview(),
+            const SizedBox(height: 24),
+            Text(
+              'Pilih layanan dari navigasi di bawah.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
             ),
-            const _ModuleTile(
-              icon: Icons.storefront_outlined,
-              title: 'Unit Usaha Tambahan',
-              subtitle: 'POS toko, PPOB, stok, dan supplier',
-              enabled: false,
+          ],
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          final pages = [
+            AccountPage(auth: auth, session: session),
+            DigitalSavingsLoanPage(session: session),
+            BusinessUnitPage(session: session),
+            EratPage(session: session),
+          ];
+          Navigator.push(context, MaterialPageRoute(builder: (_) => pages[index]));
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.groups_outlined), label: 'Anggota'),
+          NavigationDestination(icon: Icon(Icons.request_quote_outlined), label: 'E-Loan'),
+          NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
+          NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransparencyDashboard extends StatelessWidget {
+  const _TransparencyDashboard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: colors.primary,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            child: Row(
+              children: [
+                Icon(Icons.visibility_outlined, color: colors.onPrimary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Portal Mandiri Anggota',
+                        style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 17),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Dashboard transparansi keanggotaan Anda',
+                        style: TextStyle(color: colors.onPrimary.withValues(alpha: .82)),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.lock_open_outlined, color: colors.onPrimary.withValues(alpha: .8), size: 18),
+              ],
             ),
-            const _ModuleTile(
-              icon: Icons.analytics_outlined,
-              title: 'Akuntansi & Keuangan',
-              subtitle: 'Jurnal, laporan keuangan, dan kalkulator SHU',
-              enabled: false,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Ringkasan keuangan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 10),
+                Row(
+                  children: const [
+                    Expanded(child: _DashboardMetric(icon: Icons.savings_outlined, label: 'Total simpanan', value: 'Belum tersedia')),
+                    SizedBox(width: 10),
+                    Expanded(child: _DashboardMetric(icon: Icons.request_quote_outlined, label: 'Pinjaman aktif', value: 'Belum tersedia')),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: const [
+                    Expanded(child: _DashboardMetric(icon: Icons.payments_outlined, label: 'Cicilan berjalan', value: 'Belum tersedia')),
+                    SizedBox(width: 10),
+                    Expanded(child: _DashboardMetric(icon: Icons.auto_graph_outlined, label: 'Estimasi SHU', value: 'Belum tersedia')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.sync_outlined, size: 15, color: colors.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text('Pembaruan data: menunggu integrasi transaksi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+                  ],
+                ),
+              ],
             ),
-            const _ModuleTile(
-              icon: Icons.shield_outlined,
-              title: 'Keamanan & Tata Kelola Enterprise',
-              subtitle: 'Akses peran, E-RAT, dan audit trail',
-              enabled: false,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeAnnouncementCard extends StatelessWidget {
+  const _HomeAnnouncementCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      color: colors.tertiaryContainer,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: colors.tertiary,
+                child: Icon(Icons.campaign_outlined, color: colors.onTertiary),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pengumuman terbaru', style: TextStyle(fontWeight: FontWeight.w800)),
+                    SizedBox(height: 4),
+                    Text('Voting E-RAT akan segera dibuka. Lihat agenda dan berikan suara Anda.'),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LatestProductsPreview extends StatelessWidget {
+  const _LatestProductsPreview();
+
+  static const products = [
+    ('Beras Premium 5 kg', 'Rp 78.000', 'Tersedia'),
+    ('Minyak Goreng 2 L', 'Rp 36.500', 'Tersedia'),
+    ('Paket Sembako Hemat', 'Rp 125.000', 'Tersedia'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text('Produk terbaru', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            ),
+            Text('Katalog', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...products.map((product) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.shopping_bag_outlined)),
+                title: Text(product.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(product.$3),
+                trailing: Text(product.$2, style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            )),
+      ],
+    );
+  }
+}
+
+class _DashboardMetric extends StatelessWidget {
+  const _DashboardMetric({required this.icon, required this.label, required this.value});
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 82),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 19, color: colors.primary),
+          const SizedBox(height: 7),
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 3),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class EratPage extends StatefulWidget {
+  const EratPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<EratPage> createState() => _EratPageState();
+}
+
+class _EratPageState extends State<EratPage> {
+  String? _vote;
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Partisipasi E-RAT')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            Text(
+              'Rapat Anggota Tahunan Digital',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Gunakan hak suara dan akses laporan koperasi secara mandiri.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 20),
+            _AccountSectionCard(
+              icon: Icons.how_to_vote_outlined,
+              title: 'Voting Digital',
+              subtitle: 'Suara anggota aktif untuk keputusan penting koperasi.',
+              children: [
+                const _InfoRow(label: 'Agenda voting', value: 'Belum tersedia'),
+                const _InfoRow(label: 'Periode voting', value: 'Menunggu jadwal E-RAT'),
+                const SizedBox(height: 8),
+                RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  value: 'setuju',
+                  groupValue: _vote,
+                  title: const Text('Setuju'),
+                  onChanged: (value) => setState(() => _vote = value),
+                ),
+                RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  value: 'tolak',
+                  groupValue: _vote,
+                  title: const Text('Tolak'),
+                  onChanged: (value) => setState(() => _vote = value),
+                ),
+                FilledButton.icon(
+                  onPressed: _vote == null ? null : () => _showMessage('Voting akan tersedia saat periode E-RAT aktif.'),
+                  icon: const Icon(Icons.how_to_vote_outlined),
+                  label: const Text('Kirim suara'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _AccountSectionCard(
+              icon: Icons.description_outlined,
+              title: 'Laporan Tahunan',
+              subtitle: 'Dokumen operasional dan finansial koperasi.',
+              children: [
+                const _InfoRow(label: 'Laporan tahun terakhir', value: 'Belum tersedia'),
+                const _InfoRow(label: 'Format dokumen', value: 'PDF'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _showMessage('Laporan tahunan akan tersedia setelah dokumen diterbitkan.'),
+                  icon: const Icon(Icons.download_outlined),
+                  label: const Text('Unduh laporan tahunan'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('Akun: ${widget.session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DigitalSavingsLoanPage extends StatefulWidget {
+  const DigitalSavingsLoanPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<DigitalSavingsLoanPage> createState() => _DigitalSavingsLoanPageState();
+}
+
+class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController(text: '10000000');
+  final _purposeController = TextEditingController();
+  int _tenor = 12;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _purposeController.dispose();
+    super.dispose();
+  }
+
+  double get _amount => double.tryParse(_amountController.text.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+
+  double get _monthlyInstallment {
+    const monthlyRate = .01;
+    return _amount <= 0 ? 0 : (_amount / _tenor) + (_amount * monthlyRate);
+  }
+
+  String _formatRupiah(double value) {
+    final rounded = value.round().toString();
+    final withSeparators = rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.');
+    return 'Rp $withSeparators';
+  }
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pengajuan pinjaman akan tersedia setelah API E-Loan diaktifkan.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Pengajuan Pinjaman (E-Loan)')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            Text(
+              'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Ajukan pinjaman secara paperless dan simulasikan cicilan sebelum mengirim pengajuan.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 20),
+            _AccountSectionCard(
+              icon: Icons.request_quote_outlined,
+              title: 'Pengajuan Pinjaman / E-Loan',
+              subtitle: 'Lengkapi formulir pengajuan pinjaman baru.',
+              children: [
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextFormField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Nominal pinjaman', prefixText: 'Rp '),
+                        onChanged: (_) => setState(() {}),
+                        validator: (value) => _amount > 0 ? null : 'Nominal pinjaman wajib diisi',
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        value: _tenor,
+                        decoration: const InputDecoration(labelText: 'Tenor pinjaman'),
+                        items: [6, 12, 18, 24, 36].map((month) => DropdownMenuItem(value: month, child: Text('$month bulan'))).toList(),
+                        onChanged: (value) => setState(() => _tenor = value ?? 12),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _purposeController,
+                        maxLines: 2,
+                        decoration: const InputDecoration(labelText: 'Tujuan pinjaman'),
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Tujuan pinjaman wajib diisi' : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _AccountSectionCard(
+              icon: Icons.calculate_outlined,
+              title: 'Simulasi Cicilan',
+              subtitle: 'Estimasi menggunakan bunga flat 1% per bulan.',
+              children: [
+                _InfoRow(label: 'Pokok pinjaman', value: _formatRupiah(_amount)),
+                _InfoRow(label: 'Tenor', value: '$_tenor bulan'),
+                _InfoRow(label: 'Estimasi cicilan per bulan', value: _formatRupiah(_monthlyInstallment)),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) _showComingSoon(context);
+                  },
+                  icon: const Icon(Icons.send_outlined),
+                  label: const Text('Ajukan pinjaman'),
+                ),
+              ],
             ),
           ],
         ),
@@ -629,44 +1042,124 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _ModuleTile extends StatelessWidget {
-  const _ModuleTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.enabled,
-    this.onTap,
-  });
+class BusinessUnitPage extends StatelessWidget {
+  const BusinessUnitPage({required this.session, super.key});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool enabled;
-  final VoidCallback? onTap;
+  final AuthSession session;
+
+  static const products = [
+    _CatalogProduct('Beras Premium 5 kg', 'Rp 78.000', 'Tersedia', Icons.shopping_bag_outlined),
+    _CatalogProduct('Minyak Goreng 2 L', 'Rp 36.500', 'Tersedia', Icons.local_drink_outlined),
+    _CatalogProduct('Gula Pasir 1 kg', 'Rp 17.000', 'Stok terbatas', Icons.inventory_2_outlined),
+    _CatalogProduct('Paket Sembako Hemat', 'Rp 125.000', 'Tersedia', Icons.local_mall_outlined),
+  ];
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Digital Ordering akan tersedia pada tahap berikutnya.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Katalog Produk Koperasi')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            Text(
+              'Katalog Produk Koperasi',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Lihat harga dan ketersediaan barang sebelum datang ke toko koperasi.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.visibility_outlined, size: 15, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 6),
+                const Text('Mode lihat saja', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ...products.map((product) => _CatalogProductTile(product: product)),
+            const SizedBox(height: 8),
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.shopping_cart_outlined, color: Theme.of(context).colorScheme.onSecondaryContainer),
+                        const SizedBox(width: 10),
+                        const Expanded(child: Text('Digital Ordering', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                        const Icon(Icons.lock_outline, size: 18),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Pilih barang, checkout dari smartphone, dan pembayaran langsung terhubung dengan saldo simpanan atau limit cicilan.'),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => _showComingSoon(context),
+                      icon: const Icon(Icons.arrow_forward_outlined),
+                      label: const Text('Pelajari tahap berikutnya'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Data katalog terakhir diperbarui oleh koperasi. Hubungi toko jika informasi stok berbeda saat kunjungan.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            Text('Untuk ${session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CatalogProduct {
+  const _CatalogProduct(this.name, this.price, this.availability, this.icon);
+
+  final String name;
+  final String price;
+  final String availability;
+  final IconData icon;
+}
+
+class _CatalogProductTile extends StatelessWidget {
+  const _CatalogProductTile({required this.product});
+
+  final _CatalogProduct product;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLimited = product.availability == 'Stok terbatas';
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      color: enabled ? null : colorScheme.surfaceContainerHighest.withValues(alpha: .45),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         leading: CircleAvatar(
-          backgroundColor: enabled ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest,
-          child: Icon(icon, color: enabled ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant),
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(product.icon),
         ),
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: enabled ? null : Colors.black54)),
+        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(subtitle),
+          padding: const EdgeInsets.only(top: 5),
+          child: Text(product.availability, style: TextStyle(color: isLimited ? Colors.orange.shade800 : Colors.green.shade700)),
         ),
-        trailing: Icon(enabled ? Icons.arrow_forward_ios : Icons.lock_outline, size: 17),
-        onTap: enabled
-            ? onTap
-            : () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Modul ini akan segera tersedia.')),
-                ),
+        trailing: Text(product.price, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
     );
   }
@@ -942,28 +1435,6 @@ class _AccountPageState extends State<AccountPage> {
               addressController: _addressController,
               saving: _savingProfile,
               onSave: _saveProfile,
-            ),
-            const SizedBox(height: 16),
-            _AccountSectionCard(
-              icon: Icons.payments_outlined,
-              title: 'Laporan Potong Gaji',
-              subtitle: 'Ringkasan kewajiban bulanan untuk HR atau Keuangan.',
-              children: const [
-                _InfoRow(label: 'Simpanan wajib bulan ini', value: 'Belum tersedia'),
-                _InfoRow(label: 'Cicilan pinjaman bulan ini', value: 'Belum tersedia'),
-                _InfoRow(label: 'Status laporan', value: 'Menunggu periode berjalan'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _AccountSectionCard(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Portal Mandiri Anggota',
-              subtitle: 'Pantau kondisi keanggotaan Anda secara mandiri.',
-              children: const [
-                _InfoRow(label: 'Total saldo simpanan', value: 'Belum tersedia'),
-                _InfoRow(label: 'Riwayat pinjaman', value: 'Belum tersedia'),
-                _InfoRow(label: 'Estimasi SHU', value: 'Belum tersedia'),
-              ],
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
