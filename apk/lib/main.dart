@@ -585,9 +585,16 @@ class HomePage extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => AccountPage(auth: auth, session: session)),
+              MaterialPageRoute(
+                builder: (_) => _ServiceShell(
+                  auth: auth,
+                  session: session,
+                  selectedIndex: 0,
+                  child: AccountPage(auth: auth, session: session),
+                ),
+              ),
             ),
-            icon: const Icon(Icons.account_circle_outlined),
+            icon: _ProfileAvatar(user: session.user, radius: 16),
             tooltip: 'Akun saya',
           ),
         ],
@@ -628,22 +635,88 @@ class HomePage extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
         onDestinationSelected: (index) {
-          final pages = [
-            AccountPage(auth: auth, session: session),
-            DigitalSavingsLoanPage(session: session),
-            BusinessUnitPage(session: session),
-            EratPage(session: session),
-          ];
-          Navigator.push(context, MaterialPageRoute(builder: (_) => pages[index]));
+          if (index == 0) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => _ServiceShell(
+                auth: auth,
+                session: session,
+                selectedIndex: index,
+                child: _servicePage(index),
+              ),
+            ),
+          );
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.groups_outlined), label: 'Anggota'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
           NavigationDestination(icon: Icon(Icons.request_quote_outlined), label: 'E-Loan'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
           NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
         ],
       ),
     );
+  }
+
+  Widget _servicePage(int index) {
+    return switch (index) {
+      1 => DigitalSavingsLoanPage(session: session),
+      2 => BusinessUnitPage(session: session),
+      3 => EratPage(session: session),
+      _ => AccountPage(auth: auth, session: session),
+    };
+  }
+}
+
+class _ServiceShell extends StatelessWidget {
+  const _ServiceShell({required this.auth, required this.session, required this.selectedIndex, required this.child});
+
+  final AuthService auth;
+  final AuthSession session;
+  final int selectedIndex;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) {
+          if (index == 0) {
+            Navigator.pop(context);
+            return;
+          }
+          if (index == selectedIndex) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => _ServiceShell(
+                auth: auth,
+                session: session,
+                selectedIndex: index,
+                child: _servicePage(index),
+              ),
+            ),
+          );
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
+          NavigationDestination(icon: Icon(Icons.request_quote_outlined), label: 'E-Loan'),
+          NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
+          NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
+        ],
+      ),
+    );
+  }
+
+  Widget _servicePage(int index) {
+    return switch (index) {
+      1 => DigitalSavingsLoanPage(session: session),
+      2 => BusinessUnitPage(session: session),
+      3 => EratPage(session: session),
+      _ => AccountPage(auth: auth, session: session),
+    };
   }
 }
 

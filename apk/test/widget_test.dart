@@ -21,7 +21,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: HomePage(auth: AuthService(), session: session)));
 
     expect(find.text('Beranda KKCS'), findsOneWidget);
-    expect(find.byIcon(Icons.account_circle_outlined), findsOneWidget);
+    expect(find.byTooltip('Akun saya'), findsOneWidget);
     expect(find.text('Portal Mandiri Anggota'), findsOneWidget);
     expect(find.text('Ringkasan keuangan'), findsOneWidget);
     expect(find.text('Total simpanan'), findsOneWidget);
@@ -33,7 +33,7 @@ void main() {
     expect(find.text('Minyak Goreng 2 L'), findsOneWidget);
     await tester.drag(find.byType(ListView), const Offset(0, -360));
     await tester.pump();
-    expect(find.text('Anggota'), findsOneWidget);
+    expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('E-Loan'), findsOneWidget);
     expect(find.text('Katalog'), findsNWidgets(2));
     expect(find.text('E-RAT'), findsOneWidget);
