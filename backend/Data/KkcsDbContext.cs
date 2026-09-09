@@ -8,11 +8,19 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 	public DbSet<Simpanan> Simpanan => Set<Simpanan>();
 	public DbSet<MutasiSimpanan> MutasiSimpanan => Set<MutasiSimpanan>();
 	public DbSet<PengajuanPinjaman> PengajuanPinjaman => Set<PengajuanPinjaman>();
+	public DbSet<Pinjaman> Pinjaman => Set<Pinjaman>();
+	public DbSet<AngsuranPinjaman> AngsuranPinjaman => Set<AngsuranPinjaman>();
+	public DbSet<PembayaranPinjaman> PembayaranPinjaman => Set<PembayaranPinjaman>();
 	public DbSet<Produk> Produk => Set<Produk>();
 	public DbSet<EratAgenda> EratAgenda => Set<EratAgenda>();
 	public DbSet<EratOpsi> EratOpsi => Set<EratOpsi>();
 	public DbSet<EratSuara> EratSuara => Set<EratSuara>();
 	public DbSet<LaporanTahunan> LaporanTahunan => Set<LaporanTahunan>();
+	public DbSet<KonfigurasiKoperasi> KonfigurasiKoperasi => Set<KonfigurasiKoperasi>();
+	public DbSet<TagihanWajib> TagihanWajib => Set<TagihanWajib>();
+	public DbSet<TransaksiSukarela> TransaksiSukarela => Set<TransaksiSukarela>();
+	public DbSet<ProdukBerjangka> ProdukBerjangka => Set<ProdukBerjangka>();
+	public DbSet<SimpananBerjangka> SimpananBerjangka => Set<SimpananBerjangka>();
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -34,6 +42,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(pengguna => pengguna.NamaLengkap).HasMaxLength(150).IsRequired();
 			entity.Property(pengguna => pengguna.NomorIndukKaryawan).HasMaxLength(30).IsRequired();
 			entity.Property(pengguna => pengguna.Peran).HasMaxLength(30).IsRequired().HasDefaultValue("Anggota");
+			entity.Property(pengguna => pengguna.StatusKeanggotaan).HasMaxLength(30).IsRequired().HasDefaultValue("Aktif");
 			entity.Property(pengguna => pengguna.Email).HasMaxLength(150);
 			entity.Property(pengguna => pengguna.NomorTelepon).HasMaxLength(30);
 			entity.Property(pengguna => pengguna.FotoUrl).HasMaxLength(300);
@@ -80,10 +89,55 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.HasIndex(item => item.NomorPengajuan).IsUnique();
 			entity.Property(item => item.NomorPengajuan).HasMaxLength(40).IsRequired();
 			entity.Property(item => item.Nominal).HasPrecision(18, 2);
-			entity.Property(item => item.BungaBulanan).HasPrecision(5, 4);
+			entity.Property(item => item.BungaTahunan).HasPrecision(5, 4);
 			entity.Property(item => item.EstimasiCicilanBulanan).HasPrecision(18, 2);
+			entity.Property(item => item.EstimasiTotalJasa).HasPrecision(18, 2);
 			entity.Property(item => item.Tujuan).HasMaxLength(500).IsRequired();
 			entity.Property(item => item.Status).HasMaxLength(30).IsRequired();
+			entity.Property(item => item.CatatanReview).HasMaxLength(500);
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
+		});
+
+		modelBuilder.Entity<Pinjaman>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.NomorPinjaman).IsUnique();
+			entity.Property(item => item.NomorPinjaman).HasMaxLength(40).IsRequired();
+			entity.Property(item => item.Pokok).HasPrecision(18, 2);
+			entity.Property(item => item.BungaTahunan).HasPrecision(5, 4);
+			entity.Property(item => item.PokokPerBulan).HasPrecision(18, 2);
+			entity.Property(item => item.JasaPerBulan).HasPrecision(18, 2);
+			entity.Property(item => item.AngsuranPerBulan).HasPrecision(18, 2);
+			entity.Property(item => item.SisaPokok).HasPrecision(18, 2);
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
+			entity.HasOne(item => item.Pengajuan).WithOne(item => item.Pinjaman).HasForeignKey<Pinjaman>(item => item.PengajuanPinjamanId).OnDelete(DeleteBehavior.Restrict);
+		});
+
+		modelBuilder.Entity<AngsuranPinjaman>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.PinjamanId, item.AngsuranKe });
+			entity.Property(item => item.Pokok).HasPrecision(18, 2);
+			entity.Property(item => item.Jasa).HasPrecision(18, 2);
+			entity.Property(item => item.Total).HasPrecision(18, 2);
+			entity.Property(item => item.JumlahDibayar).HasPrecision(18, 2);
+			entity.Property(item => item.Jenis).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.HasOne(item => item.Pinjaman).WithMany(item => item.Angsuran).HasForeignKey(item => item.PinjamanId).OnDelete(DeleteBehavior.Cascade);
+		});
+
+		modelBuilder.Entity<PembayaranPinjaman>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.PinjamanId, item.Status });
+			entity.Property(item => item.Jenis).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.JumlahDiajukan).HasPrecision(18, 2);
+			entity.Property(item => item.JasaDibebaskan).HasPrecision(18, 2);
+			entity.Property(item => item.Catatan).HasMaxLength(500);
+			entity.Property(item => item.CatatanReview).HasMaxLength(500);
+			entity.HasOne(item => item.Pinjaman).WithMany().HasForeignKey(item => item.PinjamanId).OnDelete(DeleteBehavior.Cascade);
 			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
 		});
 
@@ -132,6 +186,63 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.HasIndex(item => item.Tahun).IsUnique();
 			entity.Property(item => item.Judul).HasMaxLength(200).IsRequired();
 			entity.Property(item => item.FileUrl).HasMaxLength(500).IsRequired();
+		});
+
+		modelBuilder.Entity<KonfigurasiKoperasi>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.Property(item => item.SimpananPokokNominal).HasPrecision(18, 2);
+			entity.Property(item => item.SimpananWajibNominal).HasPrecision(18, 2);
+			entity.HasData(new KonfigurasiKoperasi
+			{
+				Id = 1,
+				SimpananPokokNominal = 100_000m,
+				SimpananWajibNominal = 50_000m,
+				TanggalTagihWajib = 25,
+				DiperbaruiPada = new DateTime(2026, 1, 1)
+			});
+		});
+
+		modelBuilder.Entity<TagihanWajib>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.PenggunaId, item.Periode }).IsUnique();
+			entity.Property(item => item.Periode).HasMaxLength(7).IsRequired();
+			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.CatatanReview).HasMaxLength(500);
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Cascade);
+		});
+
+		modelBuilder.Entity<TransaksiSukarela>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.PenggunaId, item.Status });
+			entity.Property(item => item.Jenis).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+			entity.Property(item => item.Catatan).HasMaxLength(500);
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.CatatanReview).HasMaxLength(500);
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Cascade);
+		});
+
+		modelBuilder.Entity<ProdukBerjangka>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.Property(item => item.Nama).HasMaxLength(150).IsRequired();
+			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+		});
+
+		modelBuilder.Entity<SimpananBerjangka>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.NomorSertifikat).IsUnique();
+			entity.Property(item => item.NomorSertifikat).HasMaxLength(40).IsRequired();
+			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.CatatanReview).HasMaxLength(500);
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Cascade);
+			entity.HasOne(item => item.Produk).WithMany(item => item.SimpananBerjangka).HasForeignKey(item => item.ProdukBerjangkaId).OnDelete(DeleteBehavior.Restrict);
 		});
 	}
 }

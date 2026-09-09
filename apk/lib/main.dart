@@ -44,6 +44,7 @@ class AuthUser {
     required this.id,
     required this.namaLengkap,
     required this.nomorIndukKaryawan,
+    required this.statusKeanggotaan,
     this.email,
     this.nomorTelepon,
     this.alamat,
@@ -53,16 +54,20 @@ class AuthUser {
   final int id;
   final String namaLengkap;
   final String nomorIndukKaryawan;
+  final String statusKeanggotaan;
   final String? email;
   final String? nomorTelepon;
   final String? alamat;
   final String? fotoUrl;
+
+  bool get anggotaAktif => statusKeanggotaan == 'Aktif';
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
       id: json['id'] as int,
       namaLengkap: json['namaLengkap'] as String,
       nomorIndukKaryawan: json['nomorIndukKaryawan'] as String,
+      statusKeanggotaan: json['statusKeanggotaan'] as String? ?? 'Aktif',
       email: json['email'] as String?,
       nomorTelepon: json['nomorTelepon'] as String?,
       alamat: json['alamat'] as String?,
@@ -174,6 +179,58 @@ class AuthService {
             'tenorBulan': tenorBulan,
             'tujuan': tujuan.trim(),
           }),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<LoanOverview> fetchMyLoans() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/pinjaman/saya'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return LoanOverview.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// [jenis] = 'Angsuran' atau 'Pelunasan'. Diajukan anggota, disetujui pengurus.
+  Future<void> requestLoanPayment({required int loanId, required String jenis}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/pinjaman/$loanId/pembayaran'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'jenis': jenis}),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<SavingsOverview> fetchSavings() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/simpanan/saya'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return SavingsOverview.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// [jenis] = 'Setor' atau 'Tarik'.
+  Future<void> requestSukarela({required String jenis, required double nominal}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/simpanan/sukarela'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'jenis': jenis, 'nominal': nominal}),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<void> requestBerjangka({required int produkId}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/simpanan/berjangka'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'produkBerjangkaId': produkId}),
         ));
     _ensureSuccess(response);
   }
@@ -603,6 +660,9 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!session.user.anggotaAktif) {
+      return MembershipStatusPage(auth: auth, user: session.user);
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Beranda KKCS'),
@@ -1019,21 +1079,59 @@ class _EratPageState extends State<EratPage> {
   }
 }
 
-class DigitalSavingsLoanPage extends StatefulWidget {
+class DigitalSavingsLoanPage extends StatelessWidget {
   const DigitalSavingsLoanPage({required this.session, super.key});
 
   final AuthSession session;
 
   @override
-  State<DigitalSavingsLoanPage> createState() => _DigitalSavingsLoanPageState();
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Simpanan & Pinjaman Digital'),
+          bottom: const TabBar(tabs: [
+            Tab(icon: Icon(Icons.savings_outlined), text: 'Simpanan'),
+            Tab(icon: Icon(Icons.request_quote_outlined), text: 'Pinjaman'),
+          ]),
+        ),
+        body: SafeArea(
+          child: TabBarView(children: [
+            SavingsTab(session: session),
+            LoanTab(session: session),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
-class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
+class LoanTab extends StatefulWidget {
+  const LoanTab({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<LoanTab> createState() => _LoanTabState();
+}
+
+class _LoanTabState extends State<LoanTab> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController(text: '10000000');
   final _purposeController = TextEditingController();
   int _tenor = 12;
   bool _submittingLoan = false;
+  bool _loadingLoans = true;
+  String? _loansError;
+  LoanOverview? _overview;
+  int? _paymentBusyLoanId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoans();
+  }
 
   @override
   void dispose() {
@@ -1044,15 +1142,60 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
 
   double get _amount => double.tryParse(_amountController.text.replaceAll('.', '').replaceAll(',', '')) ?? 0;
 
-  double get _monthlyInstallment {
-    const monthlyRate = .01;
-    return _amount <= 0 ? 0 : (_amount / _tenor) + (_amount * monthlyRate);
+  LoanInstallmentBreakdown get _breakdown => LoanInstallmentBreakdown.compute(_amount, _tenor);
+
+  Future<void> _loadLoans() async {
+    setState(() {
+      _loadingLoans = true;
+      _loansError = null;
+    });
+    try {
+      final overview = await AuthService().fetchMyLoans();
+      if (!mounted) return;
+      setState(() => _overview = overview);
+    } catch (error) {
+      if (mounted) setState(() => _loansError = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loadingLoans = false);
+    }
   }
 
-  String _formatRupiah(double value) {
-    final rounded = value.round().toString();
-    final withSeparators = rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.');
-    return 'Rp $withSeparators';
+  Future<void> _requestPayment(Loan loan, String jenis) async {
+    final isPayoff = jenis == 'Pelunasan';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(isPayoff ? 'Ajukan pelunasan dipercepat' : 'Ajukan pembayaran angsuran'),
+        content: Text(isPayoff
+            ? 'Anda akan mengajukan pelunasan pinjaman ${loan.nomorPinjaman} sebesar ${formatRupiah(loan.nilaiPelunasanDipercepat)} (sisa pokok). '
+                'Jasa ${formatRupiah(loan.jasaDibebaskan)} dibebaskan. Pengajuan diverifikasi pengurus terlebih dahulu.'
+            : 'Anda akan mengajukan pembayaran 1 angsuran ${loan.nomorPinjaman} sebesar ${formatRupiah(loan.angsuranPerBulan)}. '
+                'Pengajuan diverifikasi pengurus terlebih dahulu.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ajukan')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _paymentBusyLoanId = loan.id);
+    try {
+      await AuthService().requestLoanPayment(loanId: loan.id, jenis: jenis);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pengajuan terkirim. Menunggu persetujuan pengurus.')),
+      );
+      await _loadLoans();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _paymentBusyLoanId = null);
+    }
   }
 
   Future<void> _submitLoan() async {
@@ -1066,9 +1209,10 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pengajuan pinjaman berhasil dikirim.')),
+        const SnackBar(content: Text('Pengajuan pinjaman berhasil dikirim. Menunggu persetujuan pengurus.')),
       );
       _purposeController.clear();
+      await _loadLoans();
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1080,106 +1224,372 @@ class _DigitalSavingsLoanPageState extends State<DigitalSavingsLoanPage> {
     }
   }
 
-  void _showSavingsComingSoon(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    final overview = _overview;
+    final activeLoans = overview?.pinjaman.where((loan) => !loan.lunas).toList() ?? const <Loan>[];
+    final settledLoans = overview?.pinjaman.where((loan) => loan.lunas).toList() ?? const <Loan>[];
+    final pendingApplications = overview?.pengajuan.where((item) => item.status == 'Diajukan').toList() ?? const <LoanApplication>[];
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pencatatan simpanan akan tersedia setelah API transaksi diaktifkan.')),
-    );
+    return RefreshIndicator(
+          onRefresh: _loadLoans,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              Text(
+                'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Ajukan pinjaman, bayar angsuran, dan pelunasan dipercepat secara paperless.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+              if (_loadingLoans) const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+              if (_loansError != null) Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(_loansError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ),
+              for (final loan in activeLoans) ...[
+                _ActiveLoanCard(
+                  loan: loan,
+                  busy: _paymentBusyLoanId == loan.id,
+                  onRequestPayment: (jenis) => _requestPayment(loan, jenis),
+                ),
+                const SizedBox(height: 16),
+              ],
+              for (final application in pendingApplications) ...[
+                _PendingApplicationCard(application: application),
+                const SizedBox(height: 16),
+              ],
+              _AccountSectionCard(
+                icon: Icons.request_quote_outlined,
+                title: 'Pengajuan Pinjaman / E-Loan',
+                subtitle: 'Lengkapi formulir pengajuan pinjaman baru.',
+                children: [
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _amountController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Nominal pinjaman', prefixText: 'Rp '),
+                          onChanged: (_) => setState(() {}),
+                          validator: (value) => _amount > 0 ? null : 'Nominal pinjaman wajib diisi',
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          value: _tenor,
+                          decoration: const InputDecoration(labelText: 'Tenor pinjaman'),
+                          items: kLoanAnnualRates.entries
+                              .map((entry) => DropdownMenuItem(
+                                    value: entry.key,
+                                    child: Text('${entry.key ~/ 12} tahun (${entry.key} bln) — jasa ${(entry.value * 100).toStringAsFixed(2)}%/th'),
+                                  ))
+                              .toList(),
+                          onChanged: (value) => setState(() => _tenor = value ?? 12),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _purposeController,
+                          maxLines: 2,
+                          decoration: const InputDecoration(labelText: 'Tujuan pinjaman'),
+                          validator: (value) => value == null || value.trim().isEmpty ? 'Tujuan pinjaman wajib diisi' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _AccountSectionCard(
+                icon: Icons.calculate_outlined,
+                title: 'Simulasi Cicilan',
+                subtitle: 'Skema KKCS: jasa flat ${(kLoanAnnualRates[_tenor]! * 100).toStringAsFixed(2)}% per tahun untuk tenor ini.',
+                children: [
+                  _InfoRow(label: 'Pokok pinjaman', value: formatRupiah(_amount)),
+                  _InfoRow(label: 'Tenor', value: '$_tenor bulan'),
+                  const Divider(height: 20),
+                  _InfoRow(label: 'Pokok / bulan', value: formatRupiah(_breakdown.principalPerMonth)),
+                  _InfoRow(label: 'Jasa / bulan', value: formatRupiah(_breakdown.interestPerMonth)),
+                  _InfoRow(label: 'Cicilan / bulan', value: formatRupiah(_breakdown.installmentPerMonth)),
+                  const Divider(height: 20),
+                  _InfoRow(label: 'Total jasa ($_tenor bln)', value: formatRupiah(_breakdown.totalInterest)),
+                  _InfoRow(label: 'Total pembayaran', value: formatRupiah(_breakdown.totalPayment)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Jika dilunasi sebelum tenor berakhir, Anda cukup membayar sisa pokok — jasa bulan berikutnya tidak dibebankan.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: _submittingLoan ? null : _submitLoan,
+                    icon: _submittingLoan
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.send_outlined),
+                    label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman'),
+                  ),
+                ],
+              ),
+              if (settledLoans.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _AccountSectionCard(
+                  icon: Icons.verified_outlined,
+                  title: 'Riwayat pinjaman lunas',
+                  subtitle: 'Pinjaman yang sudah selesai.',
+                  children: [
+                    for (final loan in settledLoans)
+                      _InfoRow(label: loan.nomorPinjaman, value: '${formatRupiah(loan.pokok)} · Lunas'),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
   }
+}
+
+class _PendingApplicationCard extends StatelessWidget {
+  const _PendingApplicationCard({required this.application});
+
+  final LoanApplication application;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Simpanan & Pinjaman Digital')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      color: colors.surfaceContainerHighest.withValues(alpha: .5),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Catat simpanan dan ajukan pinjaman secara paperless dari satu halaman.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-            ),
-            const SizedBox(height: 20),
-            _AccountSectionCard(
-              icon: Icons.savings_outlined,
-              title: 'Multi-Simpanan',
-              subtitle: 'Pencatatan otomatis untuk seluruh jenis simpanan anggota.',
+            Row(
               children: [
-                const _InfoRow(label: 'Simpanan pokok', value: 'Belum tersedia'),
-                const _InfoRow(label: 'Simpanan wajib', value: 'Belum tersedia'),
-                const _InfoRow(label: 'Simpanan sukarela', value: 'Belum tersedia'),
-                const _InfoRow(label: 'Simpanan berjangka', value: 'Belum tersedia'),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => _showSavingsComingSoon(context),
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Catat simpanan'),
-                ),
+                Icon(Icons.hourglass_top_outlined, size: 18, color: colors.primary),
+                const SizedBox(width: 8),
+                const Expanded(child: Text('Pengajuan menunggu persetujuan', style: TextStyle(fontWeight: FontWeight.w800))),
               ],
             ),
-            const SizedBox(height: 16),
-            _AccountSectionCard(
-              icon: Icons.request_quote_outlined,
-              title: 'Pengajuan Pinjaman / E-Loan',
-              subtitle: 'Lengkapi formulir pengajuan pinjaman baru.',
+            const SizedBox(height: 10),
+            _InfoRow(label: 'Nomor pengajuan', value: application.nomorPengajuan),
+            _InfoRow(label: 'Nominal', value: formatRupiah(application.nominal)),
+            _InfoRow(label: 'Tenor', value: '${application.tenorBulan} bulan'),
+            _InfoRow(label: 'Estimasi cicilan / bulan', value: formatRupiah(application.estimasiCicilanBulanan)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveLoanCard extends StatelessWidget {
+  const _ActiveLoanCard({required this.loan, required this.busy, required this.onRequestPayment});
+
+  final Loan loan;
+  final bool busy;
+  final void Function(String jenis) onRequestPayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final progress = loan.tenorBulan == 0 ? 0.0 : loan.angsuranTerbayar / loan.tenorBulan;
+    final pending = loan.pembayaranTertunda;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: colors.primary,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
               children: [
-                Form(
-                  key: _formKey,
+                Icon(Icons.request_quote_outlined, color: colors.onPrimary),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextFormField(
-                        controller: _amountController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Nominal pinjaman', prefixText: 'Rp '),
-                        onChanged: (_) => setState(() {}),
-                        validator: (value) => _amount > 0 ? null : 'Nominal pinjaman wajib diisi',
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        value: _tenor,
-                        decoration: const InputDecoration(labelText: 'Tenor pinjaman'),
-                        items: [6, 12, 18, 24, 36].map((month) => DropdownMenuItem(value: month, child: Text('$month bulan'))).toList(),
-                        onChanged: (value) => setState(() => _tenor = value ?? 12),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _purposeController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(labelText: 'Tujuan pinjaman'),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Tujuan pinjaman wajib diisi' : null,
-                      ),
+                      Text('Pinjaman aktif', style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
+                      Text(loan.nomorPinjaman, style: TextStyle(color: colors.onPrimary.withValues(alpha: .85), fontSize: 12)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _AccountSectionCard(
-              icon: Icons.calculate_outlined,
-              title: 'Simulasi Cicilan',
-              subtitle: 'Estimasi menggunakan bunga flat 1% per bulan.',
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _InfoRow(label: 'Pokok pinjaman', value: _formatRupiah(_amount)),
-                _InfoRow(label: 'Tenor', value: '$_tenor bulan'),
-                _InfoRow(label: 'Estimasi cicilan per bulan', value: _formatRupiah(_monthlyInstallment)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(value: progress.clamp(0.0, 1.0), minHeight: 8),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Angsuran ke-${loan.angsuranTerbayar} dari ${loan.tenorBulan} · sisa ${loan.sisaAngsuran} bulan',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 10),
-                FilledButton.icon(
-                  onPressed: _submittingLoan ? null : _submitLoan,
-                  icon: _submittingLoan
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.send_outlined),
-                  label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman'),
+                _InfoRow(label: 'Pokok pinjaman', value: formatRupiah(loan.pokok)),
+                _InfoRow(label: 'Cicilan / bulan', value: formatRupiah(loan.angsuranPerBulan)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Text(
+                    'Pokok ${formatRupiah(loan.pokokPerBulan)} + jasa ${formatRupiah(loan.jasaPerBulan)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  ),
+                ),
+                _InfoRow(label: 'Sisa pokok', value: formatRupiah(loan.sisaPokok)),
+                const SizedBox(height: 12),
+                if (pending != null)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.hourglass_top_outlined, size: 18, color: colors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            pending.jenis == 'Pelunasan'
+                                ? 'Pengajuan pelunasan dipercepat ${formatRupiah(pending.jumlahDiajukan)} menunggu persetujuan pengurus.'
+                                : 'Pengajuan pembayaran angsuran ${formatRupiah(pending.jumlahDiajukan)} menunggu persetujuan pengurus.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else ...[
+                  FilledButton.icon(
+                    onPressed: busy ? null : () => onRequestPayment('Angsuran'),
+                    icon: const Icon(Icons.payments_outlined, size: 18),
+                    label: Text('Ajukan pembayaran angsuran (${formatRupiah(loan.angsuranPerBulan)})'),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colors.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.bolt_outlined, size: 18, color: colors.onTertiaryContainer),
+                            const SizedBox(width: 8),
+                            Text('Pelunasan dipercepat', style: TextStyle(fontWeight: FontWeight.w800, color: colors.onTertiaryContainer)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Bayar sekarang', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onTertiaryContainer)),
+                        Text(formatRupiah(loan.nilaiPelunasanDipercepat),
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: colors.onTertiaryContainer)),
+                        const SizedBox(height: 4),
+                        Text(
+                          loan.jasaDibebaskan > 0
+                              ? 'Hanya sisa pokok — jasa ${formatRupiah(loan.jasaDibebaskan)} dibebaskan.'
+                              : 'Anda hanya membayar sisa pokok, tanpa tambahan jasa.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onTertiaryContainer),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: busy ? null : () => onRequestPayment('Pelunasan'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colors.onTertiaryContainer,
+                            side: BorderSide(color: colors.onTertiaryContainer.withValues(alpha: .4)),
+                          ),
+                          icon: const Icon(Icons.bolt_outlined, size: 18),
+                          label: const Text('Ajukan pelunasan dipercepat'),
+                        ),
+                        const SizedBox(height: 6),
+                        Text('Pengajuan diverifikasi pengurus koperasi sebelum pinjaman dinyatakan lunas.',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.onTertiaryContainer.withValues(alpha: .8))),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    title: const Text('Lihat jadwal angsuran'),
+                    children: [_LoanScheduleTable(installments: loan.angsuran)],
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoanScheduleTable extends StatelessWidget {
+  const _LoanScheduleTable({required this.installments});
+
+  final List<LoanInstallment> installments;
+
+  String _month(DateTime date) {
+    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return '${names[date.month - 1]} ${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 18,
+        headingRowHeight: 36,
+        dataRowMinHeight: 34,
+        dataRowMaxHeight: 44,
+        columns: const [
+          DataColumn(label: Text('#')),
+          DataColumn(label: Text('Jatuh tempo')),
+          DataColumn(label: Text('Pokok')),
+          DataColumn(label: Text('Jasa')),
+          DataColumn(label: Text('Total')),
+          DataColumn(label: Text('Status')),
+        ],
+        rows: [
+          for (final item in installments)
+            DataRow(cells: [
+              DataCell(Text(item.jenis == 'Pelunasan' ? '⚡' : '${item.angsuranKe}')),
+              DataCell(Text(_month(item.jatuhTempo))),
+              DataCell(Text(formatRupiah(item.pokok))),
+              DataCell(Text(item.jasa == 0 ? '—' : formatRupiah(item.jasa))),
+              DataCell(Text(formatRupiah(item.total))),
+              DataCell(Text(
+                item.status,
+                style: TextStyle(
+                  color: switch (item.status) {
+                    'Dibayar' => Colors.green.shade700,
+                    'Dibatalkan' => Colors.black45,
+                    _ => Colors.orange.shade800,
+                  },
+                ),
+              )),
+            ]),
+        ],
       ),
     );
   }
@@ -1350,6 +1760,771 @@ String _formatCatalogPrice(double value) {
   return 'Rp ${rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.')}';
 }
 
+// ── Pinjaman ─────────────────────────────────────────────────────────────────
+// Tabel Pinjaman KKCS (per 1 Juli 2023): bunga flat tahunan menurut tenor.
+const Map<int, double> kLoanAnnualRates = {
+  12: 0.0700,
+  24: 0.0725,
+  36: 0.0750,
+  48: 0.0800,
+  60: 0.0850,
+};
+
+String formatRupiah(num value) {
+  final rounded = value.round().toString();
+  final withDots = rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.');
+  return 'Rp $withDots';
+}
+
+/// Rincian satu angsuran: pokok (inti) + jasa (bunga).
+class LoanInstallmentBreakdown {
+  const LoanInstallmentBreakdown({
+    required this.principalPerMonth,
+    required this.interestPerMonth,
+    required this.installmentPerMonth,
+    required this.totalInterest,
+    required this.totalPayment,
+  });
+
+  final double principalPerMonth;
+  final double interestPerMonth;
+  final double installmentPerMonth;
+  final double totalInterest;
+  final double totalPayment;
+
+  factory LoanInstallmentBreakdown.compute(double nominal, int tenorBulan) {
+    final rate = kLoanAnnualRates[tenorBulan] ?? 0;
+    final principal = nominal <= 0 ? 0.0 : (nominal / tenorBulan);
+    final interest = nominal <= 0 ? 0.0 : (nominal * rate / 12);
+    return LoanInstallmentBreakdown(
+      principalPerMonth: principal,
+      interestPerMonth: interest,
+      installmentPerMonth: principal + interest,
+      totalInterest: interest * tenorBulan,
+      totalPayment: nominal + interest * tenorBulan,
+    );
+  }
+}
+
+class LoanApplication {
+  const LoanApplication({
+    required this.id,
+    required this.nomorPengajuan,
+    required this.nominal,
+    required this.tenorBulan,
+    required this.bungaTahunan,
+    required this.estimasiCicilanBulanan,
+    required this.estimasiTotalJasa,
+    required this.tujuan,
+    required this.status,
+    this.catatanReview,
+  });
+
+  final int id;
+  final String nomorPengajuan;
+  final double nominal;
+  final int tenorBulan;
+  final double bungaTahunan;
+  final double estimasiCicilanBulanan;
+  final double estimasiTotalJasa;
+  final String tujuan;
+  final String status;
+  final String? catatanReview;
+
+  factory LoanApplication.fromJson(Map<String, dynamic> json) => LoanApplication(
+        id: json['id'] as int,
+        nomorPengajuan: json['nomorPengajuan'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        tenorBulan: json['tenorBulan'] as int,
+        bungaTahunan: (json['bungaTahunan'] as num).toDouble(),
+        estimasiCicilanBulanan: (json['estimasiCicilanBulanan'] as num).toDouble(),
+        estimasiTotalJasa: (json['estimasiTotalJasa'] as num).toDouble(),
+        tujuan: json['tujuan'] as String,
+        status: json['status'] as String,
+        catatanReview: json['catatanReview'] as String?,
+      );
+}
+
+class LoanInstallment {
+  const LoanInstallment({
+    required this.angsuranKe,
+    required this.jatuhTempo,
+    required this.pokok,
+    required this.jasa,
+    required this.total,
+    required this.jenis,
+    required this.status,
+  });
+
+  final int angsuranKe;
+  final DateTime jatuhTempo;
+  final double pokok;
+  final double jasa;
+  final double total;
+  final String jenis;
+  final String status;
+
+  factory LoanInstallment.fromJson(Map<String, dynamic> json) => LoanInstallment(
+        angsuranKe: json['angsuranKe'] as int,
+        jatuhTempo: DateTime.parse(json['jatuhTempo'] as String),
+        pokok: (json['pokok'] as num).toDouble(),
+        jasa: (json['jasa'] as num).toDouble(),
+        total: (json['total'] as num).toDouble(),
+        jenis: json['jenis'] as String,
+        status: json['status'] as String,
+      );
+}
+
+class PendingLoanPayment {
+  const PendingLoanPayment({required this.jenis, required this.jumlahDiajukan});
+
+  final String jenis;
+  final double jumlahDiajukan;
+
+  factory PendingLoanPayment.fromJson(Map<String, dynamic> json) => PendingLoanPayment(
+        jenis: json['jenis'] as String,
+        jumlahDiajukan: (json['jumlahDiajukan'] as num).toDouble(),
+      );
+}
+
+class Loan {
+  const Loan({
+    required this.id,
+    required this.nomorPinjaman,
+    required this.pokok,
+    required this.tenorBulan,
+    required this.bungaTahunan,
+    required this.pokokPerBulan,
+    required this.jasaPerBulan,
+    required this.angsuranPerBulan,
+    required this.sisaPokok,
+    required this.angsuranTerbayar,
+    required this.sisaAngsuran,
+    required this.status,
+    required this.nilaiPelunasanDipercepat,
+    required this.jasaDibebaskan,
+    required this.pembayaranTertunda,
+    required this.angsuran,
+  });
+
+  final int id;
+  final String nomorPinjaman;
+  final double pokok;
+  final int tenorBulan;
+  final double bungaTahunan;
+  final double pokokPerBulan;
+  final double jasaPerBulan;
+  final double angsuranPerBulan;
+  final double sisaPokok;
+  final int angsuranTerbayar;
+  final int sisaAngsuran;
+  final String status;
+  final double nilaiPelunasanDipercepat;
+  final double jasaDibebaskan;
+  final PendingLoanPayment? pembayaranTertunda;
+  final List<LoanInstallment> angsuran;
+
+  bool get lunas => status == 'Lunas';
+
+  factory Loan.fromJson(Map<String, dynamic> json) => Loan(
+        id: json['id'] as int,
+        nomorPinjaman: json['nomorPinjaman'] as String,
+        pokok: (json['pokok'] as num).toDouble(),
+        tenorBulan: json['tenorBulan'] as int,
+        bungaTahunan: (json['bungaTahunan'] as num).toDouble(),
+        pokokPerBulan: (json['pokokPerBulan'] as num).toDouble(),
+        jasaPerBulan: (json['jasaPerBulan'] as num).toDouble(),
+        angsuranPerBulan: (json['angsuranPerBulan'] as num).toDouble(),
+        sisaPokok: (json['sisaPokok'] as num).toDouble(),
+        angsuranTerbayar: json['angsuranTerbayar'] as int,
+        sisaAngsuran: json['sisaAngsuran'] as int,
+        status: json['status'] as String,
+        nilaiPelunasanDipercepat: (json['nilaiPelunasanDipercepat'] as num).toDouble(),
+        jasaDibebaskan: (json['jasaDibebaskan'] as num).toDouble(),
+        pembayaranTertunda: json['pembayaranTertunda'] == null
+            ? null
+            : PendingLoanPayment.fromJson(json['pembayaranTertunda'] as Map<String, dynamic>),
+        angsuran: (json['angsuran'] as List<dynamic>)
+            .map((item) => LoanInstallment.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class LoanOverview {
+  const LoanOverview({required this.pengajuan, required this.pinjaman});
+
+  final List<LoanApplication> pengajuan;
+  final List<Loan> pinjaman;
+
+  factory LoanOverview.fromJson(Map<String, dynamic> json) => LoanOverview(
+        pengajuan: (json['pengajuan'] as List<dynamic>)
+            .map((item) => LoanApplication.fromJson(item as Map<String, dynamic>))
+            .toList(),
+        pinjaman: (json['pinjaman'] as List<dynamic>)
+            .map((item) => Loan.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+// ── Simpanan ─────────────────────────────────────────────────────────────────
+class SavingsAccount {
+  const SavingsAccount({required this.saldo, this.nomorRekening});
+  final double saldo;
+  final String? nomorRekening;
+  factory SavingsAccount.fromJson(Map<String, dynamic> json) => SavingsAccount(
+        saldo: (json['saldo'] as num).toDouble(),
+        nomorRekening: json['nomorRekening'] as String?,
+      );
+}
+
+class WajibBill {
+  const WajibBill({required this.id, required this.periode, required this.nominal, required this.jatuhTempo, required this.status});
+  final int id;
+  final String periode;
+  final double nominal;
+  final DateTime jatuhTempo;
+  final String status;
+  factory WajibBill.fromJson(Map<String, dynamic> json) => WajibBill(
+        id: json['id'] as int,
+        periode: json['periode'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        jatuhTempo: DateTime.parse(json['jatuhTempo'] as String),
+        status: json['status'] as String,
+      );
+}
+
+class WajibSection {
+  const WajibSection({required this.saldo, required this.nominalBulanan, required this.tanggalTagih, required this.tagihan});
+  final double saldo;
+  final double nominalBulanan;
+  final int tanggalTagih;
+  final List<WajibBill> tagihan;
+  factory WajibSection.fromJson(Map<String, dynamic> json) => WajibSection(
+        saldo: (json['saldo'] as num).toDouble(),
+        nominalBulanan: (json['nominalBulanan'] as num).toDouble(),
+        tanggalTagih: json['tanggalTagih'] as int,
+        tagihan: (json['tagihan'] as List<dynamic>).map((e) => WajibBill.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+class SukarelaRequest {
+  const SukarelaRequest({required this.id, required this.jenis, required this.nominal, required this.status, required this.diajukanPada, this.catatanReview});
+  final int id;
+  final String jenis;
+  final double nominal;
+  final String status;
+  final DateTime diajukanPada;
+  final String? catatanReview;
+  factory SukarelaRequest.fromJson(Map<String, dynamic> json) => SukarelaRequest(
+        id: json['id'] as int,
+        jenis: json['jenis'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        status: json['status'] as String,
+        diajukanPada: DateTime.parse(json['diajukanPada'] as String),
+        catatanReview: json['catatanReview'] as String?,
+      );
+}
+
+class SukarelaSection {
+  const SukarelaSection({required this.saldo, required this.pengajuan});
+  final double saldo;
+  final List<SukarelaRequest> pengajuan;
+  factory SukarelaSection.fromJson(Map<String, dynamic> json) => SukarelaSection(
+        saldo: (json['saldo'] as num).toDouble(),
+        pengajuan: (json['pengajuan'] as List<dynamic>).map((e) => SukarelaRequest.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+class BerjangkaProduct {
+  const BerjangkaProduct({required this.id, required this.nama, required this.nominal, required this.tenorBulan});
+  final int id;
+  final String nama;
+  final double nominal;
+  final int tenorBulan;
+  factory BerjangkaProduct.fromJson(Map<String, dynamic> json) => BerjangkaProduct(
+        id: json['id'] as int,
+        nama: json['nama'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        tenorBulan: json['tenorBulan'] as int,
+      );
+}
+
+class TermDeposit {
+  const TermDeposit({required this.id, required this.nomorSertifikat, required this.produkNama, required this.nominal, required this.tenorBulan, required this.status, this.tanggalMulai, this.tanggalJatuhTempo});
+  final int id;
+  final String nomorSertifikat;
+  final String produkNama;
+  final double nominal;
+  final int tenorBulan;
+  final String status;
+  final DateTime? tanggalMulai;
+  final DateTime? tanggalJatuhTempo;
+  factory TermDeposit.fromJson(Map<String, dynamic> json) => TermDeposit(
+        id: json['id'] as int,
+        nomorSertifikat: json['nomorSertifikat'] as String,
+        produkNama: json['produkNama'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        tenorBulan: json['tenorBulan'] as int,
+        status: json['status'] as String,
+        tanggalMulai: json['tanggalMulai'] == null ? null : DateTime.parse(json['tanggalMulai'] as String),
+        tanggalJatuhTempo: json['tanggalJatuhTempo'] == null ? null : DateTime.parse(json['tanggalJatuhTempo'] as String),
+      );
+}
+
+class BerjangkaSection {
+  const BerjangkaSection({required this.produk, required this.milikSaya});
+  final List<BerjangkaProduct> produk;
+  final List<TermDeposit> milikSaya;
+  factory BerjangkaSection.fromJson(Map<String, dynamic> json) => BerjangkaSection(
+        produk: (json['produk'] as List<dynamic>).map((e) => BerjangkaProduct.fromJson(e as Map<String, dynamic>)).toList(),
+        milikSaya: (json['milikSaya'] as List<dynamic>).map((e) => TermDeposit.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+class SavingsMutation {
+  const SavingsMutation({required this.rekening, required this.jenis, required this.nominal, required this.saldoSetelah, this.keterangan, required this.tanggal});
+  final String rekening;
+  final String jenis;
+  final double nominal;
+  final double saldoSetelah;
+  final String? keterangan;
+  final DateTime tanggal;
+  factory SavingsMutation.fromJson(Map<String, dynamic> json) => SavingsMutation(
+        rekening: json['rekening'] as String,
+        jenis: json['jenis'] as String,
+        nominal: (json['nominal'] as num).toDouble(),
+        saldoSetelah: (json['saldoSetelah'] as num).toDouble(),
+        keterangan: json['keterangan'] as String?,
+        tanggal: DateTime.parse(json['tanggal'] as String),
+      );
+}
+
+class SavingsOverview {
+  const SavingsOverview({required this.pokok, required this.wajib, required this.sukarela, required this.berjangka, required this.mutasi});
+  final SavingsAccount pokok;
+  final WajibSection wajib;
+  final SukarelaSection sukarela;
+  final BerjangkaSection berjangka;
+  final List<SavingsMutation> mutasi;
+  factory SavingsOverview.fromJson(Map<String, dynamic> json) => SavingsOverview(
+        pokok: SavingsAccount.fromJson(json['pokok'] as Map<String, dynamic>),
+        wajib: WajibSection.fromJson(json['wajib'] as Map<String, dynamic>),
+        sukarela: SukarelaSection.fromJson(json['sukarela'] as Map<String, dynamic>),
+        berjangka: BerjangkaSection.fromJson(json['berjangka'] as Map<String, dynamic>),
+        mutasi: (json['mutasiTerakhir'] as List<dynamic>).map((e) => SavingsMutation.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+String _statusLabel(String status) => switch (status) {
+      'Ditagih' => 'Menunggu konfirmasi pengurus',
+      'Dibayar' => 'Lunas',
+      'Diajukan' => 'Menunggu persetujuan',
+      'Disetujui' => 'Disetujui',
+      'Ditolak' => 'Ditolak',
+      'Aktif' => 'Aktif (dana terkunci)',
+      'JatuhTempo' => 'Jatuh tempo',
+      'Dicairkan' => 'Dicairkan',
+      _ => status,
+    };
+
+Color _statusColor(BuildContext context, String status) => switch (status) {
+      'Dibayar' || 'Disetujui' || 'Aktif' || 'Dicairkan' => Colors.green.shade700,
+      'Ditolak' => Theme.of(context).colorScheme.error,
+      'JatuhTempo' => Colors.blue.shade700,
+      _ => Colors.orange.shade800,
+    };
+
+String _monthLabel(DateTime date) {
+  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return '${date.day} ${names[date.month - 1]} ${date.year}';
+}
+
+class MembershipStatusPage extends StatefulWidget {
+  const MembershipStatusPage({required this.auth, required this.user, super.key});
+
+  final AuthService auth;
+  final AuthUser user;
+
+  @override
+  State<MembershipStatusPage> createState() => _MembershipStatusPageState();
+}
+
+class _MembershipStatusPageState extends State<MembershipStatusPage> {
+  bool _checking = false;
+
+  Future<void> _refresh() async {
+    setState(() => _checking = true);
+    try {
+      final session = await widget.auth.restoreSession();
+      if (!mounted) return;
+      if (session != null && session.user.anggotaAktif) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage(auth: widget.auth, session: session)),
+          (_) => false,
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pendaftaran masih ditinjau pengurus.')),
+      );
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    await widget.auth.logout();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => LandingPage(auth: widget.auth)),
+      (_) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ditolak = widget.user.statusKeanggotaan == 'Ditolak';
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(ditolak ? Icons.cancel_outlined : Icons.hourglass_top_outlined,
+                    size: 64, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 20),
+                Text(
+                  ditolak ? 'Pendaftaran ditolak' : 'Menunggu persetujuan pengurus',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  ditolak
+                      ? 'Silakan hubungi pengurus koperasi untuk informasi lebih lanjut.'
+                      : 'Akun Anda akan aktif setelah pengurus menyetujui pendaftaran dan menyetorkan simpanan pokok Rp 100.000.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+                ),
+                const SizedBox(height: 28),
+                if (!ditolak)
+                  FilledButton.icon(
+                    onPressed: _checking ? null : _refresh,
+                    icon: _checking
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.refresh),
+                    label: const Text('Periksa status'),
+                  ),
+                const SizedBox(height: 10),
+                TextButton(onPressed: _logout, child: const Text('Keluar')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SavingsTab extends StatefulWidget {
+  const SavingsTab({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<SavingsTab> createState() => _SavingsTabState();
+}
+
+class _SavingsTabState extends State<SavingsTab> {
+  bool _loading = true;
+  String? _error;
+  bool _busy = false;
+  SavingsOverview? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await AuthService().fetchSavings();
+      if (!mounted) return;
+      setState(() => _data = data);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.replaceFirst('Exception: ', ''))));
+  }
+
+  Future<void> _submitSukarela(String jenis) async {
+    final controller = TextEditingController();
+    final nominal = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(jenis == 'Tarik' ? 'Tarik simpanan sukarela' : 'Setor simpanan sukarela'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nominal', prefixText: 'Rp '),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Batal')),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+              Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Ajukan'),
+          ),
+        ],
+      ),
+    );
+    if (nominal == null || nominal <= 0) return;
+    setState(() => _busy = true);
+    try {
+      await AuthService().requestSukarela(jenis: jenis, nominal: nominal);
+      if (!mounted) return;
+      _toast('Pengajuan terkirim. Menunggu persetujuan pengurus.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _ajukanBerjangka(BerjangkaProduct produk) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ajukan simpanan berjangka'),
+        content: Text(
+          '${produk.nama}\nNominal ${formatRupiah(produk.nominal)} · terkunci ${produk.tenorBulan} bulan.\n\n'
+          'Dana tidak dapat ditarik sebelum jatuh tempo. Pengajuan diverifikasi pengurus.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ajukan')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      await AuthService().requestBerjangka(produkId: produk.id);
+      if (!mounted) return;
+      _toast('Pengajuan simpanan berjangka terkirim.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _data;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: [
+          Text('Simpanan saya', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text('Pokok, wajib, sukarela, dan berjangka dalam satu tempat.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
+          const SizedBox(height: 16),
+          if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          if (data != null) ...[
+            _SavingsBalanceCard(
+              icon: Icons.verified_user_outlined,
+              title: 'Simpanan Pokok',
+              saldo: data.pokok.saldo,
+              caption: 'Setoran wajib keanggotaan. Tidak dapat ditarik selama menjadi anggota.',
+            ),
+            const SizedBox(height: 14),
+            _AccountSectionCard(
+              icon: Icons.event_repeat_outlined,
+              title: 'Simpanan Wajib',
+              subtitle: 'Ditagih otomatis setiap tanggal ${data.wajib.tanggalTagih}.',
+              children: [
+                _InfoRow(label: 'Saldo terkumpul', value: formatRupiah(data.wajib.saldo)),
+                _InfoRow(label: 'Nominal per bulan', value: formatRupiah(data.wajib.nominalBulanan)),
+                const SizedBox(height: 6),
+                Text('Pembayaran dikonfirmasi pengurus (potong gaji / setor).',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+                const SizedBox(height: 8),
+                if (data.wajib.tagihan.isEmpty)
+                  Text('Belum ada tagihan.', style: Theme.of(context).textTheme.bodySmall)
+                else
+                  ...data.wajib.tagihan.take(6).map((bill) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: Row(children: [
+                          Expanded(child: Text('Periode ${bill.periode} · ${formatRupiah(bill.nominal)}')),
+                          Text(_statusLabel(bill.status),
+                              style: TextStyle(color: _statusColor(context, bill.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                        ]),
+                      )),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _AccountSectionCard(
+              icon: Icons.volunteer_activism_outlined,
+              title: 'Simpanan Sukarela',
+              subtitle: 'Nominal bebas. Setoran & penarikan disetujui pengurus.',
+              children: [
+                _InfoRow(label: 'Saldo', value: formatRupiah(data.sukarela.saldo)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _busy ? null : () => _submitSukarela('Setor'),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Setor'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _submitSukarela('Tarik'),
+                      icon: const Icon(Icons.remove, size: 18),
+                      label: const Text('Tarik'),
+                    ),
+                  ),
+                ]),
+                if (data.sukarela.pengajuan.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...data.sukarela.pengajuan.take(5).map((req) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: Row(children: [
+                          Expanded(child: Text('${req.jenis} ${formatRupiah(req.nominal)}')),
+                          Text(_statusLabel(req.status),
+                              style: TextStyle(color: _statusColor(context, req.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                        ]),
+                      )),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            _AccountSectionCard(
+              icon: Icons.lock_clock_outlined,
+              title: 'Simpanan Berjangka',
+              subtitle: 'Pilih paket dari pengurus. Dana terkunci hingga jatuh tempo.',
+              children: [
+                if (data.berjangka.produk.isEmpty)
+                  Text('Belum ada paket berjangka tersedia.', style: Theme.of(context).textTheme.bodySmall)
+                else
+                  ...data.berjangka.produk.map((produk) => Card(
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        child: ListTile(
+                          title: Text(produk.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: Text('${formatRupiah(produk.nominal)} · ${produk.tenorBulan} bulan'),
+                          trailing: FilledButton(
+                            onPressed: _busy ? null : () => _ajukanBerjangka(produk),
+                            child: const Text('Ajukan'),
+                          ),
+                        ),
+                      )),
+                if (data.berjangka.milikSaya.isNotEmpty) ...[
+                  const Divider(height: 22),
+                  Text('Simpanan berjangka saya', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  ...data.berjangka.milikSaya.map((deposit) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Expanded(child: Text('${deposit.produkNama} · ${formatRupiah(deposit.nominal)}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                            Text(_statusLabel(deposit.status),
+                                style: TextStyle(color: _statusColor(context, deposit.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                          ]),
+                          if (deposit.tanggalJatuhTempo != null)
+                            Text('Jatuh tempo ${_monthLabel(deposit.tanggalJatuhTempo!)}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+                        ]),
+                      )),
+                ],
+              ],
+            ),
+            if (data.mutasi.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _AccountSectionCard(
+                icon: Icons.receipt_long_outlined,
+                title: 'Mutasi terakhir',
+                subtitle: 'Riwayat transaksi simpanan.',
+                children: data.mutasi
+                    .take(10)
+                    .map((m) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(children: [
+                            Expanded(child: Text('${m.rekening} · ${m.jenis}', style: const TextStyle(fontSize: 13))),
+                            Text('${m.jenis == 'Tarik' ? '-' : '+'}${formatRupiah(m.nominal)}',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: m.jenis == 'Tarik' ? Colors.red.shade700 : Colors.green.shade700)),
+                          ]),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SavingsBalanceCard extends StatelessWidget {
+  const _SavingsBalanceCard({required this.icon, required this.title, required this.saldo, required this.caption});
+
+  final IconData icon;
+  final String title;
+  final double saldo;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      color: colors.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, color: colors.onPrimaryContainer, size: 20),
+            const SizedBox(width: 8),
+            Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer)),
+          ]),
+          const SizedBox(height: 10),
+          Text(formatRupiah(saldo),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer)),
+          const SizedBox(height: 6),
+          Text(caption, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onPrimaryContainer.withValues(alpha: .8))),
+        ]),
+      ),
+    );
+  }
+}
+
 class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar({required this.user, required this.radius});
 
@@ -1455,9 +2630,16 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Text(label)),
-        Text(value, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+          ),
+        ),
       ]),
     );
   }

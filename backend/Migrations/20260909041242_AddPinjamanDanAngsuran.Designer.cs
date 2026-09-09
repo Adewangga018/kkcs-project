@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909041242_AddPinjamanDanAngsuran")]
+    partial class AddPinjamanDanAngsuran
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -282,43 +285,6 @@ namespace backend.Migrations
                         });
                 });
 
-            modelBuilder.Entity("KonfigurasiKoperasi", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DiperbaruiPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("SimpananPokokNominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("SimpananWajibNominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TanggalTagihWajib")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("KonfigurasiKoperasi");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DiperbaruiPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            SimpananPokokNominal = 100000m,
-                            SimpananWajibNominal = 50000m,
-                            TanggalTagihWajib = 25
-                        });
-                });
-
             modelBuilder.Entity("LaporanTahunan", b =>
                 {
                     b.Property<int>("Id")
@@ -390,64 +356,6 @@ namespace backend.Migrations
                     b.HasIndex("SimpananId");
 
                     b.ToTable("MutasiSimpanan");
-                });
-
-            modelBuilder.Entity("PembayaranPinjaman", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("AngsuranKe")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Catatan")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("CatatanReview")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DiajukanPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DiputuskanPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("JasaDibebaskan")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Jenis")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("JumlahDiajukan")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PenggunaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PinjamanId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PenggunaId");
-
-                    b.HasIndex("PinjamanId", "Status");
-
-                    b.ToTable("PembayaranPinjaman");
                 });
 
             modelBuilder.Entity("PengajuanPinjaman", b =>
@@ -532,9 +440,6 @@ namespace backend.Migrations
                     b.Property<DateTime>("DibuatPada")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DisetujuiPada")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -568,13 +473,6 @@ namespace backend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)")
                         .HasDefaultValue("Anggota");
-
-                    b.Property<string>("StatusKeanggotaan")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasDefaultValue("Aktif");
 
                     b.HasKey("Id");
 
@@ -740,37 +638,6 @@ namespace backend.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ProdukBerjangka", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Aktif")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("DibuatPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nama")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<decimal>("Nominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TenorBulan")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ProdukBerjangka");
-                });
-
             modelBuilder.Entity("Simpanan", b =>
                 {
                     b.Property<int>("Id")
@@ -810,157 +677,6 @@ namespace backend.Migrations
                     b.HasIndex("PenggunaId");
 
                     b.ToTable("Simpanan");
-                });
-
-            modelBuilder.Entity("SimpananBerjangka", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CatatanReview")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DiajukanPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DicairkanPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Nominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("NomorSertifikat")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<int>("PenggunaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProdukBerjangkaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("TanggalJatuhTempo")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("TanggalMulai")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TenorBulan")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NomorSertifikat")
-                        .IsUnique();
-
-                    b.HasIndex("PenggunaId");
-
-                    b.HasIndex("ProdukBerjangkaId");
-
-                    b.ToTable("SimpananBerjangka");
-                });
-
-            modelBuilder.Entity("TagihanWajib", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CatatanReview")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DibuatPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DiprosesPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("JatuhTempo")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Nominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PenggunaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Periode")
-                        .IsRequired()
-                        .HasMaxLength(7)
-                        .HasColumnType("nvarchar(7)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PenggunaId", "Periode")
-                        .IsUnique();
-
-                    b.ToTable("TagihanWajib");
-                });
-
-            modelBuilder.Entity("TransaksiSukarela", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Catatan")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("CatatanReview")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DiajukanPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DiprosesPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Jenis")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("Nominal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PenggunaId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PenggunaId", "Status");
-
-                    b.ToTable("TransaksiSukarela");
                 });
 
             modelBuilder.Entity("AngsuranPinjaman", b =>
@@ -1023,25 +739,6 @@ namespace backend.Migrations
                     b.Navigation("Simpanan");
                 });
 
-            modelBuilder.Entity("PembayaranPinjaman", b =>
-                {
-                    b.HasOne("Pengguna", "Pengguna")
-                        .WithMany()
-                        .HasForeignKey("PenggunaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Pinjaman", "Pinjaman")
-                        .WithMany()
-                        .HasForeignKey("PinjamanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pengguna");
-
-                    b.Navigation("Pinjaman");
-                });
-
             modelBuilder.Entity("PengajuanPinjaman", b =>
                 {
                     b.HasOne("Pengguna", "Pengguna")
@@ -1091,47 +788,6 @@ namespace backend.Migrations
                     b.Navigation("Pengguna");
                 });
 
-            modelBuilder.Entity("SimpananBerjangka", b =>
-                {
-                    b.HasOne("Pengguna", "Pengguna")
-                        .WithMany()
-                        .HasForeignKey("PenggunaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ProdukBerjangka", "Produk")
-                        .WithMany("SimpananBerjangka")
-                        .HasForeignKey("ProdukBerjangkaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Pengguna");
-
-                    b.Navigation("Produk");
-                });
-
-            modelBuilder.Entity("TagihanWajib", b =>
-                {
-                    b.HasOne("Pengguna", "Pengguna")
-                        .WithMany()
-                        .HasForeignKey("PenggunaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pengguna");
-                });
-
-            modelBuilder.Entity("TransaksiSukarela", b =>
-                {
-                    b.HasOne("Pengguna", "Pengguna")
-                        .WithMany()
-                        .HasForeignKey("PenggunaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pengguna");
-                });
-
             modelBuilder.Entity("EratAgenda", b =>
                 {
                     b.Navigation("Opsi");
@@ -1157,11 +813,6 @@ namespace backend.Migrations
             modelBuilder.Entity("Pinjaman", b =>
                 {
                     b.Navigation("Angsuran");
-                });
-
-            modelBuilder.Entity("ProdukBerjangka", b =>
-                {
-                    b.Navigation("SimpananBerjangka");
                 });
 
             modelBuilder.Entity("Simpanan", b =>

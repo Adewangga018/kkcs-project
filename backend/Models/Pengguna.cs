@@ -20,5 +20,10 @@ public class Pengguna
 
     public bool Aktif { get; set; } = true;
 
+    // MenungguPersetujuan | Aktif | Ditolak
+    public string StatusKeanggotaan { get; set; } = "Aktif";
+
+    public DateTime? DisetujuiPada { get; set; }
+
     public DateTime DibuatPada { get; set; } = DateTime.UtcNow;
 }
