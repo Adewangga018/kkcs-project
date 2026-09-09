@@ -6,6 +6,8 @@ public class LaporanTahunan
 
     public string Judul { get; set; } = string.Empty;
 
+    public string? Deskripsi { get; set; }
+
     public string FileUrl { get; set; } = string.Empty;
 
     public DateTime DiterbitkanPada { get; set; } = DateTime.UtcNow;

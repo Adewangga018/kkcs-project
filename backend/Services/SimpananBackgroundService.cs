@@ -38,6 +38,7 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KkcsDbContext>();
+        var simpananService = scope.ServiceProvider.GetRequiredService<SimpananService>();
 
         var konfigurasi = await db.KonfigurasiKoperasi.FirstOrDefaultAsync(stoppingToken)
             ?? new KonfigurasiKoperasi { Id = 1 };
@@ -56,5 +57,10 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
             berjangka.Status = "JatuhTempo";
         }
         if (jatuhTempo.Count > 0) await db.SaveChangesAsync(stoppingToken);
+
+        // Tutup buku bunga Simpanan Sukarela bulan sebelumnya (idempoten).
+        var periodeBungaLalu = BungaSukarela.PeriodeBulanLalu();
+        var (akunBunga, totalBunga) = await BungaSukarela.PostingAsync(db, simpananService, konfigurasi.BungaSukarelaTahunan, periodeBungaLalu);
+        if (akunBunga > 0) logger.LogInformation("Mengkreditkan bunga sukarela {Periode} ke {Akun} rekening (total {Total:N0}).", periodeBungaLalu, akunBunga, totalBunga);
     }
 }

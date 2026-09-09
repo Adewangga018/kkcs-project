@@ -11,5 +11,10 @@ public class KonfigurasiKoperasi
     // Tanggal jatuh tempo tagihan Simpanan Wajib tiap bulan.
     public int TanggalTagihWajib { get; set; } = 25;
 
+    // Suku bunga tahunan (fraksi, mis. 0.025 = 2,5%).
+    public decimal BungaSukarelaTahunan { get; set; } = 0.025m;
+
+    public decimal BungaDepositoTahunan { get; set; } = 0.045m;
+
     public DateTime DiperbaruiPada { get; set; } = DateTime.UtcNow;
 }

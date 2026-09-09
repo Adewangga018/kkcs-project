@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const KkcsApp());
@@ -158,15 +160,115 @@ class AuthService {
     return AuthUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<List<Map<String, dynamic>>> getProducts() async {
+  Future<List<CatalogProduct>> _getProductList(String path) async {
     final token = await _getToken();
     final response = await _sendRequest(() => http.get(
-          Uri.parse('$baseUrl/api/produk'),
+          Uri.parse('$baseUrl$path'),
           headers: {'Authorization': 'Bearer $token'},
         ));
     _ensureSuccess(response);
-    final data = jsonDecode(response.body) as List<dynamic>;
-    return data.cast<Map<String, dynamic>>();
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((e) => CatalogProduct.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<EratAgendaItem>> fetchEratAgenda() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/erat/agenda'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((e) => EratAgendaItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> submitVote({required int agendaId, required int opsiId}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/erat/agenda/$agendaId/suara'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'opsiId': opsiId}),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<List<RatDocument>> fetchRatDocuments() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/erat/laporan-tahunan'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((e) => RatDocument.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<CatalogProduct>> fetchCatalog() => _getProductList('/api/produk');
+  Future<List<CatalogProduct>> fetchMyListings() => _getProductList('/api/produk/pengajuan/saya');
+
+  Future<CatalogProduct> submitProductListing({
+    required String nama,
+    String? deskripsi,
+    required String jenis,
+    required double harga,
+    required double stok,
+    required String satuan,
+  }) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/produk/pengajuan'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'nama': nama.trim(),
+            'deskripsi': deskripsi?.trim(),
+            'jenis': jenis,
+            'harga': harga,
+            'stok': stok,
+            'satuan': satuan.trim(),
+          }),
+        ));
+    _ensureSuccess(response);
+    return CatalogProduct.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> uploadProductListingPhoto(int produkId, XFile photo) async {
+    final token = await _getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/produk/pengajuan/$produkId/foto'))
+      ..headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', await photo.readAsBytes(),
+        filename: photo.name, contentType: _photoMediaType(photo)));
+    final response = await http.Response.fromStream(await request.send());
+    _ensureSuccess(response);
+  }
+
+  Future<void> buyProduct({
+    required int produkId,
+    required double jumlah,
+    required String metodePembayaran,
+    String? catatan,
+  }) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/produk/$produkId/beli'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'jumlah': jumlah, 'metodePembayaran': metodePembayaran, 'catatan': catatan?.trim()}),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<List<ProductPurchase>> fetchMyPurchases() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/produk/pembelian/saya'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((e) => ProductPurchase.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> submitLoan({required double nominal, required int tenorBulan, required String tujuan}) async {
@@ -204,6 +306,16 @@ class AuthService {
     _ensureSuccess(response);
   }
 
+  Future<HomeSummary> fetchHomeSummary() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/beranda/ringkasan'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return HomeSummary.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<SavingsOverview> fetchSavings() async {
     final token = await _getToken();
     final response = await _sendRequest(() => http.get(
@@ -231,6 +343,16 @@ class AuthService {
           Uri.parse('$baseUrl/api/simpanan/berjangka'),
           headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
           body: jsonEncode({'produkBerjangkaId': produkId}),
+        ));
+    _ensureSuccess(response);
+  }
+
+  Future<void> requestEarlyWithdrawal({required int berjangkaId}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/simpanan/berjangka/$berjangkaId/pencairan'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({}),
         ));
     _ensureSuccess(response);
   }
@@ -652,86 +774,132 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({required this.auth, required this.session, super.key});
 
   final AuthService auth;
   final AuthSession session;
 
   @override
-  Widget build(BuildContext context) {
-    if (!session.user.anggotaAktif) {
-      return MembershipStatusPage(auth: auth, user: session.user);
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _loading = true;
+  String? _error;
+  HomeSummary? _summary;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.session.user.anggotaAktif) _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final summary = await widget.auth.fetchHomeSummary();
+      if (!mounted) return;
+      setState(() => _summary = summary);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Widget _servicePage(int index) {
+    return switch (index) {
+      1 => DigitalSavingsLoanPage(session: widget.session),
+      2 => BusinessUnitPage(session: widget.session),
+      3 => EratPage(session: widget.session),
+      _ => AccountPage(auth: widget.auth, session: widget.session),
+    };
+  }
+
+  Future<void> _openService(int index) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ServiceShell(
+          auth: widget.auth,
+          session: widget.session,
+          selectedIndex: index,
+          child: _servicePage(index),
+        ),
+      ),
+    );
+    if (mounted) _load();
+  }
+
+  void _openTautan(String tautan) {
+    switch (tautan) {
+      case 'erat':
+        _openService(3);
+      case 'katalog':
+        _openService(2);
+      case 'simpanan':
+      case 'pinjaman':
+        _openService(1);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.session.user.anggotaAktif) {
+      return MembershipStatusPage(auth: widget.auth, user: widget.session.user);
+    }
+    final s = _summary;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Beranda KKCS'),
         actions: [
           IconButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => _ServiceShell(
-                  auth: auth,
-                  session: session,
-                  selectedIndex: 0,
-                  child: AccountPage(auth: auth, session: session),
-                ),
-              ),
-            ),
-            icon: _ProfileAvatar(user: session.user, radius: 16),
+            onPressed: () => _openService(0),
+            icon: _ProfileAvatar(user: widget.session.user, radius: 16),
             tooltip: 'Akun saya',
           ),
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Text(
-              'Halo, ${session.user.namaLengkap.split(' ').first}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Akses layanan anggota dan transparansi koperasi dalam satu tempat.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-            ),
-            const SizedBox(height: 20),
-            const _TransparencyDashboard(),
-            const SizedBox(height: 24),
-            _HomeAnnouncementCard(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => EratPage(session: session)),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              Text(
+                'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
-            ),
-            const SizedBox(height: 20),
-            const _LatestProductsPreview(),
-            const SizedBox(height: 24),
-            Text(
-              'Pilih layanan dari navigasi di bawah.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'Akses layanan anggota dan transparansi koperasi dalam satu tempat.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+              _TransparencyDashboard(summary: s, loading: _loading, error: _error, onRefresh: _load),
+              const SizedBox(height: 24),
+              _HomeAnnouncementCard(items: s?.pengumuman ?? const [], onOpen: _openTautan),
+              const SizedBox(height: 20),
+              _LatestProductsPreview(products: s?.produkTerbaru ?? const [], onOpenCatalog: () => _openService(2)),
+              const SizedBox(height: 24),
+              Text(
+                'Pilih layanan dari navigasi di bawah.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
         onDestinationSelected: (index) {
           if (index == 0) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => _ServiceShell(
-                auth: auth,
-                session: session,
-                selectedIndex: index,
-                child: _servicePage(index),
-              ),
-            ),
-          );
+          _openService(index);
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
@@ -741,15 +909,6 @@ class HomePage extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Widget _servicePage(int index) {
-    return switch (index) {
-      1 => DigitalSavingsLoanPage(session: session),
-      2 => BusinessUnitPage(session: session),
-      3 => EratPage(session: session),
-      _ => AccountPage(auth: auth, session: session),
-    };
   }
 }
 
@@ -806,11 +965,19 @@ class _ServiceShell extends StatelessWidget {
 }
 
 class _TransparencyDashboard extends StatelessWidget {
-  const _TransparencyDashboard();
+  const _TransparencyDashboard({required this.summary, required this.loading, required this.error, required this.onRefresh});
+
+  final HomeSummary? summary;
+  final bool loading;
+  final String? error;
+  final Future<void> Function() onRefresh;
+
+  String _value(double? amount) => amount == null ? '—' : formatRupiah(amount);
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final s = summary;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -827,19 +994,19 @@ class _TransparencyDashboard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Portal Mandiri Anggota',
-                        style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 17),
-                      ),
+                      Text('Portal Mandiri Anggota',
+                          style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 17)),
                       const SizedBox(height: 4),
-                      Text(
-                        'Dashboard transparansi keanggotaan Anda',
-                        style: TextStyle(color: colors.onPrimary.withValues(alpha: .82)),
-                      ),
+                      Text('Dashboard transparansi keanggotaan Anda',
+                          style: TextStyle(color: colors.onPrimary.withValues(alpha: .82))),
                     ],
                   ),
                 ),
-                Icon(Icons.lock_open_outlined, color: colors.onPrimary.withValues(alpha: .8), size: 18),
+                IconButton(
+                  onPressed: loading ? null : () => onRefresh(),
+                  icon: Icon(Icons.refresh, color: colors.onPrimary.withValues(alpha: .9), size: 19),
+                  tooltip: 'Muat ulang',
+                ),
               ],
             ),
           ),
@@ -850,29 +1017,43 @@ class _TransparencyDashboard extends StatelessWidget {
               children: [
                 Text('Ringkasan keuangan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
-                Row(
-                  children: const [
-                    Expanded(child: _DashboardMetric(icon: Icons.savings_outlined, label: 'Total simpanan', value: 'Belum tersedia')),
-                    SizedBox(width: 10),
-                    Expanded(child: _DashboardMetric(icon: Icons.request_quote_outlined, label: 'Pinjaman aktif', value: 'Belum tersedia')),
-                  ],
+                if (loading) const Padding(padding: EdgeInsets.only(bottom: 10), child: LinearProgressIndicator(minHeight: 2)),
+                if (error != null) Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(error!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.error)),
                 ),
+                Row(children: [
+                  Expanded(child: _DashboardMetric(icon: Icons.savings_outlined, label: 'Total simpanan', value: _value(s?.totalSimpanan))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _DashboardMetric(
+                    icon: Icons.request_quote_outlined,
+                    label: 'Pinjaman aktif',
+                    value: s == null ? '—' : (s.jumlahPinjamanAktif == 0 ? 'Tidak ada' : '${formatRupiah(s.sisaPokokPinjaman)} sisa'),
+                  )),
+                ]),
                 const SizedBox(height: 10),
-                Row(
-                  children: const [
-                    Expanded(child: _DashboardMetric(icon: Icons.payments_outlined, label: 'Cicilan berjalan', value: 'Belum tersedia')),
-                    SizedBox(width: 10),
-                    Expanded(child: _DashboardMetric(icon: Icons.auto_graph_outlined, label: 'Estimasi SHU', value: 'Belum tersedia')),
-                  ],
-                ),
+                Row(children: [
+                  Expanded(child: _DashboardMetric(
+                    icon: Icons.payments_outlined,
+                    label: 'Cicilan berjalan',
+                    value: s == null ? '—' : (s.cicilanBulananBerjalan == 0 ? 'Tidak ada' : '${formatRupiah(s.cicilanBulananBerjalan)} / bln'),
+                  )),
+                  const SizedBox(width: 10),
+                  const Expanded(child: _DashboardMetric(icon: Icons.auto_graph_outlined, label: 'Estimasi SHU', value: 'Belum tersedia')),
+                ]),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.sync_outlined, size: 15, color: colors.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text('Pembaruan data: menunggu integrasi transaksi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
-                  ],
-                ),
+                Row(children: [
+                  Icon(Icons.sync_outlined, size: 15, color: colors.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      s == null
+                          ? 'Memuat data terkini...'
+                          : 'Pokok ${formatRupiah(s.simpananPokok)} · Wajib ${formatRupiah(s.simpananWajib)} · Sukarela ${formatRupiah(s.simpananSukarela)} · Berjangka ${formatRupiah(s.simpananBerjangka)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                  ),
+                ]),
               ],
             ),
           ),
@@ -883,78 +1064,102 @@ class _TransparencyDashboard extends StatelessWidget {
 }
 
 class _HomeAnnouncementCard extends StatelessWidget {
-  const _HomeAnnouncementCard({required this.onTap});
+  const _HomeAnnouncementCard({required this.items, required this.onOpen});
 
-  final VoidCallback onTap;
+  final List<Announcement> items;
+  final void Function(String tautan) onOpen;
+
+  IconData _icon(String ikon) => switch (ikon) {
+        'vote' => Icons.how_to_vote_outlined,
+        'dokumen' => Icons.picture_as_pdf_outlined,
+        'produk' => Icons.storefront_outlined,
+        _ => Icons.campaign_outlined,
+      };
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
-      color: colors.tertiaryContainer,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: colors.tertiary,
-                child: Icon(Icons.campaign_outlined, color: colors.onTertiary),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Pengumuman terbaru', style: TextStyle(fontWeight: FontWeight.w800)),
-                    SizedBox(height: 4),
-                    Text('Voting E-RAT akan segera dibuka. Lihat agenda dan berikan suara Anda.'),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pengumuman', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
+        if (items.isEmpty)
+          Card(
+            color: colors.tertiaryContainer,
+            child: const Padding(padding: EdgeInsets.all(16), child: Text('Belum ada pengumuman.')),
+          )
+        else
+          ...items.map((a) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                color: colors.tertiaryContainer,
+                child: InkWell(
+                  onTap: a.tautan.isEmpty ? null : () => onOpen(a.tautan),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(children: [
+                      CircleAvatar(backgroundColor: colors.tertiary, child: Icon(_icon(a.ikon), color: colors.onTertiary, size: 20)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(a.judul, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 3),
+                          Text(a.isi, style: Theme.of(context).textTheme.bodySmall),
+                        ]),
+                      ),
+                      if (a.tautan.isNotEmpty) const Icon(Icons.chevron_right),
+                    ]),
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
-      ),
+              )),
+      ],
     );
   }
 }
 
 class _LatestProductsPreview extends StatelessWidget {
-  const _LatestProductsPreview();
+  const _LatestProductsPreview({required this.products, required this.onOpenCatalog});
 
-  static const products = [
-    ('Beras Premium 5 kg', 'Rp 78.000', 'Tersedia'),
-    ('Minyak Goreng 2 L', 'Rp 36.500', 'Tersedia'),
-    ('Paket Sembako Hemat', 'Rp 125.000', 'Tersedia'),
-  ];
+  final List<CatalogProduct> products;
+  final VoidCallback onOpenCatalog;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text('Produk terbaru', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            ),
-            Text('Katalog', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ...products.map((product) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.shopping_bag_outlined)),
-                title: Text(product.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(product.$3),
-                trailing: Text(product.$2, style: const TextStyle(fontWeight: FontWeight.w800)),
-              ),
-            )),
+        Row(children: [
+          Expanded(child: Text('Produk terbaru', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+          TextButton(onPressed: onOpenCatalog, child: const Text('Buka katalog')),
+        ]),
+        const SizedBox(height: 6),
+        if (products.isEmpty)
+          Text('Belum ada produk di katalog.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54))
+        else
+          ...products.map((p) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  onTap: onOpenCatalog,
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: p.fotoUrl == null
+                          ? Container(color: colors.primaryContainer, child: Icon(Icons.shopping_bag_outlined, color: colors.onPrimaryContainer))
+                          : Image.network('${AuthService.baseUrl}${p.fotoUrl}', fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(color: colors.primaryContainer, child: const Icon(Icons.image_not_supported_outlined))),
+                    ),
+                  ),
+                  title: Text(p.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(p.sewa
+                      ? 'Sewa · ${p.sumber == 'TitipanAnggota' ? 'titipan anggota' : 'koperasi'}'
+                      : (p.stok > 0 ? 'Stok ${p.stok.toStringAsFixed(p.stok % 1 == 0 ? 0 : 2)} ${p.satuan}' : 'Stok habis')),
+                  trailing: Text('${formatRupiah(p.harga)}${p.sewa ? '/${p.satuan}' : ''}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              )),
       ],
     );
   }
@@ -1000,80 +1205,293 @@ class EratPage extends StatefulWidget {
   State<EratPage> createState() => _EratPageState();
 }
 
-class _EratPageState extends State<EratPage> {
-  String? _vote;
+class EratOption {
+  const EratOption({required this.id, required this.label, required this.jumlah});
+  final int id;
+  final String label;
+  final int jumlah;
+  factory EratOption.fromJson(Map<String, dynamic> json) =>
+      EratOption(id: json['id'] as int, label: json['label'] as String, jumlah: json['jumlah'] as int);
+}
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+class EratAgendaItem {
+  const EratAgendaItem({
+    required this.id,
+    required this.judul,
+    this.deskripsi,
+    required this.status,
+    required this.totalSuara,
+    this.pilihanSaya,
+    required this.opsi,
+  });
+
+  final int id;
+  final String judul;
+  final String? deskripsi;
+  final String status; // Aktif | Selesai
+  final int totalSuara;
+  final int? pilihanSaya;
+  final List<EratOption> opsi;
+
+  bool get sudahMemilih => pilihanSaya != null;
+  bool get tampilkanHasil => sudahMemilih || status == 'Selesai';
+
+  factory EratAgendaItem.fromJson(Map<String, dynamic> json) => EratAgendaItem(
+        id: json['id'] as int,
+        judul: json['judul'] as String,
+        deskripsi: json['deskripsi'] as String?,
+        status: json['status'] as String,
+        totalSuara: json['totalSuara'] as int,
+        pilihanSaya: json['pilihanSaya'] as int?,
+        opsi: (json['opsi'] as List<dynamic>).map((e) => EratOption.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
+class RatDocument {
+  const RatDocument({required this.id, required this.tahun, required this.judul, this.deskripsi, required this.fileUrl, required this.diterbitkanPada});
+  final int id;
+  final int tahun;
+  final String judul;
+  final String? deskripsi;
+  final String fileUrl;
+  final DateTime diterbitkanPada;
+  factory RatDocument.fromJson(Map<String, dynamic> json) => RatDocument(
+        id: json['id'] as int,
+        tahun: json['tahun'] as int,
+        judul: json['judul'] as String,
+        deskripsi: json['deskripsi'] as String?,
+        fileUrl: json['fileUrl'] as String,
+        diterbitkanPada: DateTime.parse(json['diterbitkanPada'] as String),
+      );
+}
+
+class _EratPageState extends State<EratPage> {
+  bool _loading = true;
+  String? _error;
+  int? _busyAgenda;
+  List<EratAgendaItem> _agenda = const [];
+  List<RatDocument> _dokumen = const [];
+  final Map<int, int> _pilihan = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final results = await Future.wait([
+        AuthService().fetchEratAgenda(),
+        AuthService().fetchRatDocuments(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _agenda = results[0] as List<EratAgendaItem>;
+        _dokumen = results[1] as List<RatDocument>;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.replaceFirst('Exception: ', ''))));
+  }
+
+  Future<void> _vote(EratAgendaItem agenda) async {
+    final opsiId = _pilihan[agenda.id];
+    if (opsiId == null) return;
+    setState(() => _busyAgenda = agenda.id);
+    try {
+      await AuthService().submitVote(agendaId: agenda.id, opsiId: opsiId);
+      if (!mounted) return;
+      _toast('Suara Anda tercatat.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busyAgenda = null);
+    }
+  }
+
+  Future<void> _openDocument(RatDocument doc) async {
+    final uri = Uri.parse('${AuthService.baseUrl}/api/erat/laporan-tahunan/${doc.id}/berkas');
+    var opened = false;
+    for (final mode in [LaunchMode.externalApplication, LaunchMode.platformDefault, LaunchMode.inAppBrowserView]) {
+      try {
+        if (await launchUrl(uri, mode: mode)) {
+          opened = true;
+          break;
+        }
+      } catch (_) {
+        // coba mode berikutnya
+      }
+    }
+    if (!opened && mounted) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Buka dokumen di browser'),
+          content: SelectableText('$uri'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: '$uri'));
+                Navigator.pop(dialogContext);
+                _toast('Tautan disalin.');
+              },
+              child: const Text('Salin tautan'),
+            ),
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Tutup')),
+          ],
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Partisipasi E-RAT')),
+      appBar: AppBar(
+        title: const Text('Partisipasi E-RAT'),
+        actions: [IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh), tooltip: 'Muat ulang')],
+      ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              Text('Rapat Anggota Tahunan Digital',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text('Gunakan hak suara Anda dan baca dokumen RAT koperasi.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
+              const SizedBox(height: 16),
+              if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ),
+              Text('Voting', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              if (!_loading && _agenda.isEmpty)
+                Text('Belum ada agenda voting yang ditayangkan.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+              ..._agenda.map(_buildAgendaCard),
+              const SizedBox(height: 16),
+              Text('Dokumen RAT terkini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              if (!_loading && _dokumen.isEmpty)
+                Text('Belum ada dokumen RAT diterbitkan.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+              ..._dokumen.asMap().entries.map((entry) => _buildDocumentCard(entry.value, terbaru: entry.key == 0)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAgendaCard(EratAgendaItem agenda) {
+    final colors = Theme.of(context).colorScheme;
+    final selesai = agenda.status == 'Selesai';
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Rapat Anggota Tahunan Digital',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
+            Row(children: [
+              Expanded(child: Text(agenda.judul, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: selesai ? colors.surfaceContainerHighest : colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(selesai ? 'Selesai' : 'Berlangsung',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: selesai ? Colors.black54 : colors.onPrimaryContainer)),
+              ),
+            ]),
+            if (agenda.deskripsi != null && agenda.deskripsi!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(agenda.deskripsi!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+            ],
+            const SizedBox(height: 10),
+            if (agenda.tampilkanHasil)
+              ...agenda.opsi.map((o) {
+                final pct = agenda.totalSuara == 0 ? 0.0 : o.jumlah / agenda.totalSuara;
+                final dipilih = agenda.pilihanSaya == o.id;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text('${o.label}${dipilih ? '  (pilihan Anda)' : ''}',
+                          style: TextStyle(fontWeight: dipilih ? FontWeight.w800 : FontWeight.w500))),
+                      Text('${o.jumlah} · ${(pct * 100).toStringAsFixed(0)}%', style: Theme.of(context).textTheme.bodySmall),
+                    ]),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(value: pct, minHeight: 7, backgroundColor: colors.surfaceContainerHighest),
+                    ),
+                  ]),
+                );
+              })
+            else ...[
+              ...agenda.opsi.map((o) => RadioListTile<int>(
+                    contentPadding: EdgeInsets.zero,
+                    value: o.id,
+                    groupValue: _pilihan[agenda.id],
+                    title: Text(o.label),
+                    onChanged: _busyAgenda == agenda.id ? null : (v) => setState(() => _pilihan[agenda.id] = v!),
+                  )),
+              const SizedBox(height: 6),
+              FilledButton.icon(
+                onPressed: (_pilihan[agenda.id] == null || _busyAgenda == agenda.id) ? null : () => _vote(agenda),
+                icon: _busyAgenda == agenda.id
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.how_to_vote_outlined, size: 18),
+                label: const Text('Kirim suara'),
+              ),
+            ],
             const SizedBox(height: 6),
-            Text(
-              'Gunakan hak suara dan akses laporan koperasi secara mandiri.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-            ),
-            const SizedBox(height: 20),
-            _AccountSectionCard(
-              icon: Icons.how_to_vote_outlined,
-              title: 'Voting Digital',
-              subtitle: 'Suara anggota aktif untuk keputusan penting koperasi.',
-              children: [
-                const _InfoRow(label: 'Agenda voting', value: 'Belum tersedia'),
-                const _InfoRow(label: 'Periode voting', value: 'Menunggu jadwal E-RAT'),
-                const SizedBox(height: 8),
-                RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  value: 'setuju',
-                  groupValue: _vote,
-                  title: const Text('Setuju'),
-                  onChanged: (value) => setState(() => _vote = value),
-                ),
-                RadioListTile<String>(
-                  contentPadding: EdgeInsets.zero,
-                  value: 'tolak',
-                  groupValue: _vote,
-                  title: const Text('Tolak'),
-                  onChanged: (value) => setState(() => _vote = value),
-                ),
-                FilledButton.icon(
-                  onPressed: _vote == null ? null : () => _showMessage('Voting akan tersedia saat periode E-RAT aktif.'),
-                  icon: const Icon(Icons.how_to_vote_outlined),
-                  label: const Text('Kirim suara'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _AccountSectionCard(
-              icon: Icons.description_outlined,
-              title: 'Laporan Tahunan',
-              subtitle: 'Dokumen operasional dan finansial koperasi.',
-              children: [
-                const _InfoRow(label: 'Laporan tahun terakhir', value: 'Belum tersedia'),
-                const _InfoRow(label: 'Format dokumen', value: 'PDF'),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => _showMessage('Laporan tahunan akan tersedia setelah dokumen diterbitkan.'),
-                  icon: const Icon(Icons.download_outlined),
-                  label: const Text('Unduh laporan tahunan'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text('Akun: ${widget.session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
+            Text('${agenda.totalSuara} suara masuk', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentCard(RatDocument doc, {required bool terbaru}) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      color: terbaru ? colors.primaryContainer : null,
+      child: ListTile(
+        leading: Icon(Icons.picture_as_pdf_outlined, color: terbaru ? colors.onPrimaryContainer : colors.primary),
+        title: Row(children: [
+          Flexible(child: Text(doc.judul, style: const TextStyle(fontWeight: FontWeight.w700))),
+          if (terbaru) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(6)),
+              child: Text('Terbaru', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: colors.onPrimary)),
+            ),
+          ],
+        ]),
+        subtitle: Text('Tahun ${doc.tahun}${doc.deskripsi != null && doc.deskripsi!.isNotEmpty ? ' · ${doc.deskripsi}' : ''}'),
+        trailing: const Icon(Icons.open_in_new),
+        onTap: () => _openDocument(doc),
       ),
     );
   }
@@ -1604,104 +2022,326 @@ class BusinessUnitPage extends StatefulWidget {
   State<BusinessUnitPage> createState() => _BusinessUnitPageState();
 }
 
-class _BusinessUnitPageState extends State<BusinessUnitPage> {
-  static const fallbackProducts = [
-    _CatalogProduct('Beras Premium 5 kg', 'Rp 78.000', 'Tersedia', Icons.shopping_bag_outlined),
-    _CatalogProduct('Minyak Goreng 2 L', 'Rp 36.500', 'Tersedia', Icons.local_drink_outlined),
-    _CatalogProduct('Gula Pasir 1 kg', 'Rp 17.000', 'Stok terbatas', Icons.inventory_2_outlined),
-    _CatalogProduct('Paket Sembako Hemat', 'Rp 125.000', 'Tersedia', Icons.local_mall_outlined),
-  ];
+class CatalogProduct {
+  const CatalogProduct({
+    required this.id,
+    required this.kode,
+    required this.nama,
+    this.deskripsi,
+    required this.jenis,
+    required this.harga,
+    required this.stok,
+    required this.satuan,
+    this.fotoUrl,
+    required this.sumber,
+    this.diajukanOleh,
+    required this.status,
+    required this.aktif,
+    this.catatanReview,
+  });
 
-  List<_CatalogProduct> _products = fallbackProducts;
-  bool _loadingProducts = true;
+  final int id;
+  final String kode;
+  final String nama;
+  final String? deskripsi;
+  final String jenis; // Jual | Sewa
+  final double harga;
+  final double stok;
+  final String satuan;
+  final String? fotoUrl;
+  final String sumber; // Koperasi | TitipanAnggota
+  final String? diajukanOleh;
+  final String status; // MenungguPersetujuan | Disetujui | Ditolak
+  final bool aktif;
+  final String? catatanReview;
+
+  bool get sewa => jenis == 'Sewa';
+
+  factory CatalogProduct.fromJson(Map<String, dynamic> json) => CatalogProduct(
+        id: json['id'] as int,
+        kode: json['kode'] as String,
+        nama: json['nama'] as String,
+        deskripsi: json['deskripsi'] as String?,
+        jenis: json['jenis'] as String,
+        harga: (json['harga'] as num).toDouble(),
+        stok: (json['stok'] as num).toDouble(),
+        satuan: json['satuan'] as String,
+        fotoUrl: json['fotoUrl'] as String?,
+        sumber: json['sumber'] as String,
+        diajukanOleh: json['diajukanOleh'] as String?,
+        status: json['status'] as String,
+        aktif: json['aktif'] as bool,
+        catatanReview: json['catatanReview'] as String?,
+      );
+}
+
+class ProductPurchase {
+  const ProductPurchase({
+    required this.id,
+    required this.nomorTransaksi,
+    required this.produkNama,
+    required this.jenis,
+    required this.jumlah,
+    required this.total,
+    required this.metodePembayaran,
+    required this.status,
+    this.catatanReview,
+    this.tagihanKreditStatus,
+  });
+
+  final int id;
+  final String nomorTransaksi;
+  final String produkNama;
+  final String jenis;
+  final double jumlah;
+  final double total;
+  final String metodePembayaran;
+  final String status;
+  final String? catatanReview;
+  final String? tagihanKreditStatus;
+
+  factory ProductPurchase.fromJson(Map<String, dynamic> json) => ProductPurchase(
+        id: json['id'] as int,
+        nomorTransaksi: json['nomorTransaksi'] as String,
+        produkNama: json['produkNama'] as String,
+        jenis: json['jenis'] as String,
+        jumlah: (json['jumlah'] as num).toDouble(),
+        total: (json['total'] as num).toDouble(),
+        metodePembayaran: json['metodePembayaran'] as String,
+        status: json['status'] as String,
+        catatanReview: json['catatanReview'] as String?,
+        tagihanKreditStatus: (json['tagihanKredit'] as Map<String, dynamic>?)?['status'] as String?,
+      );
+}
+
+class _BusinessUnitPageState extends State<BusinessUnitPage> {
+  bool _loading = true;
+  String? _error;
+  bool _busy = false;
+  List<CatalogProduct> _catalog = const [];
+  List<CatalogProduct> _myListings = const [];
+  List<ProductPurchase> _myPurchases = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _load();
   }
 
-  Future<void> _loadProducts() async {
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final products = await AuthService().getProducts();
-      if (!mounted || products.isEmpty) return;
-      setState(() => _products = products.map(_CatalogProduct.fromJson).toList());
-    } catch (_) {
-      // Keep the local preview while the inventory API is unavailable.
+      final results = await Future.wait([
+        AuthService().fetchCatalog(),
+        AuthService().fetchMyListings(),
+        AuthService().fetchMyPurchases(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _catalog = results[0] as List<CatalogProduct>;
+        _myListings = results[1] as List<CatalogProduct>;
+        _myPurchases = results[2] as List<ProductPurchase>;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _loadingProducts = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Digital Ordering akan tersedia pada tahap berikutnya.')),
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.replaceFirst('Exception: ', ''))));
+  }
+
+  Future<void> _buy(CatalogProduct product) async {
+    final result = await showModalBottomSheet<({double jumlah, String metode, String? catatan})>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _BuySheet(product: product),
     );
+    if (result == null) return;
+    setState(() => _busy = true);
+    try {
+      await AuthService().buyProduct(
+        produkId: product.id,
+        jumlah: result.jumlah,
+        metodePembayaran: result.metode,
+        catatan: result.catatan,
+      );
+      if (!mounted) return;
+      _toast('Pengajuan ${product.sewa ? 'sewa' : 'pembelian'} terkirim. Menunggu persetujuan pengurus.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _sell() async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const SellProductPage()),
+    );
+    if (ok == true) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Katalog Produk Koperasi')),
+      appBar: AppBar(
+        title: const Text('Katalog Produk Koperasi'),
+        actions: [IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh), tooltip: 'Muat ulang')],
+      ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Text(
-              'Katalog Produk Koperasi',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Lihat harga dan ketersediaan barang sebelum datang ke toko koperasi.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.visibility_outlined, size: 15, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 6),
-                const Text('Mode lihat saja', style: TextStyle(fontWeight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            if (_loadingProducts) const LinearProgressIndicator(minHeight: 2),
-            ..._products.map((product) => _CatalogProductTile(product: product)),
-            const SizedBox(height: 8),
-            Card(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.shopping_cart_outlined, color: Theme.of(context).colorScheme.onSecondaryContainer),
-                        const SizedBox(width: 10),
-                        const Expanded(child: Text('Digital Ordering', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-                        const Icon(Icons.lock_outline, size: 18),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Pilih barang, checkout dari smartphone, dan pembayaran langsung terhubung dengan saldo simpanan atau limit cicilan.'),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => _showComingSoon(context),
-                      icon: const Icon(Icons.arrow_forward_outlined),
-                      label: const Text('Pelajari tahap berikutnya'),
-                    ),
-                  ],
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              Text('Katalog Produk Koperasi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text('Beli atau sewa produk koperasi, atau jual produk Anda ke koperasi.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
+              const SizedBox(height: 16),
+              if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
+              if (!_loading && _catalog.isEmpty)
+                Text('Belum ada produk di katalog.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+              ..._catalog.map((product) => _CatalogProductCard(
+                    product: product,
+                    onBuy: _busy ? null : () => _buy(product),
+                  )),
+              const SizedBox(height: 8),
+              _AccountSectionCard(
+                icon: Icons.sell_outlined,
+                title: 'Jual produk ke koperasi',
+                subtitle: 'Ajukan barang milik Anda untuk dijual / disewakan lewat koperasi. Disetujui pengurus dulu.',
+                children: [
+                  FilledButton.icon(
+                    onPressed: _busy ? null : _sell,
+                    icon: const Icon(Icons.add_business_outlined, size: 18),
+                    label: const Text('Ajukan produk baru'),
+                  ),
+                  if (_myListings.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    ..._myListings.map((item) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(children: [
+                            Expanded(child: Text('${item.nama} · ${formatRupiah(item.harga)}')),
+                            Text(_statusLabel(item.status),
+                                style: TextStyle(color: _statusColor(context, item.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                          ]),
+                        )),
+                  ],
+                ],
+              ),
+              if (_myPurchases.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _AccountSectionCard(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Transaksi saya',
+                  subtitle: 'Riwayat pembelian & penyewaan produk.',
+                  children: _myPurchases
+                      .map((p) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(children: [
+                                Expanded(child: Text('${p.jenis} ${p.produkNama} · ${formatRupiah(p.total)}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                                Text(_statusLabel(p.status),
+                                    style: TextStyle(color: _statusColor(context, p.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                              ]),
+                              Text(
+                                p.metodePembayaran == 'Kredit'
+                                    ? 'Kredit · tagihan: ${p.tagihanKreditStatus ?? 'menunggu'}'
+                                    : 'Tunai',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                              ),
+                            ]),
+                          ))
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CatalogProductCard extends StatelessWidget {
+  const _CatalogProductCard({required this.product, required this.onBuy});
+
+  final CatalogProduct product;
+  final VoidCallback? onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final habis = !product.sewa && product.stok <= 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: product.fotoUrl == null
+                    ? Container(color: colors.primaryContainer, child: Icon(Icons.inventory_2_outlined, color: colors.onPrimaryContainer))
+                    : Image.network('${AuthService.baseUrl}${product.fotoUrl}', fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: colors.primaryContainer, child: const Icon(Icons.broken_image_outlined))),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Data katalog terakhir diperbarui oleh koperasi. Hubungi toko jika informasi stok berbeda saat kunjungan.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(child: Text(product.nama, style: const TextStyle(fontWeight: FontWeight.w700))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(color: colors.secondaryContainer, borderRadius: BorderRadius.circular(6)),
+                      child: Text(product.sewa ? 'Sewa' : 'Jual', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: colors.onSecondaryContainer)),
+                    ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text('${formatRupiah(product.harga)} / ${product.satuan}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  if (product.deskripsi != null && product.deskripsi!.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(product.deskripsi!, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Expanded(
+                      child: Text(
+                        product.sewa
+                            ? (product.sumber == 'TitipanAnggota' ? 'Titipan ${product.diajukanOleh ?? 'anggota'}' : 'Milik koperasi')
+                            : (habis ? 'Stok habis' : 'Stok ${product.stok.toStringAsFixed(product.stok % 1 == 0 ? 0 : 2)} ${product.satuan}'),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: habis ? Colors.red.shade700 : Colors.black54),
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: habis ? null : onBuy,
+                      child: Text(product.sewa ? 'Sewa' : 'Beli'),
+                    ),
+                  ]),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text('Untuk ${widget.session.user.namaLengkap}', style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
       ),
@@ -1709,55 +2349,246 @@ class _BusinessUnitPageState extends State<BusinessUnitPage> {
   }
 }
 
-class _CatalogProduct {
-  const _CatalogProduct(this.name, this.price, this.availability, this.icon);
+class _BuySheet extends StatefulWidget {
+  const _BuySheet({required this.product});
+  final CatalogProduct product;
 
-  factory _CatalogProduct.fromJson(Map<String, dynamic> json) {
-    final stock = (json['stok'] as num?)?.toDouble() ?? 0;
-    return _CatalogProduct(
-      json['nama'] as String,
-      _formatCatalogPrice((json['harga'] as num?)?.toDouble() ?? 0),
-      stock > 0 ? (stock < 5 ? 'Stok terbatas' : 'Tersedia') : 'Stok belum tersedia',
-      Icons.shopping_bag_outlined,
-    );
-  }
-
-  final String name;
-  final String price;
-  final String availability;
-  final IconData icon;
+  @override
+  State<_BuySheet> createState() => _BuySheetState();
 }
 
-class _CatalogProductTile extends StatelessWidget {
-  const _CatalogProductTile({required this.product});
+class _BuySheetState extends State<_BuySheet> {
+  final _jumlahController = TextEditingController(text: '1');
+  final _catatanController = TextEditingController();
+  String _metode = 'Tunai';
 
-  final _CatalogProduct product;
+  @override
+  void dispose() {
+    _jumlahController.dispose();
+    _catatanController.dispose();
+    super.dispose();
+  }
+
+  double get _jumlah => double.tryParse(_jumlahController.text.replaceAll(',', '.')) ?? 0;
 
   @override
   Widget build(BuildContext context) {
-    final isLimited = product.availability == 'Stok terbatas';
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: Icon(product.icon),
-        ),
-        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: Text(product.availability, style: TextStyle(color: isLimited ? Colors.orange.shade800 : Colors.green.shade700)),
-        ),
-        trailing: Text(product.price, style: const TextStyle(fontWeight: FontWeight.w800)),
+    final p = widget.product;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('${p.sewa ? 'Sewa' : 'Beli'} ${p.nama}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text('${formatRupiah(p.harga)} / ${p.satuan}', style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _jumlahController,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(labelText: p.sewa ? 'Jumlah / durasi' : 'Jumlah', suffixText: p.satuan),
+          ),
+          const SizedBox(height: 12),
+          const Text('Metode pembayaran', style: TextStyle(fontWeight: FontWeight.w700)),
+          RadioListTile<String>(
+            contentPadding: EdgeInsets.zero,
+            value: 'Tunai',
+            groupValue: _metode,
+            onChanged: (v) => setState(() => _metode = v!),
+            title: const Text('Tunai'),
+            subtitle: const Text('Dibayar fisik ke pengurus'),
+          ),
+          RadioListTile<String>(
+            contentPadding: EdgeInsets.zero,
+            value: 'Kredit',
+            groupValue: _metode,
+            onChanged: (v) => setState(() => _metode = v!),
+            title: const Text('Kredit'),
+            subtitle: const Text('Jadi hutang — ditagih lewat SDM (potong gaji)'),
+          ),
+          const SizedBox(height: 8),
+          TextField(controller: _catatanController, decoration: const InputDecoration(labelText: 'Catatan (opsional)')),
+          const SizedBox(height: 14),
+          _InfoRow(label: 'Total', value: formatRupiah(p.harga * _jumlah)),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _jumlah <= 0
+                ? null
+                : () => Navigator.pop(context, (
+                    jumlah: _jumlah,
+                    metode: _metode,
+                    catatan: _catatanController.text.trim().isEmpty ? null : _catatanController.text.trim(),
+                  )),
+            child: const Text('Ajukan'),
+          ),
+        ],
       ),
     );
   }
 }
 
-String _formatCatalogPrice(double value) {
-  final rounded = value.round().toString();
-  return 'Rp ${rounded.replaceAllMapped(RegExp(r'(?<=\d)(?=(\d{3})+$)'), (_) => '.')}';
+class SellProductPage extends StatefulWidget {
+  const SellProductPage({super.key});
+
+  @override
+  State<SellProductPage> createState() => _SellProductPageState();
+}
+
+class _SellProductPageState extends State<SellProductPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _namaController = TextEditingController();
+  final _deskripsiController = TextEditingController();
+  final _hargaController = TextEditingController();
+  final _stokController = TextEditingController(text: '1');
+  final _satuanController = TextEditingController(text: 'unit');
+  String _jenis = 'Jual';
+  XFile? _foto;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _deskripsiController.dispose();
+    _hargaController.dispose();
+    _stokController.dispose();
+    _satuanController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    final photo = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1400);
+    if (photo != null) setState(() => _foto = photo);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final produk = await AuthService().submitProductListing(
+        nama: _namaController.text,
+        deskripsi: _deskripsiController.text,
+        jenis: _jenis,
+        harga: double.parse(_hargaController.text.replaceAll('.', '').replaceAll(',', '')),
+        stok: double.tryParse(_stokController.text.replaceAll(',', '.')) ?? 1,
+        satuan: _satuanController.text,
+      );
+      if (_foto != null) {
+        await AuthService().uploadProductListingPhoto(produk.id, _foto!);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pengajuan produk terkirim. Menunggu persetujuan pengurus.')),
+      );
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Jual produk ke koperasi')),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            children: [
+              Text(
+                'Barang yang disetujui akan menjadi milik koperasi dan tampil di katalog. Pelunasan ke Anda diatur pengurus.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _pickPhoto,
+                child: Container(
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(_foto == null ? Icons.add_a_photo_outlined : Icons.check_circle_outline,
+                          color: _foto == null ? null : Colors.green.shade700),
+                      const SizedBox(height: 6),
+                      Text(_foto == null ? 'Tambahkan foto produk (opsional)' : 'Foto dipilih: ${_foto!.name}'),
+                    ]),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _namaController,
+                decoration: const InputDecoration(labelText: 'Nama produk'),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _deskripsiController,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Deskripsi (opsional)'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _jenis,
+                decoration: const InputDecoration(labelText: 'Jenis'),
+                items: const [
+                  DropdownMenuItem(value: 'Jual', child: Text('Dijual')),
+                  DropdownMenuItem(value: 'Sewa', child: Text('Disewakan')),
+                ],
+                onChanged: (v) => setState(() => _jenis = v ?? 'Jual'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _hargaController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: _jenis == 'Sewa' ? 'Harga sewa' : 'Harga jual', prefixText: 'Rp '),
+                validator: (v) {
+                  final n = double.tryParse((v ?? '').replaceAll('.', '').replaceAll(',', ''));
+                  return n == null || n <= 0 ? 'Harga tidak valid' : null;
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _stokController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Stok / jumlah'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _satuanController,
+                    decoration: const InputDecoration(labelText: 'Satuan'),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Wajib' : null,
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: _saving ? null : _submit,
+                icon: _saving
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.send_outlined),
+                label: Text(_saving ? 'Mengirim...' : 'Kirim pengajuan'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ── Pinjaman ─────────────────────────────────────────────────────────────────
@@ -1966,6 +2797,67 @@ class LoanOverview {
       );
 }
 
+// ── Beranda ──────────────────────────────────────────────────────────────────
+class Announcement {
+  const Announcement({required this.ikon, required this.judul, required this.isi, required this.tautan});
+  final String ikon; // vote | dokumen | produk | info
+  final String judul;
+  final String isi;
+  final String tautan; // erat | katalog | simpanan | pinjaman | ''
+  factory Announcement.fromJson(Map<String, dynamic> json) => Announcement(
+        ikon: json['ikon'] as String,
+        judul: json['judul'] as String,
+        isi: json['isi'] as String,
+        tautan: json['tautan'] as String,
+      );
+}
+
+class HomeSummary {
+  const HomeSummary({
+    required this.totalSimpanan,
+    required this.simpananPokok,
+    required this.simpananWajib,
+    required this.simpananSukarela,
+    required this.simpananBerjangka,
+    required this.jumlahPinjamanAktif,
+    required this.sisaPokokPinjaman,
+    required this.cicilanBulananBerjalan,
+    required this.sisaAngsuran,
+    required this.pengumuman,
+    required this.produkTerbaru,
+  });
+
+  final double totalSimpanan;
+  final double simpananPokok;
+  final double simpananWajib;
+  final double simpananSukarela;
+  final double simpananBerjangka;
+  final int jumlahPinjamanAktif;
+  final double sisaPokokPinjaman;
+  final double cicilanBulananBerjalan;
+  final int sisaAngsuran;
+  final List<Announcement> pengumuman;
+  final List<CatalogProduct> produkTerbaru;
+
+  factory HomeSummary.fromJson(Map<String, dynamic> json) => HomeSummary(
+        totalSimpanan: (json['totalSimpanan'] as num).toDouble(),
+        simpananPokok: (json['simpananPokok'] as num).toDouble(),
+        simpananWajib: (json['simpananWajib'] as num).toDouble(),
+        simpananSukarela: (json['simpananSukarela'] as num).toDouble(),
+        simpananBerjangka: (json['simpananBerjangka'] as num).toDouble(),
+        jumlahPinjamanAktif: json['jumlahPinjamanAktif'] as int,
+        sisaPokokPinjaman: (json['sisaPokokPinjaman'] as num).toDouble(),
+        cicilanBulananBerjalan: (json['cicilanBulananBerjalan'] as num).toDouble(),
+        sisaAngsuran: json['sisaAngsuran'] as int,
+        pengumuman: (json['pengumuman'] as List<dynamic>? ?? [])
+            .map((e) => Announcement.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        produkTerbaru: (json['produkTerbaru'] as List<dynamic>? ?? [])
+            .map((e) => CatalogProduct.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
 // ── Simpanan ─────────────────────────────────────────────────────────────────
 class SavingsAccount {
   const SavingsAccount({required this.saldo, this.nomorRekening});
@@ -2026,11 +2918,13 @@ class SukarelaRequest {
 }
 
 class SukarelaSection {
-  const SukarelaSection({required this.saldo, required this.pengajuan});
+  const SukarelaSection({required this.saldo, required this.bungaTahunan, required this.pengajuan});
   final double saldo;
+  final double bungaTahunan;
   final List<SukarelaRequest> pengajuan;
   factory SukarelaSection.fromJson(Map<String, dynamic> json) => SukarelaSection(
         saldo: (json['saldo'] as num).toDouble(),
+        bungaTahunan: (json['bungaTahunan'] as num?)?.toDouble() ?? 0,
         pengajuan: (json['pengajuan'] as List<dynamic>).map((e) => SukarelaRequest.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }
@@ -2050,7 +2944,7 @@ class BerjangkaProduct {
 }
 
 class TermDeposit {
-  const TermDeposit({required this.id, required this.nomorSertifikat, required this.produkNama, required this.nominal, required this.tenorBulan, required this.status, this.tanggalMulai, this.tanggalJatuhTempo});
+  const TermDeposit({required this.id, required this.nomorSertifikat, required this.produkNama, required this.nominal, required this.tenorBulan, required this.status, this.tanggalMulai, this.tanggalJatuhTempo, required this.estimasiBunga, this.bungaDibayar, required this.pencairanDiajukan});
   final int id;
   final String nomorSertifikat;
   final String produkNama;
@@ -2059,6 +2953,9 @@ class TermDeposit {
   final String status;
   final DateTime? tanggalMulai;
   final DateTime? tanggalJatuhTempo;
+  final double estimasiBunga;
+  final double? bungaDibayar;
+  final bool pencairanDiajukan;
   factory TermDeposit.fromJson(Map<String, dynamic> json) => TermDeposit(
         id: json['id'] as int,
         nomorSertifikat: json['nomorSertifikat'] as String,
@@ -2068,14 +2965,19 @@ class TermDeposit {
         status: json['status'] as String,
         tanggalMulai: json['tanggalMulai'] == null ? null : DateTime.parse(json['tanggalMulai'] as String),
         tanggalJatuhTempo: json['tanggalJatuhTempo'] == null ? null : DateTime.parse(json['tanggalJatuhTempo'] as String),
+        estimasiBunga: (json['estimasiBunga'] as num?)?.toDouble() ?? 0,
+        bungaDibayar: (json['bungaDibayar'] as num?)?.toDouble(),
+        pencairanDiajukan: json['pencairanDiajukan'] as bool? ?? false,
       );
 }
 
 class BerjangkaSection {
-  const BerjangkaSection({required this.produk, required this.milikSaya});
+  const BerjangkaSection({required this.bungaTahunan, required this.produk, required this.milikSaya});
+  final double bungaTahunan;
   final List<BerjangkaProduct> produk;
   final List<TermDeposit> milikSaya;
   factory BerjangkaSection.fromJson(Map<String, dynamic> json) => BerjangkaSection(
+        bungaTahunan: (json['bungaTahunan'] as num?)?.toDouble() ?? 0,
         produk: (json['produk'] as List<dynamic>).map((e) => BerjangkaProduct.fromJson(e as Map<String, dynamic>)).toList(),
         milikSaya: (json['milikSaya'] as List<dynamic>).map((e) => TermDeposit.fromJson(e as Map<String, dynamic>)).toList(),
       );
@@ -2338,6 +3240,37 @@ class _SavingsTabState extends State<SavingsTab> {
     }
   }
 
+  Future<void> _ajukanPencairan(TermDeposit deposit) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ajukan pencairan dipercepat'),
+        content: Text(
+          '${deposit.produkNama} · ${formatRupiah(deposit.nominal)}\n\n'
+          'Jika dicairkan sebelum jatuh tempo, Anda hanya menerima pokok — '
+          'bunga ${formatRupiah(deposit.estimasiBunga)} TIDAK dibayarkan. '
+          'Pengajuan diverifikasi pengurus.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ajukan pencairan')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      await AuthService().requestEarlyWithdrawal(berjangkaId: deposit.id);
+      if (!mounted) return;
+      _toast('Pengajuan pencairan dipercepat terkirim.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = _data;
@@ -2393,7 +3326,7 @@ class _SavingsTabState extends State<SavingsTab> {
             _AccountSectionCard(
               icon: Icons.volunteer_activism_outlined,
               title: 'Simpanan Sukarela',
-              subtitle: 'Nominal bebas. Setoran & penarikan disetujui pengurus.',
+              subtitle: 'Bunga ${(data.sukarela.bungaTahunan * 100).toStringAsFixed(2)}%/th, dihitung saldo harian & dibayar tiap awal bulan.',
               children: [
                 _InfoRow(label: 'Saldo', value: formatRupiah(data.sukarela.saldo)),
                 const SizedBox(height: 10),
@@ -2431,22 +3364,26 @@ class _SavingsTabState extends State<SavingsTab> {
             _AccountSectionCard(
               icon: Icons.lock_clock_outlined,
               title: 'Simpanan Berjangka',
-              subtitle: 'Pilih paket dari pengurus. Dana terkunci hingga jatuh tempo.',
+              subtitle: 'Bunga ${(data.berjangka.bungaTahunan * 100).toStringAsFixed(2)}%/th. Dana terkunci hingga jatuh tempo.',
               children: [
                 if (data.berjangka.produk.isEmpty)
                   Text('Belum ada paket berjangka tersedia.', style: Theme.of(context).textTheme.bodySmall)
                 else
-                  ...data.berjangka.produk.map((produk) => Card(
-                        margin: const EdgeInsets.symmetric(vertical: 5),
-                        child: ListTile(
-                          title: Text(produk.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text('${formatRupiah(produk.nominal)} · ${produk.tenorBulan} bulan'),
-                          trailing: FilledButton(
-                            onPressed: _busy ? null : () => _ajukanBerjangka(produk),
-                            child: const Text('Ajukan'),
-                          ),
+                  ...data.berjangka.produk.map((produk) {
+                    final bunga = produk.nominal * data.berjangka.bungaTahunan * produk.tenorBulan / 12;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 5),
+                      child: ListTile(
+                        title: Text(produk.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: Text('${formatRupiah(produk.nominal)} · ${produk.tenorBulan} bulan\nEstimasi bunga ${formatRupiah(bunga)}'),
+                        isThreeLine: true,
+                        trailing: FilledButton(
+                          onPressed: _busy ? null : () => _ajukanBerjangka(produk),
+                          child: const Text('Ajukan'),
                         ),
-                      )),
+                      ),
+                    );
+                  }),
                 if (data.berjangka.milikSaya.isNotEmpty) ...[
                   const Divider(height: 22),
                   Text('Simpanan berjangka saya', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -2462,6 +3399,26 @@ class _SavingsTabState extends State<SavingsTab> {
                           if (deposit.tanggalJatuhTempo != null)
                             Text('Jatuh tempo ${_monthLabel(deposit.tanggalJatuhTempo!)}',
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+                          Text(
+                            deposit.bungaDibayar != null
+                                ? (deposit.bungaDibayar == 0
+                                    ? 'Dicairkan dipercepat — tanpa bunga'
+                                    : 'Bunga dibayar ${formatRupiah(deposit.bungaDibayar!)} (masuk ke sukarela)')
+                                : 'Estimasi bunga saat jatuh tempo ${formatRupiah(deposit.estimasiBunga)}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                          ),
+                          if (deposit.status == 'Aktif') ...[
+                            const SizedBox(height: 6),
+                            if (deposit.pencairanDiajukan)
+                              Text('Pengajuan pencairan dipercepat menunggu persetujuan pengurus.',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange.shade800, fontWeight: FontWeight.w600))
+                            else
+                              OutlinedButton.icon(
+                                onPressed: _busy ? null : () => _ajukanPencairan(deposit),
+                                icon: const Icon(Icons.lock_open_outlined, size: 16),
+                                label: const Text('Ajukan pencairan dipercepat'),
+                              ),
+                          ],
                         ]),
                       )),
                 ],

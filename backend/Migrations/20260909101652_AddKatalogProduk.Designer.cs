@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909101652_AddKatalogProduk")]
+    partial class AddKatalogProduk
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -340,10 +343,6 @@ namespace backend.Migrations
                     b.Property<bool>("Aktif")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Deskripsi")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<DateTime>("DiterbitkanPada")
                         .HasColumnType("datetime2");
 
@@ -362,7 +361,8 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tahun");
+                    b.HasIndex("Tahun")
+                        .IsUnique();
 
                     b.ToTable("LaporanTahunan");
                 });

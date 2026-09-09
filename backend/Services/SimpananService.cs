@@ -47,6 +47,87 @@ public class SimpananService(KkcsDbContext db)
     }
 }
 
+/// <summary>Bunga Simpanan Berjangka (deposito) — flat: Nominal × BungaTahunan × TenorBulan / 12.</summary>
+public static class BungaDeposito
+{
+    public static decimal Hitung(decimal nominal, decimal bungaTahunan, int tenorBulan) =>
+        Math.Round(nominal * bungaTahunan * tenorBulan / 12m, 2, MidpointRounding.AwayFromZero);
+}
+
+/// <summary>
+/// Bunga Simpanan Sukarela — metode saldo harian:
+///   Bunga = Σ (saldo akhir hari × bunga tahunan × 1) / 365, diakumulasi per bulan.
+/// Bunga dikreditkan ke saldo sukarela (majemuk) sekali per periode; idempoten via <see cref="PostingBungaSukarela"/>.
+/// </summary>
+public static class BungaSukarela
+{
+    public static string PeriodeBulanLalu()
+    {
+        var awalBulanIni = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        return awalBulanIni.AddMonths(-1).ToString("yyyy-MM");
+    }
+
+    public static decimal HitungBulan(IReadOnlyList<MutasiSimpanan> mutasiTerurut, decimal bungaTahunan, DateTime awalBulan)
+    {
+        var akhirBulan = awalBulan.AddMonths(1).AddDays(-1);
+        var saldo = mutasiTerurut
+            .Where(m => m.TanggalTransaksi.Date < awalBulan.Date)
+            .Select(m => (decimal?)m.SaldoSetelah)
+            .LastOrDefault() ?? 0m;
+
+        decimal total = 0m;
+        for (var hari = awalBulan.Date; hari <= akhirBulan.Date; hari = hari.AddDays(1))
+        {
+            var mutasiHari = mutasiTerurut.Where(m => m.TanggalTransaksi.Date == hari).ToList();
+            if (mutasiHari.Count > 0) saldo = mutasiHari[^1].SaldoSetelah;
+            if (saldo > 0) total += saldo * bungaTahunan / 365m;
+        }
+        return Math.Round(total, 2, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>Menghitung & mengkreditkan bunga sukarela seluruh anggota untuk <paramref name="periode"/> ("yyyy-MM").</summary>
+    public static async Task<(int akun, decimal total)> PostingAsync(KkcsDbContext db, SimpananService simpananService, decimal bungaTahunan, string periode)
+    {
+        var awalBulan = new DateTime(int.Parse(periode[..4]), int.Parse(periode[5..]), 1);
+        if (awalBulan >= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1))
+        {
+            return (0, 0); // Bulan berjalan/masa depan belum bisa ditutup.
+        }
+
+        var jenisSukarela = await db.JenisSimpanan.AsNoTracking().FirstAsync(j => j.Kode == "SUKARELA");
+        var rekeningList = await db.Simpanan.Include(s => s.Mutasi)
+            .Where(s => s.JenisSimpananId == jenisSukarela.Id)
+            .ToListAsync();
+        var sudahDiposkan = await db.PostingBungaSukarela
+            .Where(p => p.Periode == periode)
+            .Select(p => p.PenggunaId)
+            .ToListAsync();
+
+        int akun = 0;
+        decimal totalBunga = 0m;
+        foreach (var rekening in rekeningList)
+        {
+            if (sudahDiposkan.Contains(rekening.PenggunaId)) continue;
+            var mutasiTerurut = rekening.Mutasi.OrderBy(m => m.TanggalTransaksi).ThenBy(m => m.Id).ToList();
+            var bunga = HitungBulan(mutasiTerurut, bungaTahunan, awalBulan);
+            if (bunga <= 0) continue;
+
+            SimpananService.Catat(rekening, "Bunga", bunga, $"Bunga simpanan sukarela {periode}");
+            db.PostingBungaSukarela.Add(new PostingBungaSukarela
+            {
+                PenggunaId = rekening.PenggunaId,
+                Periode = periode,
+                Nominal = bunga
+            });
+            akun++;
+            totalBunga += bunga;
+        }
+
+        if (akun > 0) await db.SaveChangesAsync();
+        return (akun, totalBunga);
+    }
+}
+
 /// <summary>Membuat tagihan Simpanan Wajib per periode. Idempoten per (anggota, periode).</summary>
 public static class TagihanWajibGenerator
 {

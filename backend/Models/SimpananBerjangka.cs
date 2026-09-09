@@ -25,6 +25,17 @@ public class SimpananBerjangka
 
     public DateTime? DicairkanPada { get; set; }
 
+    // Bunga yang dibayarkan saat pencairan (flat: nominal x rate x tenor/12).
+    // 0 jika dicairkan sebelum jatuh tempo.
+    public decimal? BungaDibayar { get; set; }
+
+    // Pengajuan pencairan dipercepat oleh anggota (sebelum jatuh tempo).
+    public bool PencairanDiajukan { get; set; }
+
+    public DateTime? PencairanDiajukanPada { get; set; }
+
+    public string? AlasanPencairan { get; set; }
+
     public Pengguna Pengguna { get; set; } = null!;
 
     public ProdukBerjangka Produk { get; set; } = null!;
