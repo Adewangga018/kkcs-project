@@ -24,6 +24,11 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 	public DbSet<ProdukBerjangka> ProdukBerjangka => Set<ProdukBerjangka>();
 	public DbSet<SimpananBerjangka> SimpananBerjangka => Set<SimpananBerjangka>();
 	public DbSet<PostingBungaSukarela> PostingBungaSukarela => Set<PostingBungaSukarela>();
+	public DbSet<AkunAkuntansi> AkunAkuntansi => Set<AkunAkuntansi>();
+	public DbSet<JurnalEntri> JurnalEntri => Set<JurnalEntri>();
+	public DbSet<JurnalBaris> JurnalBaris => Set<JurnalBaris>();
+	public DbSet<ShuRun> ShuRun => Set<ShuRun>();
+	public DbSet<ShuAnggota> ShuAnggota => Set<ShuAnggota>();
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -234,6 +239,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.SimpananWajibNominal).HasPrecision(18, 2);
 			entity.Property(item => item.BungaSukarelaTahunan).HasPrecision(5, 4);
 			entity.Property(item => item.BungaDepositoTahunan).HasPrecision(5, 4);
+			entity.Property(item => item.TarifPphBungaSukarela).HasPrecision(5, 4);
 			entity.HasData(new KonfigurasiKoperasi
 			{
 				Id = 1,
@@ -242,6 +248,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 				TanggalTagihWajib = 25,
 				BungaSukarelaTahunan = 0.025m,
 				BungaDepositoTahunan = 0.045m,
+				TarifPphBungaSukarela = 0.20m,
 				DiperbaruiPada = new DateTime(2026, 1, 1)
 			});
 		});
@@ -296,7 +303,87 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.HasIndex(item => new { item.PenggunaId, item.Periode }).IsUnique();
 			entity.Property(item => item.Periode).HasMaxLength(7).IsRequired();
 			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+			entity.Property(item => item.BungaBruto).HasPrecision(18, 2);
+			entity.Property(item => item.Pajak).HasPrecision(18, 2);
+			entity.Property(item => item.BungaNeto).HasPrecision(18, 2);
 			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Cascade);
+		});
+
+		modelBuilder.Entity<AkunAkuntansi>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.Kode).IsUnique();
+			entity.Property(item => item.Kode).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.Nama).HasMaxLength(150).IsRequired();
+			entity.Property(item => item.Tipe).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.SaldoNormal).HasMaxLength(10).IsRequired();
+			entity.HasData(
+				new AkunAkuntansi { Id = 1, Kode = KodeAkun.Kas, Nama = "Kas & Bank", Tipe = "Aset", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 2, Kode = KodeAkun.PiutangPinjaman, Nama = "Piutang Pinjaman Anggota", Tipe = "Aset", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 3, Kode = KodeAkun.PiutangKreditProduk, Nama = "Piutang Kredit Produk (Potong Gaji)", Tipe = "Aset", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 4, Kode = "1-1400", Nama = "Persediaan Barang", Tipe = "Aset", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 5, Kode = KodeAkun.SimpananSukarela, Nama = "Simpanan Sukarela Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 6, Kode = KodeAkun.SimpananBerjangka, Nama = "Simpanan Berjangka Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 7, Kode = KodeAkun.UtangPph, Nama = "Utang PPh Ps 4(2) — Bunga Simpanan", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 8, Kode = KodeAkun.UtangShuAnggota, Nama = "Utang SHU ke Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 9, Kode = KodeAkun.SimpananPokok, Nama = "Simpanan Pokok (Modal Anggota)", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 10, Kode = KodeAkun.SimpananWajib, Nama = "Simpanan Wajib (Modal Anggota)", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 11, Kode = KodeAkun.ShuDitahan, Nama = "SHU Ditahan / Cadangan", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 12, Kode = KodeAkun.PendapatanJasaPinjaman, Nama = "Pendapatan Jasa Pinjaman", Tipe = "Pendapatan", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 13, Kode = KodeAkun.PendapatanPenjualanProduk, Nama = "Pendapatan Penjualan & Sewa Produk", Tipe = "Pendapatan", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 14, Kode = "4-4300", Nama = "Pendapatan Lain-lain", Tipe = "Pendapatan", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 15, Kode = KodeAkun.BebanBungaSukarela, Nama = "Beban Bunga Simpanan Sukarela", Tipe = "Beban", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 16, Kode = KodeAkun.BebanBungaBerjangka, Nama = "Beban Bunga Simpanan Berjangka", Tipe = "Beban", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 17, Kode = "5-5300", Nama = "Beban Pokok Penjualan", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 18, Kode = "5-5900", Nama = "Beban Operasional Lain (Gaji, Sewa, dll)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
+		});
+
+		modelBuilder.Entity<JurnalEntri>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.NomorJurnal).IsUnique();
+			entity.HasIndex(item => item.Tanggal);
+			entity.Property(item => item.NomorJurnal).HasMaxLength(40).IsRequired();
+			entity.Property(item => item.Keterangan).HasMaxLength(500).IsRequired();
+			entity.Property(item => item.Sumber).HasMaxLength(20).IsRequired();
+			entity.Property(item => item.ReferensiModul).HasMaxLength(40);
+			entity.Property(item => item.ReferensiId).HasMaxLength(40);
+			entity.HasOne(item => item.DicatatOleh).WithMany().HasForeignKey(item => item.DicatatOlehId).OnDelete(DeleteBehavior.SetNull);
+		});
+
+		modelBuilder.Entity<JurnalBaris>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.Property(item => item.Debit).HasPrecision(18, 2);
+			entity.Property(item => item.Kredit).HasPrecision(18, 2);
+			entity.Property(item => item.Keterangan).HasMaxLength(300);
+			entity.HasOne(item => item.JurnalEntri).WithMany(item => item.Baris).HasForeignKey(item => item.JurnalEntriId).OnDelete(DeleteBehavior.Cascade);
+			entity.HasOne(item => item.Akun).WithMany(item => item.Baris).HasForeignKey(item => item.AkunId).OnDelete(DeleteBehavior.Restrict);
+		});
+
+		modelBuilder.Entity<ShuRun>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.Tahun).IsUnique();
+			entity.Property(item => item.TotalShu).HasPrecision(18, 2);
+			entity.Property(item => item.PersenJasaModal).HasPrecision(5, 4);
+			entity.Property(item => item.PersenJasaUsaha).HasPrecision(5, 4);
+			entity.Property(item => item.TotalSimpananSemuaAnggota).HasPrecision(18, 2);
+			entity.Property(item => item.TotalTransaksiSemuaAnggota).HasPrecision(18, 2);
+			entity.HasOne(item => item.DifinalisasiOleh).WithMany().HasForeignKey(item => item.DifinalisasiOlehId).OnDelete(DeleteBehavior.SetNull);
+		});
+
+		modelBuilder.Entity<ShuAnggota>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.ShuRunId, item.PenggunaId }).IsUnique();
+			entity.Property(item => item.SimpananAnggota).HasPrecision(18, 2);
+			entity.Property(item => item.TransaksiAnggota).HasPrecision(18, 2);
+			entity.Property(item => item.Jma).HasPrecision(18, 2);
+			entity.Property(item => item.Jua).HasPrecision(18, 2);
+			entity.Property(item => item.TotalShu).HasPrecision(18, 2);
+			entity.HasOne(item => item.ShuRun).WithMany(item => item.Rincian).HasForeignKey(item => item.ShuRunId).OnDelete(DeleteBehavior.Cascade);
+			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
 		});
 	}
 }

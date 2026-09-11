@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
-import { Activity, BadgeCheck, Banknote, Database, FileText, HandCoins, LayoutDashboard, LogOut, Menu, PiggyBank, RefreshCw, Search, ShieldCheck, Store, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
+import type { CSSProperties, FormEvent, ReactNode } from 'react'
+import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, HandCoins, LayoutDashboard, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
 
 type AdminUser = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string }
 type Pendaftaran = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; statusKeanggotaan: string; dibuatPada: string }
-type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; diperbaruiPada: string }
+type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPphBungaSukarela: number; diperbaruiPada: string }
 type TagihanWajib = { id: number; namaAnggota: string; nomorIndukKaryawan: string; periode: string; nominal: number; jatuhTempo: string; status: string; catatanReview: string | null; dibuatPada: string; diprosesPada: string | null }
 type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number }
 type ProdukBerjangka = { id: number; nama: string; nominal: number; tenorBulan: number; aktif: boolean }
@@ -16,6 +16,19 @@ type TagihanKredit = { id: number; pembelianProdukId: number; penggunaId: number
 type EratOpsi = { id: number; label: string; jumlah: number }
 type EratAgenda = { id: number; judul: string; deskripsi: string | null; status: string; mulaiPada: string | null; selesaiPada: string | null; dibuatPada: string; totalSuara: number; opsi: EratOpsi[] }
 type RatDoc = { id: number; tahun: number; judul: string; deskripsi: string | null; fileUrl: string; diterbitkanPada: string; aktif: boolean }
+type PayrollBaris = { penggunaId: number; nama: string; nik: string; simpananWajib: number; tagihanKredit: number; totalPotongan: number }
+type PayrollRekap = { periode: string; baris: PayrollBaris[]; totalWajib: number; totalKredit: number; totalPotongan: number }
+type Akun = { id: number; kode: string; nama: string; tipe: string; saldoNormal: string; sistem: boolean; aktif: boolean }
+type JurnalBarisT = { akunId: number; kodeAkun: string; namaAkun: string; debit: number; kredit: number }
+type Jurnal = { id: number; nomorJurnal: string; tanggal: string; keterangan: string; sumber: string; referensiModul: string | null; referensiId: string | null; dicatatOleh: string | null; baris: JurnalBarisT[] }
+type SaldoAkunItem = { kode: string; nama: string; saldo: number }
+type LabaRugi = { dari: string; sampai: string; pendapatan: SaldoAkunItem[]; totalPendapatan: number; beban: SaldoAkunItem[]; totalBeban: number; labaBersih: number }
+type Neraca = { tanggal: string; aset: SaldoAkunItem[]; totalAset: number; liabilitas: SaldoAkunItem[]; totalLiabilitas: number; ekuitas: SaldoAkunItem[]; shuBerjalan: number; totalEkuitas: number; selisih: number }
+type ArusKasBaris = { tanggal: string; nomorJurnal: string; keterangan: string; modul: string | null; masuk: number; keluar: number }
+type ArusKas = { dari: string; sampai: string; saldoAwal: number; totalMasuk: number; totalKeluar: number; saldoAkhir: number; baris: ArusKasBaris[] }
+type ShuRiwayat = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; jumlahAnggota: number; difinalisasiPada: string }
+type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number }
+type ShuHitung = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
 type LoanApplication = {
   id: number; nomorPengajuan: string; namaAnggota: string; nomorIndukKaryawan: string
   nominal: number; tenorBulan: number; bungaTahunan: number; estimasiCicilanBulanan: number; estimasiTotalJasa: number
@@ -37,8 +50,8 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'pengguna' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat'
-const VIEW_TITLE: Record<View, string> = { pengguna: 'Dashboard pengguna', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen' }
+type View = 'pengguna' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu'
+const VIEW_TITLE: Record<View, string> = { pengguna: 'Dashboard pengguna', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU' }
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5168'
 const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID')}`
 const tanggal = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
@@ -81,6 +94,9 @@ function App() {
         <button className={`nav-item ${view === 'pinjaman' ? 'active' : ''}`} onClick={() => goto('pinjaman')}><HandCoins size={18} /> Pinjaman</button>
         <button className={`nav-item ${view === 'katalog' ? 'active' : ''}`} onClick={() => goto('katalog')}><Store size={18} /> Katalog</button>
         <button className={`nav-item ${view === 'erat' ? 'active' : ''}`} onClick={() => goto('erat')}><Vote size={18} /> E-RAT</button>
+        <button className={`nav-item ${view === 'payroll' ? 'active' : ''}`} onClick={() => goto('payroll')}><Receipt size={18} /> Payroll</button>
+        <button className={`nav-item ${view === 'akuntansi' ? 'active' : ''}`} onClick={() => goto('akuntansi')}><BookOpen size={18} /> Akuntansi</button>
+        <button className={`nav-item ${view === 'shu' ? 'active' : ''}`} onClick={() => goto('shu')}><Calculator size={18} /> SHU</button>
         <button className="nav-item"><Database size={18} /> Data koperasi <span className="nav-soon">segera</span></button>
       </nav>
       <div className="sidebar-footer"><ShieldCheck size={16} /> Role-based access</div>
@@ -96,6 +112,9 @@ function App() {
       {view === 'pinjaman' && <LoansView token={token} onExpired={handleExpired} />}
       {view === 'katalog' && <CatalogView token={token} onExpired={handleExpired} />}
       {view === 'erat' && <EratView token={token} onExpired={handleExpired} />}
+      {view === 'payroll' && <PayrollView token={token} onExpired={handleExpired} />}
+      {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} />}
+      {view === 'shu' && <ShuView token={token} onExpired={handleExpired} />}
     </main>
   </div>
 }
@@ -164,6 +183,40 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal memperbarui status.') }
   }
 
+  const [importBusy, setImportBusy] = useState(false)
+  const [importResult, setImportResult] = useState<{ diperbarui: number; dilewati: string[]; galat: string[] } | null>(null)
+
+  const exportCsv = async () => {
+    setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pengguna/ekspor`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error('Gagal mengekspor data anggota.')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `anggota-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mengekspor data anggota.') }
+  }
+
+  const importCsv = async (file: File) => {
+    setImportBusy(true); setError(''); setImportResult(null)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const response = await fetch(`${API_BASE}/api/admin/pengguna/impor`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd })
+      const data = await response.json().catch(() => ({}))
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error(data.message ?? 'Gagal mengimpor file.')
+      setImportResult({ diperbarui: data.diperbarui ?? 0, dilewati: data.dilewati ?? [], galat: data.galat ?? [] })
+      flash(data.message ?? 'Impor selesai.')
+      await loadUsers()
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mengimpor file.') }
+    finally { setImportBusy(false) }
+  }
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Kontrol akses anggota</h2><p>Kelola status akses pengguna koperasi dengan satu tindakan yang tercatat.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadUsers()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
     {error && <div className="alert error"><X size={17} />{error}</div>}
@@ -187,6 +240,26 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
             : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
         </tr>)}
       </tbody></table>{!loading && pendaftaran.length === 0 && <div className="empty-state">Tidak ada pendaftaran anggota baru.</div>}</div>
+    </section>
+
+    <section className="table-panel" style={{ marginBottom: 22 }}>
+      <div className="panel-heading"><div><h2>Impor / ekspor data anggota</h2><p>Perbarui data banyak anggota sekaligus lewat CSV (dibuka & diedit di Excel), dicocokkan berdasarkan kolom NIK.</p></div></div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '16px 25px 12px', alignItems: 'center' }}>
+        <button className="toggle-button activate" onClick={() => void exportCsv()}><Download size={14} style={{ verticalAlign: -2, marginRight: 5 }} />Ekspor CSV</button>
+        <label className="toggle-button" style={{ cursor: importBusy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+          <Upload size={14} style={{ marginRight: 5 }} />{importBusy ? 'Mengunggah...' : 'Impor CSV'}
+          <input type="file" accept=".csv,text/csv" hidden disabled={importBusy}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void importCsv(f); e.target.value = '' }} />
+        </label>
+        <small style={{ color: 'var(--muted)' }}>Kolom: NIK (wajib, kunci pencocokan), Nama, Email, Telepon, Alamat, Peran, StatusKeanggotaan, Aktif.</small>
+      </div>
+      {importResult && (
+        <div style={{ padding: '0 25px 18px', fontSize: 12, color: 'var(--muted)' }}>
+          <strong style={{ color: 'var(--ink)' }}>{importResult.diperbarui} anggota diperbarui.</strong>
+          {importResult.dilewati.length > 0 && <div>NIK tidak ditemukan (dilewati): {importResult.dilewati.join(', ')}</div>}
+          {importResult.galat.length > 0 && <div style={{ color: '#a05244' }}>{importResult.galat.join(' · ')}</div>}
+        </div>
+      )}
     </section>
 
     <section className="table-panel" id="user-table"><div className="panel-heading"><div><h2>Daftar pengguna</h2><p>Aktifkan atau nonaktifkan akses login anggota.</p></div><span className="record-count">{filteredUsers.length} data</span></div><div className="filters"><label className="search-box"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, NIK, atau email" /></label><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">Semua peran</option>{roles.map((role) => <option key={role} value={role}>{role}</option>)}</select></div><div className="table-scroll"><table><thead><tr><th>Pengguna</th><th>NIK</th><th>Peran</th><th>Status</th><th>Dibuat</th><th className="align-right">Aksi</th></tr></thead><tbody>{filteredUsers.map((user) => <tr key={user.id}><td><div className="user-cell"><span className="avatar">{user.namaLengkap.charAt(0).toUpperCase()}</span><div><strong>{user.namaLengkap}</strong><small>{user.email ?? 'Email belum diisi'}</small></div></div></td><td className="mono">{user.nomorIndukKaryawan}</td><td><span className={`role-pill ${user.peran.toLowerCase()}`}>{user.peran}</span></td><td><span className={`status-pill ${user.aktif ? 'active' : 'inactive'}`}><i />{user.aktif ? 'Aktif' : 'Nonaktif'}</span></td><td>{tanggal(user.dibuatPada)}</td><td className="align-right"><button className={`toggle-button ${user.aktif ? 'deactivate' : 'activate'}`} onClick={() => void toggleUser(user)}>{user.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></td></tr>)}</tbody></table>{!loading && filteredUsers.length === 0 && <div className="empty-state">Tidak ada pengguna yang cocok dengan filter.</div>}</div></section>
@@ -370,6 +443,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
   const [wajibInput, setWajibInput] = useState('')
   const [bungaSukarelaInput, setBungaSukarelaInput] = useState('')
   const [bungaDepositoInput, setBungaDepositoInput] = useState('')
+  const [pphInput, setPphInput] = useState('')
   const [produkNama, setProdukNama] = useState('')
   const [produkNominal, setProdukNominal] = useState('')
   const [produkTenor, setProdukTenor] = useState('12')
@@ -392,6 +466,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
       const [k, w, s, b, p] = await Promise.all(responses.map((r) => r.json()))
       setKonfigurasi(k); setPokokInput(String(k.simpananPokokNominal)); setWajibInput(String(k.simpananWajibNominal))
       setBungaSukarelaInput((k.bungaSukarelaTahunan * 100).toString()); setBungaDepositoInput((k.bungaDepositoTahunan * 100).toString())
+      setPphInput((k.tarifPphBungaSukarela * 100).toString())
       setWajib(w); setSukarela(s); setBerjangka(b); setProduk(p)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
@@ -423,6 +498,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
     simpananWajibNominal: Number(wajibInput) || 0,
     bungaSukarelaTahunan: (Number(bungaSukarelaInput) || 0) / 100,
     bungaDepositoTahunan: (Number(bungaDepositoInput) || 0) / 100,
+    tarifPphBungaSukarela: (Number(pphInput) || 0) / 100,
   })
   const createProduk = () => {
     if (!produkNama.trim() || !(Number(produkNominal) > 0) || !(Number(produkTenor) > 0)) { setError('Nama, nominal, dan tenor produk wajib diisi.'); return }
@@ -462,6 +538,9 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Bunga Deposito (%/th)
           <input type="number" step="0.1" value={bungaDepositoInput} onChange={(e) => setBungaDepositoInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>PPh Bunga Sukarela (%)
+          <input type="number" step="0.1" value={pphInput} onChange={(e) => setPphInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </label>
         <button className="submit-button" style={{ alignSelf: 'end', height: 40, padding: '0 18px' }} disabled={busyId === 'konfig'} onClick={saveKonfigurasi}>Simpan</button>
       </div>
     </section>
@@ -490,7 +569,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading">
-        <div><h2>Simpanan Sukarela</h2><p>Setoran menambah saldo; penarikan mengurangi saldo. Bunga {konfigurasi ? (konfigurasi.bungaSukarelaTahunan * 100).toFixed(2) : '2.50'}%/th metode saldo harian.</p></div>
+        <div><h2>Simpanan Sukarela</h2><p>Setoran menambah saldo; penarikan mengurangi saldo. Bunga {konfigurasi ? (konfigurasi.bungaSukarelaTahunan * 100).toFixed(2) : '2.50'}%/th metode saldo harian, dipotong PPh {konfigurasi ? (konfigurasi.tarifPphBungaSukarela * 100).toFixed(0) : '20'}%, dibukukan tanggal terakhir tiap bulan.</p></div>
         <button className="toggle-button activate" disabled={busyId === 'bunga'} onClick={() => void call('bunga', '/api/admin/simpanan/sukarela/bunga', 'POST', {}, 'Hitung & kreditkan bunga sukarela bulan lalu ke semua rekening?')}>Hitung bunga bulan lalu</button>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Jenis</th><th>Nominal</th><th>Saldo saat ini</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
@@ -964,6 +1043,569 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
           </span></td>
         </tr>)}
       </tbody></table>{!loading && dokumen.length === 0 && <div className="empty-state">Belum ada dokumen RAT.</div>}</div>
+    </section>
+  </div>
+}
+
+function currentPeriode() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function PayrollView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [periode, setPeriode] = useState(currentPeriode())
+  const [rekap, setRekap] = useState<PayrollRekap | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/payroll/rekap?periode=${periode}`, { headers })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error(response.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat rekap payroll.')
+      setRekap(await response.json())
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [headers, onExpired, periode])
+  useEffect(() => { void load() }, [load])
+
+  const exportCsv = async () => {
+    setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/payroll/rekap/ekspor?periode=${periode}`, { headers })
+      if (!response.ok) throw new Error('Gagal mengekspor rekap.')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `potong-gaji-${periode}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengekspor rekap.') }
+  }
+
+  const setujuiWajib = async () => {
+    if (!window.confirm(`Setujui SEMUA tagihan Simpanan Wajib periode ${periode} (total ${rupiah(rekap?.totalWajib ?? 0)})? Saldo wajib tiap anggota akan otomatis bertambah.`)) return
+    setBusyId('wajib'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/simpanan/wajib/setujui-periode`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ periode }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menyetujui tagihan wajib.')
+      flash(data.message ?? 'Berhasil.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menyetujui tagihan wajib.') }
+    finally { setBusyId('') }
+  }
+
+  const kirimKredit = async () => {
+    if (!window.confirm(`Tandai SEMUA tagihan kredit produk yang belum dikirim (total ${rupiah(rekap?.totalKredit ?? 0)}) sebagai "Dikirim ke SDM"?`)) return
+    setBusyId('kredit'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/produk/tagihan-kredit/kirim`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal mengirim tagihan kredit.')
+      flash(data.message ?? 'Berhasil.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengirim tagihan kredit.') }
+    finally { setBusyId('') }
+  }
+
+  return <div className="content-wrap">
+    <section className="welcome-row">
+      <div><h2>Laporan potong gaji (payroll)</h2><p>Rekap otomatis Simpanan Wajib + Tagihan Kredit produk per anggota untuk periode terpilih, siap dikirim ke bagian SDM.</p></div>
+      <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div>
+    </section>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+    <section className="stat-grid">
+      <StatCard label="Anggota terpotong" value={rekap?.baris.length ?? 0} icon={<Users size={20} />} tone="teal" />
+      <StatCard label="Simpanan Wajib" value={rekap?.totalWajib ?? 0} icon={<PiggyBank size={20} />} tone="blue" money />
+      <StatCard label="Tagihan Kredit" value={rekap?.totalKredit ?? 0} icon={<HandCoins size={20} />} tone="amber" money />
+      <StatCard label="Total potongan" value={rekap?.totalPotongan ?? 0} icon={<Receipt size={20} />} tone="green" money />
+    </section>
+
+    <section className="table-panel">
+      <div className="panel-heading">
+        <div><h2>Rekap periode {periode}</h2><p>Belum ditagih (Simpanan Wajib) + belum dikirim (Tagihan Kredit) untuk periode ini.</p></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input type="month" value={periode} onChange={(e) => setPeriode(e.target.value)} style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+          <button className="toggle-button activate" onClick={() => void exportCsv()}><FileSpreadsheet size={14} style={{ verticalAlign: -2, marginRight: 5 }} />Ekspor CSV</button>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 25px 16px' }}>
+        <button className="toggle-button activate" disabled={busyId === 'wajib' || !(rekap && rekap.totalWajib > 0)} onClick={() => void setujuiWajib()}>Setujui semua Simpanan Wajib periode ini</button>
+        <button className="toggle-button activate" disabled={busyId === 'kredit' || !(rekap && rekap.totalKredit > 0)} onClick={() => void kirimKredit()}>Kirim semua Tagihan Kredit ke SDM</button>
+      </div>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Total Potongan</th></tr></thead><tbody>
+        {rekap?.baris.map((b) => <tr key={b.penggunaId}>
+          <td><div className="user-cell"><span className="avatar">{b.nama.charAt(0).toUpperCase()}</span><strong>{b.nama}</strong></div></td>
+          <td className="mono">{b.nik || '—'}</td>
+          <td>{b.simpananWajib > 0 ? rupiah(b.simpananWajib) : '—'}</td>
+          <td>{b.tagihanKredit > 0 ? rupiah(b.tagihanKredit) : '—'}</td>
+          <td style={{ fontWeight: 700 }}>{rupiah(b.totalPotongan)}</td>
+        </tr>)}
+      </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}</div>
+    </section>
+  </div>
+}
+
+function todayISO() { return new Date().toISOString().slice(0, 10) }
+function startOfYearISO() { return `${new Date().getFullYear()}-01-01` }
+const inputStyle: CSSProperties = { height: 38, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }
+const labelStyle: CSSProperties = { display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }
+
+function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) {
+  const total = items.reduce((s, a) => s + a.saldo, 0)
+  return <div style={{ flex: 1, minWidth: 260 }}>
+    <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 8px' }}>{title}</h3>
+    <table style={{ width: '100%' }}><tbody>
+      {items.map((a) => <tr key={a.kode}><td className="mono" style={{ padding: '4px 0', color: 'var(--muted)', fontSize: 11 }}>{a.kode}</td><td style={{ padding: '4px 8px' }}>{a.nama}</td><td style={{ padding: '4px 0', textAlign: 'right' }}>{rupiah(a.saldo)}</td></tr>)}
+      {items.length === 0 && <tr><td colSpan={3} style={{ padding: '6px 0', color: 'var(--muted)', fontSize: 12 }}>Belum ada saldo.</td></tr>}
+      <tr style={{ borderTop: '1px solid var(--line)', fontWeight: 800 }}><td colSpan={2} style={{ padding: '6px 0' }}>Total</td><td style={{ padding: '6px 0', textAlign: 'right' }}>{rupiah(total)}</td></tr>
+    </tbody></table>
+  </div>
+}
+
+function AkuntansiView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [tab, setTab] = useState<'jurnal' | 'neraca' | 'laba-rugi' | 'arus-kas' | 'akun'>('jurnal')
+  const [akun, setAkun] = useState<Akun[]>([])
+  const [jurnal, setJurnal] = useState<Jurnal[]>([])
+  const [neraca, setNeraca] = useState<Neraca | null>(null)
+  const [labaRugi, setLabaRugi] = useState<LabaRugi | null>(null)
+  const [arusKas, setArusKas] = useState<ArusKas | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const [tanggalNeraca, setTanggalNeraca] = useState(todayISO())
+  const [dariRugi, setDariRugi] = useState(startOfYearISO())
+  const [sampaiRugi, setSampaiRugi] = useState(todayISO())
+  const [dariKas, setDariKas] = useState(startOfYearISO())
+  const [sampaiKas, setSampaiKas] = useState(todayISO())
+
+  const [jTanggal, setJTanggal] = useState(todayISO())
+  const [jKeterangan, setJKeterangan] = useState('')
+  const [jBaris, setJBaris] = useState<{ akunId: string; debit: string; kredit: string }[]>([{ akunId: '', debit: '', kredit: '' }, { akunId: '', debit: '', kredit: '' }])
+
+  const [akunNama, setAkunNama] = useState('')
+  const [akunKode, setAkunKode] = useState('')
+  const [akunTipe, setAkunTipe] = useState('Beban')
+  const [akunSaldoNormal, setAkunSaldoNormal] = useState('Debit')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+  const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
+  const loadAkun = useCallback(async () => {
+    const response = await fetch(`${API_BASE}/api/admin/akuntansi/akun`, { headers })
+    if (response.status === 401) { onExpired(); return }
+    if (response.ok) setAkun(await response.json())
+  }, [headers, onExpired])
+
+  const loadJurnal = useCallback(async () => {
+    const response = await fetch(`${API_BASE}/api/admin/akuntansi/jurnal`, { headers })
+    if (response.status === 401) { onExpired(); return }
+    if (response.ok) setJurnal(await response.json())
+  }, [headers, onExpired])
+
+  const loadNeraca = useCallback(async () => {
+    const response = await fetch(`${API_BASE}/api/admin/akuntansi/neraca?tanggal=${tanggalNeraca}`, { headers })
+    if (response.ok) setNeraca(await response.json())
+  }, [headers, tanggalNeraca])
+
+  const loadLabaRugi = useCallback(async () => {
+    const response = await fetch(`${API_BASE}/api/admin/akuntansi/laba-rugi?dari=${dariRugi}&sampai=${sampaiRugi}`, { headers })
+    if (response.ok) setLabaRugi(await response.json())
+  }, [headers, dariRugi, sampaiRugi])
+
+  const loadArusKas = useCallback(async () => {
+    const response = await fetch(`${API_BASE}/api/admin/akuntansi/arus-kas?dari=${dariKas}&sampai=${sampaiKas}`, { headers })
+    if (response.ok) setArusKas(await response.json())
+  }, [headers, dariKas, sampaiKas])
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      await Promise.all([loadAkun(), loadJurnal(), loadNeraca(), loadLabaRugi(), loadArusKas()])
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [loadAkun, loadJurnal, loadNeraca, loadLabaRugi, loadArusKas])
+  useEffect(() => { void load() }, [load])
+  useEffect(() => { void loadNeraca() }, [loadNeraca])
+  useEffect(() => { void loadLabaRugi() }, [loadLabaRugi])
+  useEffect(() => { void loadArusKas() }, [loadArusKas])
+
+  const ubahBaris = (i: number, patch: Partial<{ akunId: string; debit: string; kredit: string }>) =>
+    setJBaris((rows) => rows.map((r, idx) => idx === i ? { ...r, ...patch } : r))
+  const totalDebitBaru = jBaris.reduce((s, r) => s + (Number(r.debit) || 0), 0)
+  const totalKreditBaru = jBaris.reduce((s, r) => s + (Number(r.kredit) || 0), 0)
+  const balanceOk = totalDebitBaru > 0 && totalDebitBaru === totalKreditBaru
+
+  const simpanJurnal = async () => {
+    if (!jKeterangan.trim() || !balanceOk) { setError('Keterangan wajib diisi dan total debit harus sama dengan total kredit (> 0).'); return }
+    setBusyId('jurnal-baru'); setError('')
+    try {
+      const baris = jBaris.filter((r) => r.akunId && (Number(r.debit) > 0 || Number(r.kredit) > 0))
+        .map((r) => ({ akunId: Number(r.akunId), debit: Number(r.debit) || 0, kredit: Number(r.kredit) || 0 }))
+      const response = await fetch(`${API_BASE}/api/admin/akuntansi/jurnal`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ tanggal: jTanggal, keterangan: jKeterangan.trim(), baris }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menyimpan jurnal.')
+      flash('Jurnal manual disimpan.')
+      setJKeterangan(''); setJBaris([{ akunId: '', debit: '', kredit: '' }, { akunId: '', debit: '', kredit: '' }])
+      await Promise.all([loadJurnal(), loadNeraca(), loadLabaRugi(), loadArusKas()])
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menyimpan jurnal.') }
+    finally { setBusyId('') }
+  }
+
+  const hapusJurnal = async (j: Jurnal) => {
+    if (!window.confirm(`Hapus jurnal manual "${j.keterangan}"?`)) return
+    setBusyId(`hapus-${j.id}`); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/akuntansi/jurnal/${j.id}`, { method: 'DELETE', headers })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menghapus jurnal.')
+      flash('Jurnal dihapus.')
+      await Promise.all([loadJurnal(), loadNeraca(), loadLabaRugi(), loadArusKas()])
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menghapus jurnal.') }
+    finally { setBusyId('') }
+  }
+
+  const tambahAkun = async () => {
+    if (!akunKode.trim() || !akunNama.trim()) { setError('Kode dan nama akun wajib diisi.'); return }
+    setBusyId('akun-baru'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/akuntansi/akun`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ kode: akunKode.trim(), nama: akunNama.trim(), tipe: akunTipe, saldoNormal: akunSaldoNormal }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menambah akun.')
+      flash('Akun ditambahkan.'); setAkunKode(''); setAkunNama('')
+      await loadAkun()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menambah akun.') }
+    finally { setBusyId('') }
+  }
+
+  const toggleAkun = async (a: Akun) => {
+    setBusyId(`akun-${a.id}`); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/akuntansi/akun/${a.id}`, { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify({ aktif: !a.aktif }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal memperbarui akun.')
+      await loadAkun()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal memperbarui akun.') }
+    finally { setBusyId('') }
+  }
+
+  const TABS: { key: typeof tab; label: string; icon: ReactNode }[] = [
+    { key: 'jurnal', label: 'Jurnal Umum', icon: <BookOpen size={15} /> },
+    { key: 'neraca', label: 'Neraca', icon: <Scale size={15} /> },
+    { key: 'laba-rugi', label: 'Laba Rugi', icon: <TrendingUp size={15} /> },
+    { key: 'arus-kas', label: 'Arus Kas', icon: <Banknote size={15} /> },
+    { key: 'akun', label: 'Bagan Akun', icon: <Database size={15} /> },
+  ]
+
+  return <div className="content-wrap">
+    <section className="welcome-row"><div><h2>Akuntansi & Keuangan</h2><p>Dapur koperasi — jurnal otomatis dari setiap transaksi sistem, jurnal manual untuk biaya operasional, dan laporan keuangan. Tidak tampil ke anggota.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+
+    <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+      {TABS.map((t) => <button key={t.key} className={`toggle-button ${tab === t.key ? 'activate' : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setTab(t.key)}>{t.icon}{t.label}</button>)}
+    </div>
+
+    {tab === 'jurnal' && <>
+      <section className="table-panel" style={{ marginBottom: 22 }}>
+        <div className="panel-heading"><div><h2>Tambah jurnal manual</h2><p>Untuk transaksi di luar sistem (gaji, sewa, listrik, modal awal, dll). Total debit harus sama dengan total kredit.</p></div></div>
+        <div style={{ padding: '16px 25px 20px' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <label style={labelStyle}>Tanggal<input type="date" value={jTanggal} onChange={(e) => setJTanggal(e.target.value)} style={inputStyle} /></label>
+            <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>Keterangan<input value={jKeterangan} onChange={(e) => setJKeterangan(e.target.value)} style={inputStyle} placeholder="mis. Pembayaran gaji staf September 2026" /></label>
+          </div>
+          {jBaris.map((row, i) => <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'end' }}>
+            <label style={{ ...labelStyle, flex: 1 }}>{i === 0 ? 'Akun' : ''}
+              <select value={row.akunId} onChange={(e) => ubahBaris(i, { akunId: e.target.value })} style={{ ...inputStyle, background: '#fff' }}>
+                <option value="">Pilih akun…</option>
+                {akun.filter((a) => a.aktif).map((a) => <option key={a.id} value={a.id}>{a.kode} — {a.nama}</option>)}
+              </select>
+            </label>
+            <label style={labelStyle}>{i === 0 ? 'Debit' : ''}<input type="number" value={row.debit} onChange={(e) => ubahBaris(i, { debit: e.target.value, kredit: '' })} style={{ ...inputStyle, width: 140 }} /></label>
+            <label style={labelStyle}>{i === 0 ? 'Kredit' : ''}<input type="number" value={row.kredit} onChange={(e) => ubahBaris(i, { kredit: e.target.value, debit: '' })} style={{ ...inputStyle, width: 140 }} /></label>
+            {jBaris.length > 2 && <button className="toggle-button deactivate" onClick={() => setJBaris((rows) => rows.filter((_, idx) => idx !== i))}>×</button>}
+          </div>)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+            <button className="toggle-button" onClick={() => setJBaris((rows) => [...rows, { akunId: '', debit: '', kredit: '' }])}>+ Baris</button>
+            <div style={{ fontSize: 12, color: balanceOk ? '#2d8155' : '#a05244', fontWeight: 700 }}>
+              Debit {rupiah(totalDebitBaru)} · Kredit {rupiah(totalKreditBaru)} {balanceOk ? '✓ Balance' : '✗ Belum balance'}
+            </div>
+          </div>
+          <button className="submit-button" style={{ marginTop: 14, height: 40, padding: '0 20px', width: 'auto' }} disabled={busyId === 'jurnal-baru' || !balanceOk} onClick={simpanJurnal}>Simpan jurnal</button>
+        </div>
+      </section>
+
+      <section className="table-panel">
+        <div className="panel-heading"><div><h2>Riwayat jurnal umum</h2><p>500 entri terbaru, semua sumber (otomatis & manual).</p></div><span className="record-count">{jurnal.length} entri</span></div>
+        <div className="table-scroll"><table><thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Keterangan</th><th>Sumber</th><th>Rincian</th><th className="align-right">Aksi</th></tr></thead><tbody>
+          {jurnal.map((j) => <tr key={j.id}>
+            <td>{tanggal(j.tanggal)}</td>
+            <td className="mono" style={{ fontSize: 11 }}>{j.nomorJurnal}</td>
+            <td style={{ whiteSpace: 'normal', maxWidth: 240 }}>{j.keterangan}{j.dicatatOleh && <><br /><small style={{ color: 'var(--muted)' }}>oleh {j.dicatatOleh}</small></>}</td>
+            <td><span className={`role-pill ${j.sumber === 'Otomatis' ? '' : 'admin'}`}>{j.sumber}</span></td>
+            <td style={{ whiteSpace: 'normal', minWidth: 220 }}>
+              {j.baris.map((b, i) => <div key={i} style={{ fontSize: 11 }}>{b.kodeAkun} {b.namaAkun}: {b.debit > 0 ? `D ${rupiah(b.debit)}` : `K ${rupiah(b.kredit)}`}</div>)}
+            </td>
+            <td className="align-right">{j.sumber === 'Manual' && <button className="toggle-button deactivate" disabled={busyId === `hapus-${j.id}`} onClick={() => void hapusJurnal(j)}>Hapus</button>}</td>
+          </tr>)}
+        </tbody></table>{!loading && jurnal.length === 0 && <div className="empty-state">Belum ada jurnal.</div>}</div>
+      </section>
+    </>}
+
+    {tab === 'neraca' && neraca && <section className="table-panel">
+      <div className="panel-heading">
+        <div><h2>Neraca (Balance Sheet)</h2><p>Per tanggal terpilih. Selisih harus 0 agar Aset = Liabilitas + Ekuitas.</p></div>
+        <input type="date" value={tanggalNeraca} onChange={(e) => setTanggalNeraca(e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ padding: '18px 25px 25px' }}>
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
+          <AkunTable items={neraca.aset} title={`ASET — ${rupiah(neraca.totalAset)}`} />
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <AkunTable items={neraca.liabilitas} title={`LIABILITAS — ${rupiah(neraca.totalLiabilitas)}`} />
+            <div style={{ height: 16 }} />
+            <AkunTable items={[...neraca.ekuitas, { kode: '3-3999', nama: 'SHU Tahun Berjalan', saldo: neraca.shuBerjalan }]} title={`EKUITAS — ${rupiah(neraca.totalEkuitas)}`} />
+          </div>
+        </div>
+        <div className={`alert ${Math.abs(neraca.selisih) < 1 ? 'success' : 'error'}`}>
+          {Math.abs(neraca.selisih) < 1 ? <BadgeCheck size={17} /> : <X size={17} />}
+          Selisih: {rupiah(neraca.selisih)} {Math.abs(neraca.selisih) < 1 ? '(Neraca balance)' : '(Tidak balance — periksa jurnal)'}
+        </div>
+      </div>
+    </section>}
+
+    {tab === 'laba-rugi' && labaRugi && <section className="table-panel">
+      <div className="panel-heading">
+        <div><h2>Laba Rugi (Income Statement)</h2><p>Pendapatan dikurangi beban pada rentang tanggal terpilih.</p></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="date" value={dariRugi} onChange={(e) => setDariRugi(e.target.value)} style={inputStyle} />
+          <input type="date" value={sampaiRugi} onChange={(e) => setSampaiRugi(e.target.value)} style={inputStyle} />
+        </div>
+      </div>
+      <div style={{ padding: '18px 25px 25px' }}>
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
+          <AkunTable items={labaRugi.pendapatan} title={`PENDAPATAN — ${rupiah(labaRugi.totalPendapatan)}`} />
+          <AkunTable items={labaRugi.beban} title={`BEBAN — ${rupiah(labaRugi.totalBeban)}`} />
+        </div>
+        <div className={`alert ${labaRugi.labaBersih >= 0 ? 'success' : 'error'}`}>
+          <BadgeCheck size={17} /> Laba Bersih: <strong style={{ marginLeft: 6 }}>{rupiah(labaRugi.labaBersih)}</strong>
+        </div>
+      </div>
+    </section>}
+
+    {tab === 'arus-kas' && arusKas && <section className="table-panel">
+      <div className="panel-heading">
+        <div><h2>Arus Kas (ringkasan)</h2><p>Pergerakan akun Kas & Bank metode langsung sederhana — bukan klasifikasi operasi/investasi/pendanaan penuh sesuai SAK, cukup untuk pemantauan internal.</p></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input type="date" value={dariKas} onChange={(e) => setDariKas(e.target.value)} style={inputStyle} />
+          <input type="date" value={sampaiKas} onChange={(e) => setSampaiKas(e.target.value)} style={inputStyle} />
+        </div>
+      </div>
+      <section className="stat-grid" style={{ padding: '0 25px', margin: '16px 0' }}>
+        <StatCard label="Saldo awal" value={arusKas.saldoAwal} icon={<Banknote size={20} />} tone="blue" money />
+        <StatCard label="Kas masuk" value={arusKas.totalMasuk} icon={<TrendingUp size={20} />} tone="green" money />
+        <StatCard label="Kas keluar" value={arusKas.totalKeluar} icon={<HandCoins size={20} />} tone="amber" money />
+        <StatCard label="Saldo akhir" value={arusKas.saldoAkhir} icon={<Banknote size={20} />} tone="teal" money />
+      </section>
+      <div className="table-scroll"><table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Modul</th><th>Masuk</th><th>Keluar</th></tr></thead><tbody>
+        {arusKas.baris.map((b, i) => <tr key={i}>
+          <td>{tanggal(b.tanggal)}</td>
+          <td style={{ whiteSpace: 'normal', maxWidth: 280 }}>{b.keterangan}</td>
+          <td>{b.modul ?? '—'}</td>
+          <td style={{ color: '#2d8155' }}>{b.masuk > 0 ? rupiah(b.masuk) : '—'}</td>
+          <td style={{ color: '#a05244' }}>{b.keluar > 0 ? rupiah(b.keluar) : '—'}</td>
+        </tr>)}
+      </tbody></table>{arusKas.baris.length === 0 && <div className="empty-state">Tidak ada pergerakan kas pada rentang ini.</div>}</div>
+    </section>}
+
+    {tab === 'akun' && <section className="table-panel">
+      <div className="panel-heading"><div><h2>Bagan Akun (Chart of Accounts)</h2><p>Akun bertanda "Sistem" dipakai posting otomatis dan tidak bisa dinonaktifkan.</p></div></div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '16px 25px 18px', alignItems: 'end' }}>
+        <label style={labelStyle}>Kode<input value={akunKode} onChange={(e) => setAkunKode(e.target.value)} style={{ ...inputStyle, width: 110 }} placeholder="6-6100" /></label>
+        <label style={{ ...labelStyle, flex: 1, minWidth: 180 }}>Nama<input value={akunNama} onChange={(e) => setAkunNama(e.target.value)} style={inputStyle} /></label>
+        <label style={labelStyle}>Tipe
+          <select value={akunTipe} onChange={(e) => setAkunTipe(e.target.value)} style={{ ...inputStyle, background: '#fff' }}>
+            {['Aset', 'Liabilitas', 'Ekuitas', 'Pendapatan', 'Beban'].map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>Saldo Normal
+          <select value={akunSaldoNormal} onChange={(e) => setAkunSaldoNormal(e.target.value)} style={{ ...inputStyle, background: '#fff' }}>
+            <option value="Debit">Debit</option><option value="Kredit">Kredit</option>
+          </select>
+        </label>
+        <button className="submit-button" style={{ height: 38, padding: '0 18px' }} disabled={busyId === 'akun-baru'} onClick={tambahAkun}>Tambah</button>
+      </div>
+      <div className="table-scroll"><table><thead><tr><th>Kode</th><th>Nama</th><th>Tipe</th><th>Saldo Normal</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {akun.map((a) => <tr key={a.id}>
+          <td className="mono">{a.kode}</td>
+          <td>{a.nama}{a.sistem && <span className="role-pill" style={{ marginLeft: 6 }}>Sistem</span>}</td>
+          <td>{a.tipe}</td>
+          <td>{a.saldoNormal}</td>
+          <td><span className={`status-pill ${a.aktif ? 'active' : 'inactive'}`}><i />{a.aktif ? 'Aktif' : 'Nonaktif'}</span></td>
+          <td className="align-right">{!a.sistem && <button className={`toggle-button ${a.aktif ? 'deactivate' : 'activate'}`} disabled={busyId === `akun-${a.id}`} onClick={() => void toggleAkun(a)}>{a.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>}</td>
+        </tr>)}
+      </tbody></table></div>
+    </section>}
+  </div>
+}
+
+function ShuView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [riwayat, setRiwayat] = useState<ShuRiwayat[]>([])
+  const [hasil, setHasil] = useState<ShuHitung | null>(null)
+  const [expanded, setExpanded] = useState<{ tahun: number; rincian: ShuBaris[] } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const [tahun, setTahun] = useState(new Date().getFullYear())
+  const [totalShu, setTotalShu] = useState('')
+  const [persenModal, setPersenModal] = useState('30')
+  const [persenUsaha, setPersenUsaha] = useState('70')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+  const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
+  const loadRiwayat = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/shu/riwayat`, { headers })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error(response.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat riwayat SHU.')
+      setRiwayat(await response.json())
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [headers, onExpired])
+  useEffect(() => { void loadRiwayat() }, [loadRiwayat])
+
+  const ambilDariLabaRugi = async () => {
+    setBusyId('ambil-lr'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/akuntansi/laba-rugi?dari=${tahun}-01-01&sampai=${tahun}-12-31`, { headers })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error('Gagal mengambil Laba Rugi.')
+      setTotalShu(String(Math.max(0, Math.round(data.labaBersih ?? 0))))
+      flash(`Laba bersih tahun ${tahun}: ${rupiah(data.labaBersih ?? 0)} diusulkan sebagai Total SHU.`)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengambil Laba Rugi.') }
+    finally { setBusyId('') }
+  }
+
+  const hitung = async () => {
+    if (!(Number(totalShu) > 0)) { setError('Total SHU wajib lebih dari 0.'); return }
+    setBusyId('hitung'); setError(''); setHasil(null)
+    try {
+      const body = { tahun, totalShu: Number(totalShu), persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100 }
+      const response = await fetch(`${API_BASE}/api/admin/shu/hitung`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menghitung SHU.')
+      setHasil(data)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menghitung SHU.') }
+    finally { setBusyId('') }
+  }
+
+  const finalisasi = async () => {
+    if (!hasil) return
+    if (!window.confirm(`Finalisasi SHU tahun ${tahun} untuk ${hasil.rincian.length} anggota (total ${rupiah(hasil.totalShu)})?\n\nSetelah ini estimasi SHU akan tampil di aplikasi anggota dan tidak bisa diubah kecuali dihitung ulang.`)) return
+    setBusyId('finalisasi'); setError('')
+    try {
+      const body = { tahun, totalShu: Number(totalShu), persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100 }
+      const response = await fetch(`${API_BASE}/api/admin/shu/finalisasi`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal finalisasi SHU.')
+      flash(data.message ?? 'SHU difinalisasi.')
+      setHasil(null)
+      await loadRiwayat()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal finalisasi SHU.') }
+    finally { setBusyId('') }
+  }
+
+  const lihatRincian = async (tahunLihat: number) => {
+    if (expanded?.tahun === tahunLihat) { setExpanded(null); return }
+    const response = await fetch(`${API_BASE}/api/admin/shu/${tahunLihat}`, { headers })
+    if (response.ok) {
+      const data = await response.json()
+      setExpanded({ tahun: tahunLihat, rincian: data.rincian })
+    }
+  }
+
+  const eksporCsv = async (tahunEkspor: number) => {
+    const response = await fetch(`${API_BASE}/api/admin/shu/${tahunEkspor}/ekspor`, { headers })
+    if (!response.ok) { setError('Gagal mengekspor SHU.'); return }
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `shu-${tahunEkspor}.csv`
+    document.body.appendChild(a); a.click(); a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  return <div className="content-wrap">
+    <section className="welcome-row"><div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+
+    <section className="table-panel" style={{ marginBottom: 22 }}>
+      <div className="panel-heading"><div><h2>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota.</p></div></div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '18px 25px 8px', alignItems: 'end' }}>
+        <label style={labelStyle}>Tahun buku<input type="number" value={tahun} onChange={(e) => setTahun(Number(e.target.value))} style={{ ...inputStyle, width: 100 }} /></label>
+        <label style={labelStyle}>Total SHU (Rp)<input type="number" value={totalShu} onChange={(e) => setTotalShu(e.target.value)} style={{ ...inputStyle, width: 160 }} /></label>
+        <button className="toggle-button" disabled={busyId === 'ambil-lr'} onClick={() => void ambilDariLabaRugi()}>Ambil dari Laba Rugi</button>
+        <label style={labelStyle}>% Jasa Modal (JMA)<input type="number" value={persenModal} onChange={(e) => setPersenModal(e.target.value)} style={{ ...inputStyle, width: 110 }} /></label>
+        <label style={labelStyle}>% Jasa Usaha (JUA)<input type="number" value={persenUsaha} onChange={(e) => setPersenUsaha(e.target.value)} style={{ ...inputStyle, width: 110 }} /></label>
+        <button className="submit-button" style={{ height: 38, padding: '0 18px', width: 'auto' }} disabled={busyId === 'hitung'} onClick={() => void hitung()}>Hitung (pratinjau)</button>
+      </div>
+      {(Number(persenModal) + Number(persenUsaha)) !== 100 && <div style={{ padding: '0 25px 12px', fontSize: 12, color: '#bd6d1d' }}>Catatan: % Jasa Modal + % Jasa Usaha saat ini {Number(persenModal) + Number(persenUsaha)}% (biasanya dibuat 100%).</div>}
+
+      {hasil && <div style={{ padding: '0 25px 22px' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button className="toggle-button activate" disabled={busyId === 'finalisasi'} onClick={() => void finalisasi()}>Finalisasi & kirim ke aplikasi anggota</button>
+          <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)}</span>
+        </div>
+        <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan</th><th>Transaksi</th><th>JMA</th><th>JUA</th><th>Total SHU</th></tr></thead><tbody>
+          {hasil.rincian.map((r) => <tr key={r.penggunaId}>
+            <td><div className="user-cell"><span className="avatar">{r.nama.charAt(0).toUpperCase()}</span><strong>{r.nama}</strong></div></td>
+            <td className="mono">{r.nomorIndukKaryawan || '—'}</td>
+            <td>{rupiah(r.simpananAnggota)}</td>
+            <td>{rupiah(r.transaksiAnggota)}</td>
+            <td>{rupiah(r.jma)}</td>
+            <td>{rupiah(r.jua)}</td>
+            <td style={{ fontWeight: 800 }}>{rupiah(r.totalShu)}</td>
+          </tr>)}
+        </tbody></table></div>
+      </div>}
+    </section>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Riwayat SHU terfinalisasi</h2><p>Estimasi yang sudah tampil di aplikasi anggota.</p></div></div>
+      <div className="table-scroll"><table><thead><tr><th>Tahun</th><th>Total SHU</th><th>% Modal / Usaha</th><th>Jumlah Anggota</th><th>Difinalisasi</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {riwayat.map((r) => [
+          <tr key={r.tahun}>
+            <td style={{ fontWeight: 800 }}>{r.tahun}</td>
+            <td>{rupiah(r.totalShu)}</td>
+            <td>{(r.persenJasaModal * 100).toFixed(0)}% / {(r.persenJasaUsaha * 100).toFixed(0)}%</td>
+            <td>{r.jumlahAnggota}</td>
+            <td>{tanggal(r.difinalisasiPada)}</td>
+            <td className="align-right"><span style={{ display: 'inline-flex', gap: 6 }}>
+              <button className="toggle-button" onClick={() => void lihatRincian(r.tahun)}>{expanded?.tahun === r.tahun ? 'Tutup' : 'Rincian'}</button>
+              <button className="toggle-button activate" onClick={() => void eksporCsv(r.tahun)}>Ekspor CSV</button>
+            </span></td>
+          </tr>,
+          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={6} style={{ background: '#f7faf9' }}>
+            <table style={{ minWidth: 560 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Total SHU</th></tr></thead><tbody>
+              {expanded.rincian.map((x) => <tr key={x.penggunaId}><td>{x.nama}</td><td className="mono">{x.nomorIndukKaryawan}</td><td>{rupiah(x.jma)}</td><td>{rupiah(x.jua)}</td><td style={{ fontWeight: 700 }}>{rupiah(x.totalShu)}</td></tr>)}
+            </tbody></table>
+          </td></tr>,
+        ])}
+      </tbody></table>{!loading && riwayat.length === 0 && <div className="empty-state">Belum ada SHU yang difinalisasi.</div>}</div>
     </section>
   </div>
 }

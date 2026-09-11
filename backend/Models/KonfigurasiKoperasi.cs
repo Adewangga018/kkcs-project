@@ -16,5 +16,8 @@ public class KonfigurasiKoperasi
 
     public decimal BungaDepositoTahunan { get; set; } = 0.045m;
 
+    // PPh atas bunga simpanan sukarela, dipotong dari nilai bunga bruto tiap bulan.
+    public decimal TarifPphBungaSukarela { get; set; } = 0.20m;
+
     public DateTime DiperbaruiPada { get; set; } = DateTime.UtcNow;
 }

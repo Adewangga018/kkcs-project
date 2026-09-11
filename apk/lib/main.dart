@@ -1039,7 +1039,11 @@ class _TransparencyDashboard extends StatelessWidget {
                     value: s == null ? '—' : (s.cicilanBulananBerjalan == 0 ? 'Tidak ada' : '${formatRupiah(s.cicilanBulananBerjalan)} / bln'),
                   )),
                   const SizedBox(width: 10),
-                  const Expanded(child: _DashboardMetric(icon: Icons.auto_graph_outlined, label: 'Estimasi SHU', value: 'Belum tersedia')),
+                  Expanded(child: _DashboardMetric(
+                    icon: Icons.auto_graph_outlined,
+                    label: s?.estimasiShuTahun == null ? 'Estimasi SHU' : 'Estimasi SHU ${s!.estimasiShuTahun}',
+                    value: s?.estimasiShuNominal == null ? 'Belum tersedia' : formatRupiah(s!.estimasiShuNominal!),
+                  )),
                 ]),
                 const SizedBox(height: 12),
                 Row(children: [
@@ -2825,6 +2829,8 @@ class HomeSummary {
     required this.sisaAngsuran,
     required this.pengumuman,
     required this.produkTerbaru,
+    this.estimasiShuTahun,
+    this.estimasiShuNominal,
   });
 
   final double totalSimpanan;
@@ -2838,24 +2844,31 @@ class HomeSummary {
   final int sisaAngsuran;
   final List<Announcement> pengumuman;
   final List<CatalogProduct> produkTerbaru;
+  final int? estimasiShuTahun;
+  final double? estimasiShuNominal;
 
-  factory HomeSummary.fromJson(Map<String, dynamic> json) => HomeSummary(
-        totalSimpanan: (json['totalSimpanan'] as num).toDouble(),
-        simpananPokok: (json['simpananPokok'] as num).toDouble(),
-        simpananWajib: (json['simpananWajib'] as num).toDouble(),
-        simpananSukarela: (json['simpananSukarela'] as num).toDouble(),
-        simpananBerjangka: (json['simpananBerjangka'] as num).toDouble(),
-        jumlahPinjamanAktif: json['jumlahPinjamanAktif'] as int,
-        sisaPokokPinjaman: (json['sisaPokokPinjaman'] as num).toDouble(),
-        cicilanBulananBerjalan: (json['cicilanBulananBerjalan'] as num).toDouble(),
-        sisaAngsuran: json['sisaAngsuran'] as int,
-        pengumuman: (json['pengumuman'] as List<dynamic>? ?? [])
-            .map((e) => Announcement.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        produkTerbaru: (json['produkTerbaru'] as List<dynamic>? ?? [])
-            .map((e) => CatalogProduct.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  factory HomeSummary.fromJson(Map<String, dynamic> json) {
+    final estimasiShu = json['estimasiShu'] as Map<String, dynamic>?;
+    return HomeSummary(
+      totalSimpanan: (json['totalSimpanan'] as num).toDouble(),
+      simpananPokok: (json['simpananPokok'] as num).toDouble(),
+      simpananWajib: (json['simpananWajib'] as num).toDouble(),
+      simpananSukarela: (json['simpananSukarela'] as num).toDouble(),
+      simpananBerjangka: (json['simpananBerjangka'] as num).toDouble(),
+      jumlahPinjamanAktif: json['jumlahPinjamanAktif'] as int,
+      sisaPokokPinjaman: (json['sisaPokokPinjaman'] as num).toDouble(),
+      cicilanBulananBerjalan: (json['cicilanBulananBerjalan'] as num).toDouble(),
+      sisaAngsuran: json['sisaAngsuran'] as int,
+      pengumuman: (json['pengumuman'] as List<dynamic>? ?? [])
+          .map((e) => Announcement.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      produkTerbaru: (json['produkTerbaru'] as List<dynamic>? ?? [])
+          .map((e) => CatalogProduct.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      estimasiShuTahun: estimasiShu?['tahun'] as int?,
+      estimasiShuNominal: (estimasiShu?['totalShu'] as num?)?.toDouble(),
+    );
+  }
 }
 
 // ── Simpanan ─────────────────────────────────────────────────────────────────
@@ -2918,13 +2931,15 @@ class SukarelaRequest {
 }
 
 class SukarelaSection {
-  const SukarelaSection({required this.saldo, required this.bungaTahunan, required this.pengajuan});
+  const SukarelaSection({required this.saldo, required this.bungaTahunan, required this.tarifPphBunga, required this.pengajuan});
   final double saldo;
   final double bungaTahunan;
+  final double tarifPphBunga;
   final List<SukarelaRequest> pengajuan;
   factory SukarelaSection.fromJson(Map<String, dynamic> json) => SukarelaSection(
         saldo: (json['saldo'] as num).toDouble(),
         bungaTahunan: (json['bungaTahunan'] as num?)?.toDouble() ?? 0,
+        tarifPphBunga: (json['tarifPphBunga'] as num?)?.toDouble() ?? 0,
         pengajuan: (json['pengajuan'] as List<dynamic>).map((e) => SukarelaRequest.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }
@@ -3326,7 +3341,7 @@ class _SavingsTabState extends State<SavingsTab> {
             _AccountSectionCard(
               icon: Icons.volunteer_activism_outlined,
               title: 'Simpanan Sukarela',
-              subtitle: 'Bunga ${(data.sukarela.bungaTahunan * 100).toStringAsFixed(2)}%/th, dihitung saldo harian & dibayar tiap awal bulan.',
+              subtitle: 'Bunga ${(data.sukarela.bungaTahunan * 100).toStringAsFixed(2)}%/th, dihitung saldo harian, dipotong PPh ${(data.sukarela.tarifPphBunga * 100).toStringAsFixed(0)}%, dibukukan tanggal akhir tiap bulan.',
               children: [
                 _InfoRow(label: 'Saldo', value: formatRupiah(data.sukarela.saldo)),
                 const SizedBox(height: 10),
@@ -3432,14 +3447,17 @@ class _SavingsTabState extends State<SavingsTab> {
                 subtitle: 'Riwayat transaksi simpanan.',
                 children: data.mutasi
                     .take(10)
-                    .map((m) => Padding(
+                    .map((m) {
+                      final debit = m.jenis == 'Tarik' || m.jenis == 'Pajak';
+                      return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 5),
                           child: Row(children: [
                             Expanded(child: Text('${m.rekening} · ${m.jenis}', style: const TextStyle(fontSize: 13))),
-                            Text('${m.jenis == 'Tarik' ? '-' : '+'}${formatRupiah(m.nominal)}',
-                                style: TextStyle(fontWeight: FontWeight.w700, color: m.jenis == 'Tarik' ? Colors.red.shade700 : Colors.green.shade700)),
+                            Text('${debit ? '-' : '+'}${formatRupiah(m.nominal)}',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: debit ? Colors.red.shade700 : Colors.green.shade700)),
                           ]),
-                        ))
+                        );
+                    })
                     .toList(),
               ),
             ],

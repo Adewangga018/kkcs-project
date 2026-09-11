@@ -39,6 +39,7 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KkcsDbContext>();
         var simpananService = scope.ServiceProvider.GetRequiredService<SimpananService>();
+        var jurnalService = scope.ServiceProvider.GetRequiredService<JurnalService>();
 
         var konfigurasi = await db.KonfigurasiKoperasi.FirstOrDefaultAsync(stoppingToken)
             ?? new KonfigurasiKoperasi { Id = 1 };
@@ -60,7 +61,13 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
 
         // Tutup buku bunga Simpanan Sukarela bulan sebelumnya (idempoten).
         var periodeBungaLalu = BungaSukarela.PeriodeBulanLalu();
-        var (akunBunga, totalBunga) = await BungaSukarela.PostingAsync(db, simpananService, konfigurasi.BungaSukarelaTahunan, periodeBungaLalu);
-        if (akunBunga > 0) logger.LogInformation("Mengkreditkan bunga sukarela {Periode} ke {Akun} rekening (total {Total:N0}).", periodeBungaLalu, akunBunga, totalBunga);
+        var (akunBunga, bruto, pajak, neto) = await BungaSukarela.PostingAsync(
+            db, simpananService, jurnalService, konfigurasi.BungaSukarelaTahunan, konfigurasi.TarifPphBungaSukarela, periodeBungaLalu);
+        if (akunBunga > 0)
+        {
+            logger.LogInformation(
+                "Mengkreditkan bunga sukarela {Periode} ke {Akun} rekening: bruto {Bruto:N0}, PPh {Pajak:N0}, neto {Neto:N0}.",
+                periodeBungaLalu, akunBunga, bruto, pajak, neto);
+        }
     }
 }

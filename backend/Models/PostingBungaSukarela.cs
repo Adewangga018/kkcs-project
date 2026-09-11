@@ -7,7 +7,14 @@ public class PostingBungaSukarela
     // "yyyy-MM" bulan yang bunganya dihitung.
     public string Periode { get; set; } = string.Empty;
 
+    // Bunga neto yang benar-benar menambah saldo (setelah PPh). Dipertahankan untuk kompatibilitas.
     public decimal Nominal { get; set; }
+
+    public decimal BungaBruto { get; set; }
+
+    public decimal Pajak { get; set; }
+
+    public decimal BungaNeto { get; set; }
 
     public DateTime DiposkanPada { get; set; } = DateTime.UtcNow;
 

@@ -25,16 +25,21 @@ public class SimpananService(KkcsDbContext db)
         return simpanan;
     }
 
-    /// <summary>Mencatat mutasi dan memperbarui saldo. <paramref name="jenis"/> = "Setor" atau "Tarik".</summary>
-    public static void Catat(Simpanan simpanan, string jenis, decimal nominal, string keterangan)
+    // Jenis mutasi yang mengurangi saldo (debit); selain ini dianggap menambah saldo (kredit).
+    private static readonly string[] JenisDebit = ["Tarik", "Pajak"];
+
+    /// <summary>Mencatat mutasi dan memperbarui saldo. <paramref name="jenis"/> = Setor | Tarik | Bunga | Pajak.
+    /// <paramref name="tanggal"/> opsional untuk mencatat mutasi mundur (mis. bunga dibukukan tanggal akhir bulan berjalan).</summary>
+    public static void Catat(Simpanan simpanan, string jenis, decimal nominal, string keterangan, DateTime? tanggal = null)
     {
-        simpanan.Saldo += jenis == "Tarik" ? -nominal : nominal;
+        simpanan.Saldo += JenisDebit.Contains(jenis) ? -nominal : nominal;
         simpanan.Mutasi.Add(new MutasiSimpanan
         {
             Jenis = jenis,
             Nominal = nominal,
             SaldoSetelah = simpanan.Saldo,
-            Keterangan = keterangan
+            Keterangan = keterangan,
+            TanggalTransaksi = tanggal ?? DateTime.UtcNow
         });
     }
 
@@ -85,14 +90,23 @@ public static class BungaSukarela
         return Math.Round(total, 2, MidpointRounding.AwayFromZero);
     }
 
-    /// <summary>Menghitung & mengkreditkan bunga sukarela seluruh anggota untuk <paramref name="periode"/> ("yyyy-MM").</summary>
-    public static async Task<(int akun, decimal total)> PostingAsync(KkcsDbContext db, SimpananService simpananService, decimal bungaTahunan, string periode)
+    /// <summary>
+    /// Menghitung & mengkreditkan bunga sukarela seluruh anggota untuk <paramref name="periode"/> ("yyyy-MM").
+    /// Dibukukan dengan tanggal transaksi = tanggal terakhir bulan tersebut (bukan tanggal job berjalan),
+    /// dan dipotong PPh sebesar <paramref name="tarifPajak"/> dari nilai bunga (bunga dicatat penuh sebagai
+    /// pendapatan, lalu dicatat mutasi "Pajak" terpisah sehingga saldo hanya bertambah sebesar bunga neto).
+    /// </summary>
+    public static async Task<(int akun, decimal totalBruto, decimal totalPajak, decimal totalNeto)> PostingAsync(
+        KkcsDbContext db, SimpananService simpananService, JurnalService jurnalService, decimal bungaTahunan, decimal tarifPajak, string periode)
     {
-        var awalBulan = new DateTime(int.Parse(periode[..4]), int.Parse(periode[5..]), 1);
+        var tahun = int.Parse(periode[..4]);
+        var bulan = int.Parse(periode[5..]);
+        var awalBulan = new DateTime(tahun, bulan, 1);
         if (awalBulan >= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1))
         {
-            return (0, 0); // Bulan berjalan/masa depan belum bisa ditutup.
+            return (0, 0, 0, 0); // Bulan berjalan/masa depan belum bisa ditutup.
         }
+        var tanggalPembukuan = new DateTime(tahun, bulan, DateTime.DaysInMonth(tahun, bulan));
 
         var jenisSukarela = await db.JenisSimpanan.AsNoTracking().FirstAsync(j => j.Kode == "SUKARELA");
         var rekeningList = await db.Simpanan.Include(s => s.Mutasi)
@@ -104,7 +118,7 @@ public static class BungaSukarela
             .ToListAsync();
 
         int akun = 0;
-        decimal totalBunga = 0m;
+        decimal totalBruto = 0m, totalPajak = 0m, totalNeto = 0m;
         foreach (var rekening in rekeningList)
         {
             if (sudahDiposkan.Contains(rekening.PenggunaId)) continue;
@@ -112,19 +126,40 @@ public static class BungaSukarela
             var bunga = HitungBulan(mutasiTerurut, bungaTahunan, awalBulan);
             if (bunga <= 0) continue;
 
-            SimpananService.Catat(rekening, "Bunga", bunga, $"Bunga simpanan sukarela {periode}");
+            var pajak = Math.Round(bunga * tarifPajak, 2, MidpointRounding.AwayFromZero);
+            var neto = bunga - pajak;
+
+            SimpananService.Catat(rekening, "Bunga", bunga, $"Bunga simpanan sukarela {periode} (bruto)", tanggalPembukuan);
+            if (pajak > 0)
+            {
+                SimpananService.Catat(rekening, "Pajak", pajak, $"PPh {tarifPajak:P0} atas bunga simpanan sukarela {periode}", tanggalPembukuan);
+            }
+
             db.PostingBungaSukarela.Add(new PostingBungaSukarela
             {
                 PenggunaId = rekening.PenggunaId,
                 Periode = periode,
-                Nominal = bunga
+                Nominal = neto,
+                BungaBruto = bunga,
+                Pajak = pajak,
+                BungaNeto = neto
             });
             akun++;
-            totalBunga += bunga;
+            totalBruto += bunga;
+            totalPajak += pajak;
+            totalNeto += neto;
         }
 
-        if (akun > 0) await db.SaveChangesAsync();
-        return (akun, totalBunga);
+        if (akun > 0)
+        {
+            // Satu jurnal teragregasi untuk seluruh posting bunga bulan ini (bukan per anggota) — cukup di level buku besar.
+            await jurnalService.PostingOtomatisAsync(tanggalPembukuan, $"Bunga simpanan sukarela {periode} ({akun} rekening)", "Simpanan", $"bungaSukarela:{periode}",
+                BarisJurnal.D(KodeAkun.BebanBungaSukarela, totalBruto),
+                BarisJurnal.K(KodeAkun.SimpananSukarela, totalNeto),
+                BarisJurnal.K(KodeAkun.UtangPph, totalPajak));
+            await db.SaveChangesAsync();
+        }
+        return (akun, totalBruto, totalPajak, totalNeto);
     }
 }
 

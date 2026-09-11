@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911041012_AddPphBungaSukarela")]
+    partial class AddPphBungaSukarela
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -20,251 +23,6 @@ namespace backend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("AkunAkuntansi", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Aktif")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("DibuatPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Kode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Nama")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("SaldoNormal")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<bool>("Sistem")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Tipe")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Kode")
-                        .IsUnique();
-
-                    b.ToTable("AkunAkuntansi");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "1-1000",
-                            Nama = "Kas & Bank",
-                            SaldoNormal = "Debit",
-                            Sistem = true,
-                            Tipe = "Aset"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "1-1200",
-                            Nama = "Piutang Pinjaman Anggota",
-                            SaldoNormal = "Debit",
-                            Sistem = true,
-                            Tipe = "Aset"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "1-1300",
-                            Nama = "Piutang Kredit Produk (Potong Gaji)",
-                            SaldoNormal = "Debit",
-                            Sistem = true,
-                            Tipe = "Aset"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "1-1400",
-                            Nama = "Persediaan Barang",
-                            SaldoNormal = "Debit",
-                            Sistem = false,
-                            Tipe = "Aset"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2200",
-                            Nama = "Simpanan Sukarela Anggota",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2300",
-                            Nama = "Simpanan Berjangka Anggota",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2400",
-                            Nama = "Utang PPh Ps 4(2) — Bunga Simpanan",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2500",
-                            Nama = "Utang SHU ke Anggota",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "3-3100",
-                            Nama = "Simpanan Pokok (Modal Anggota)",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Ekuitas"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "3-3200",
-                            Nama = "Simpanan Wajib (Modal Anggota)",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Ekuitas"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "3-3900",
-                            Nama = "SHU Ditahan / Cadangan",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Ekuitas"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "4-4100",
-                            Nama = "Pendapatan Jasa Pinjaman",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Pendapatan"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "4-4200",
-                            Nama = "Pendapatan Penjualan & Sewa Produk",
-                            SaldoNormal = "Kredit",
-                            Sistem = true,
-                            Tipe = "Pendapatan"
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "4-4300",
-                            Nama = "Pendapatan Lain-lain",
-                            SaldoNormal = "Kredit",
-                            Sistem = false,
-                            Tipe = "Pendapatan"
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5100",
-                            Nama = "Beban Bunga Simpanan Sukarela",
-                            SaldoNormal = "Debit",
-                            Sistem = true,
-                            Tipe = "Beban"
-                        },
-                        new
-                        {
-                            Id = 16,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5200",
-                            Nama = "Beban Bunga Simpanan Berjangka",
-                            SaldoNormal = "Debit",
-                            Sistem = true,
-                            Tipe = "Beban"
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5300",
-                            Nama = "Beban Pokok Penjualan",
-                            SaldoNormal = "Debit",
-                            Sistem = false,
-                            Tipe = "Beban"
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5900",
-                            Nama = "Beban Operasional Lain (Gaji, Sewa, dll)",
-                            SaldoNormal = "Debit",
-                            Sistem = false,
-                            Tipe = "Beban"
-                        });
-                });
 
             modelBuilder.Entity("Anggota", b =>
                 {
@@ -525,93 +283,6 @@ namespace backend.Migrations
                             Kode = "BERJANGKA",
                             Nama = "Simpanan Berjangka"
                         });
-                });
-
-            modelBuilder.Entity("JurnalBaris", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AkunId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Debit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("JurnalEntriId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Keterangan")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<decimal>("Kredit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AkunId");
-
-                    b.HasIndex("JurnalEntriId");
-
-                    b.ToTable("JurnalBaris");
-                });
-
-            modelBuilder.Entity("JurnalEntri", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DibuatPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DicatatOlehId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Keterangan")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("NomorJurnal")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("ReferensiId")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("ReferensiModul")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("Sumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("Tanggal")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DicatatOlehId");
-
-                    b.HasIndex("NomorJurnal")
-                        .IsUnique();
-
-                    b.HasIndex("Tanggal");
-
-                    b.ToTable("JurnalEntri");
                 });
 
             modelBuilder.Entity("KonfigurasiKoperasi", b =>
@@ -1277,97 +948,6 @@ namespace backend.Migrations
                     b.ToTable("ProdukBerjangka");
                 });
 
-            modelBuilder.Entity("ShuAnggota", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Jma")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("Jua")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PenggunaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ShuRunId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("SimpananAnggota")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TransaksiAnggota")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PenggunaId");
-
-                    b.HasIndex("ShuRunId", "PenggunaId")
-                        .IsUnique();
-
-                    b.ToTable("ShuAnggota");
-                });
-
-            modelBuilder.Entity("ShuRun", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("DifinalisasiOlehId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DifinalisasiPada")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("PersenJasaModal")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("decimal(5,4)");
-
-                    b.Property<decimal>("PersenJasaUsaha")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("decimal(5,4)");
-
-                    b.Property<int>("Tahun")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalSimpananSemuaAnggota")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalTransaksiSemuaAnggota")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DifinalisasiOlehId");
-
-                    b.HasIndex("Tahun")
-                        .IsUnique();
-
-                    b.ToTable("ShuRun");
-                });
-
             modelBuilder.Entity("Simpanan", b =>
                 {
                     b.Property<int>("Id")
@@ -1669,35 +1249,6 @@ namespace backend.Migrations
                     b.Navigation("Pengguna");
                 });
 
-            modelBuilder.Entity("JurnalBaris", b =>
-                {
-                    b.HasOne("AkunAkuntansi", "Akun")
-                        .WithMany("Baris")
-                        .HasForeignKey("AkunId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("JurnalEntri", "JurnalEntri")
-                        .WithMany("Baris")
-                        .HasForeignKey("JurnalEntriId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Akun");
-
-                    b.Navigation("JurnalEntri");
-                });
-
-            modelBuilder.Entity("JurnalEntri", b =>
-                {
-                    b.HasOne("Pengguna", "DicatatOleh")
-                        .WithMany()
-                        .HasForeignKey("DicatatOlehId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("DicatatOleh");
-                });
-
             modelBuilder.Entity("MutasiSimpanan", b =>
                 {
                     b.HasOne("Simpanan", "Simpanan")
@@ -1798,35 +1349,6 @@ namespace backend.Migrations
                     b.Navigation("DiajukanOleh");
                 });
 
-            modelBuilder.Entity("ShuAnggota", b =>
-                {
-                    b.HasOne("Pengguna", "Pengguna")
-                        .WithMany()
-                        .HasForeignKey("PenggunaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ShuRun", "ShuRun")
-                        .WithMany("Rincian")
-                        .HasForeignKey("ShuRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Pengguna");
-
-                    b.Navigation("ShuRun");
-                });
-
-            modelBuilder.Entity("ShuRun", b =>
-                {
-                    b.HasOne("Pengguna", "DifinalisasiOleh")
-                        .WithMany()
-                        .HasForeignKey("DifinalisasiOlehId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("DifinalisasiOleh");
-                });
-
             modelBuilder.Entity("Simpanan", b =>
                 {
                     b.HasOne("JenisSimpanan", "JenisSimpanan")
@@ -1906,11 +1428,6 @@ namespace backend.Migrations
                     b.Navigation("Pengguna");
                 });
 
-            modelBuilder.Entity("AkunAkuntansi", b =>
-                {
-                    b.Navigation("Baris");
-                });
-
             modelBuilder.Entity("EratAgenda", b =>
                 {
                     b.Navigation("Opsi");
@@ -1926,11 +1443,6 @@ namespace backend.Migrations
             modelBuilder.Entity("JenisSimpanan", b =>
                 {
                     b.Navigation("Simpanan");
-                });
-
-            modelBuilder.Entity("JurnalEntri", b =>
-                {
-                    b.Navigation("Baris");
                 });
 
             modelBuilder.Entity("PembelianProduk", b =>
@@ -1951,11 +1463,6 @@ namespace backend.Migrations
             modelBuilder.Entity("ProdukBerjangka", b =>
                 {
                     b.Navigation("SimpananBerjangka");
-                });
-
-            modelBuilder.Entity("ShuRun", b =>
-                {
-                    b.Navigation("Rincian");
                 });
 
             modelBuilder.Entity("Simpanan", b =>
