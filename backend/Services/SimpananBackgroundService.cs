@@ -62,7 +62,7 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
         // Tutup buku bunga Simpanan Sukarela bulan sebelumnya (idempoten).
         var periodeBungaLalu = BungaSukarela.PeriodeBulanLalu();
         var (akunBunga, bruto, pajak, neto) = await BungaSukarela.PostingAsync(
-            db, simpananService, jurnalService, konfigurasi.BungaSukarelaTahunan, konfigurasi.TarifPphBungaSukarela, periodeBungaLalu);
+            db, simpananService, jurnalService, konfigurasi.BungaSukarelaTahunan, konfigurasi.TarifPph, periodeBungaLalu);
         if (akunBunga > 0)
         {
             logger.LogInformation(

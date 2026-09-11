@@ -1,11 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
-import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, HandCoins, LayoutDashboard, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
+import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, Fingerprint, HandCoins, KeyRound, LayoutDashboard, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
 
 type AdminUser = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string }
+type AuditLogEntry = { id: number; waktuUtc: string; pelakuId: number | null; pelakuNama: string; pelakuPeran: string; modul: string; aksi: string; entitasId: number | null; ringkasan: string; detail: string | null; alamatIp: string | null }
+type DbAuditLogEntry = { id: number; tabel: string; operasi: string; kunciPrimer: string; dataSebelum: string | null; dataSesudah: string | null; waktuUtc: string; dbLogin: string; appName: string | null; hostName: string | null; prevHash: string; hash: string }
+type VerifikasiChainResult = { utuh: boolean; jumlahBermasalah: number; message: string; baris: { id: number; tabel: string; operasi: string; kunciPrimer: string; waktuUtc: string; dbLogin: string; hashTidakCocok: boolean; rantaiTerputus: boolean }[] }
+type AnggotaDirektoriItem = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; peran: string; statusKeanggotaan: string; aktif: boolean; totalSimpanan: number; dibuatPada: string }
+type BerjangkaRingkas = { nomorSertifikat: string; produkNama: string; nominal: number; tenorBulan: number; status: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null }
+type PinjamanRingkas = { nomorPinjaman: string; pokok: number; tenorBulan: number; angsuranPerBulan: number; sisaPokok: number; angsuranTerbayar: number; status: string; tanggalMulai: string; lunasPada: string | null }
+type BelanjaRingkas = { nomorTransaksi: string; produkNama: string; jenis: string; jumlah: number; total: number; metodePembayaran: string; status: string; diajukanPada: string }
+type AnggotaDetail = {
+  id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; nomorTelepon: string | null; alamat: string | null
+  peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string; disetujuiPada: string | null
+  saldoPokok: number; saldoWajib: number; saldoSukarela: number; totalSimpanan: number
+  berjangka: BerjangkaRingkas[]; pinjaman: PinjamanRingkas[]; belanja: BelanjaRingkas[]; totalTagihanKreditBelum: number
+}
 type Pendaftaran = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; statusKeanggotaan: string; dibuatPada: string }
-type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPphBungaSukarela: number; diperbaruiPada: string }
+type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPph: number; diperbaruiPada: string }
 type TagihanWajib = { id: number; namaAnggota: string; nomorIndukKaryawan: string; periode: string; nominal: number; jatuhTempo: string; status: string; catatanReview: string | null; dibuatPada: string; diprosesPada: string | null }
 type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number }
 type ProdukBerjangka = { id: number; nama: string; nominal: number; tenorBulan: number; aktif: boolean }
@@ -26,9 +39,9 @@ type LabaRugi = { dari: string; sampai: string; pendapatan: SaldoAkunItem[]; tot
 type Neraca = { tanggal: string; aset: SaldoAkunItem[]; totalAset: number; liabilitas: SaldoAkunItem[]; totalLiabilitas: number; ekuitas: SaldoAkunItem[]; shuBerjalan: number; totalEkuitas: number; selisih: number }
 type ArusKasBaris = { tanggal: string; nomorJurnal: string; keterangan: string; modul: string | null; masuk: number; keluar: number }
 type ArusKas = { dari: string; sampai: string; saldoAwal: number; totalMasuk: number; totalKeluar: number; saldoAkhir: number; baris: ArusKasBaris[] }
-type ShuRiwayat = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; jumlahAnggota: number; difinalisasiPada: string }
-type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number }
-type ShuHitung = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
+type ShuRiwayat = { tahun: number; totalShu: number; totalPajak: number; totalShuNeto: number; persenJasaModal: number; persenJasaUsaha: number; jumlahAnggota: number; difinalisasiPada: string }
+type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number; pajak: number; totalShuNeto: number }
+type ShuHitung = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; tarifPph: number; totalPajak: number; totalShuNeto: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
 type LoanApplication = {
   id: number; nomorPengajuan: string; namaAnggota: string; nomorIndukKaryawan: string
   nominal: number; tenorBulan: number; bungaTahunan: number; estimasiCicilanBulanan: number; estimasiTotalJasa: number
@@ -50,20 +63,49 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'pengguna' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu'
-const VIEW_TITLE: Record<View, string> = { pengguna: 'Dashboard pengguna', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU' }
+type View = 'pendaftaran' | 'anggota' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu' | 'akun' | 'audit'
+const VIEW_TITLE: Record<View, string> = { pendaftaran: 'Pendaftaran anggota', anggota: 'Direktori anggota', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type Peran = 'Admin' | 'Pengurus'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5168'
 const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID')}`
 const tanggal = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
+const waktu = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value.endsWith('Z') ? value : `${value}Z`))
 
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('kkcs_admin_token') ?? '')
-  const [view, setView] = useState<View>('pengguna')
+  const [peran, setPeran] = useState<Peran | null>(null)
+  const [nama, setNama] = useState('')
+  const [view, setView] = useState<View>('pendaftaran')
   const [error, setError] = useState('')
   const [loginNIK, setLoginNIK] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
+
+  const logout = useCallback(() => { localStorage.removeItem('kkcs_admin_token'); setToken(''); setPeran(null) }, [])
+  const handleExpired = useCallback(() => {
+    localStorage.removeItem('kkcs_admin_token'); setToken(''); setPeran(null)
+    setError('Sesi login berakhir. Silakan masuk kembali.')
+  }, [])
+
+  // Resolve peran (role) dari token yang tersimpan — dipakai saat login maupun saat sesi dipulihkan dari localStorage.
+  useEffect(() => {
+    if (!token) return
+    let batal = false
+    void (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+        if (response.status === 401) { if (!batal) handleExpired(); return }
+        if (!response.ok) return
+        const data = await response.json()
+        if (batal) return
+        if (!['Admin', 'Pengurus'].includes(data.peran)) { handleExpired(); setError('Akun ini bukan akun admin atau pengurus.'); return }
+        setPeran(data.peran as Peran); setNama(data.namaLengkap as string)
+        if (data.peran === 'Pengurus') setView((v) => (v === 'akun' || v === 'audit') ? 'pendaftaran' : v)
+      } catch { /* diamkan — panel lain akan melaporkan error jaringan */ }
+    })()
+    return () => { batal = true }
+  }, [token, handleExpired])
 
   const login = async (event: FormEvent) => {
     event.preventDefault(); setLoginLoading(true); setError('')
@@ -76,20 +118,18 @@ function App() {
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal masuk.') }
     finally { setLoginLoading(false) }
   }
-  const logout = () => { localStorage.removeItem('kkcs_admin_token'); setToken('') }
-  const handleExpired = useCallback(() => {
-    localStorage.removeItem('kkcs_admin_token'); setToken('')
-    setError('Sesi login berakhir. Silakan masuk kembali.')
-  }, [])
 
   if (!token) return <LoginScreen nik={loginNIK} password={loginPassword} setNik={setLoginNIK} setPassword={setLoginPassword} loading={loginLoading} error={error} onSubmit={login} />
+  if (!peran) return <div className="login-page"><div className="login-card"><p>Memuat sesi…</p></div></div>
 
   const goto = (target: View) => { setView(target); setMobileNav(false) }
+  const isAdmin = peran === 'Admin'
   return <div className="console-shell">
     <aside className={`sidebar ${mobileNav ? 'is-open' : ''}`}>
       <div className="brand-lockup"><div className="brand-mark">K</div><div><strong>KKCS</strong><span>Admin Console</span></div></div>
       <nav className="primary-nav">
-        <button className={`nav-item ${view === 'pengguna' ? 'active' : ''}`} onClick={() => goto('pengguna')}><LayoutDashboard size={18} /> Pengguna</button>
+        <button className={`nav-item ${view === 'pendaftaran' ? 'active' : ''}`} onClick={() => goto('pendaftaran')}><LayoutDashboard size={18} /> Pendaftaran</button>
+        <button className={`nav-item ${view === 'anggota' ? 'active' : ''}`} onClick={() => goto('anggota')}><Users size={18} /> Direktori Anggota</button>
         <button className={`nav-item ${view === 'simpanan' ? 'active' : ''}`} onClick={() => goto('simpanan')}><PiggyBank size={18} /> Simpanan</button>
         <button className={`nav-item ${view === 'pinjaman' ? 'active' : ''}`} onClick={() => goto('pinjaman')}><HandCoins size={18} /> Pinjaman</button>
         <button className={`nav-item ${view === 'katalog' ? 'active' : ''}`} onClick={() => goto('katalog')}><Store size={18} /> Katalog</button>
@@ -97,6 +137,11 @@ function App() {
         <button className={`nav-item ${view === 'payroll' ? 'active' : ''}`} onClick={() => goto('payroll')}><Receipt size={18} /> Payroll</button>
         <button className={`nav-item ${view === 'akuntansi' ? 'active' : ''}`} onClick={() => goto('akuntansi')}><BookOpen size={18} /> Akuntansi</button>
         <button className={`nav-item ${view === 'shu' ? 'active' : ''}`} onClick={() => goto('shu')}><Calculator size={18} /> SHU</button>
+        {isAdmin && <>
+          <div style={{ margin: '10px 13px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#7fa39c', textTransform: 'uppercase' }}>Khusus Admin</div>
+          <button className={`nav-item ${view === 'akun' ? 'active' : ''}`} onClick={() => goto('akun')}><UserCog size={18} /> Akun & Peran</button>
+          <button className={`nav-item ${view === 'audit' ? 'active' : ''}`} onClick={() => goto('audit')}><Fingerprint size={18} /> Audit Trail</button>
+        </>}
         <button className="nav-item"><Database size={18} /> Data koperasi <span className="nav-soon">segera</span></button>
       </nav>
       <div className="sidebar-footer"><ShieldCheck size={16} /> Role-based access</div>
@@ -105,46 +150,41 @@ function App() {
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Buka navigasi"><Menu size={20} /></button>
         <div><p className="eyebrow">OPERASIONAL</p><h1>{VIEW_TITLE[view]}</h1></div>
-        <div className="topbar-actions"><button className="profile-chip" onClick={logout}><span className="mini-avatar"><Users size={16} /></span><span>Pengurus</span><LogOut size={15} /></button></div>
+        <div className="topbar-actions"><button className="profile-chip" onClick={logout} title={nama}><span className="mini-avatar"><Users size={16} /></span><span>{isAdmin ? 'Admin' : 'Pengurus'}</span><LogOut size={15} /></button></div>
       </header>
-      {view === 'pengguna' && <UsersView token={token} onExpired={handleExpired} />}
-      {view === 'simpanan' && <SavingsView token={token} onExpired={handleExpired} />}
+      {view === 'pendaftaran' && <PendaftaranView token={token} onExpired={handleExpired} />}
+      {view === 'anggota' && <AnggotaDirektoriView token={token} onExpired={handleExpired} />}
+      {view === 'simpanan' && <SavingsView token={token} onExpired={handleExpired} isAdmin={isAdmin} />}
       {view === 'pinjaman' && <LoansView token={token} onExpired={handleExpired} />}
       {view === 'katalog' && <CatalogView token={token} onExpired={handleExpired} />}
       {view === 'erat' && <EratView token={token} onExpired={handleExpired} />}
       {view === 'payroll' && <PayrollView token={token} onExpired={handleExpired} />}
       {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} />}
       {view === 'shu' && <ShuView token={token} onExpired={handleExpired} />}
+      {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
+      {view === 'audit' && isAdmin && <AuditTrailView token={token} onExpired={handleExpired} />}
     </main>
   </div>
 }
 
-function UsersView({ token, onExpired }: { token: string; onExpired: () => void }) {
-  const [users, setUsers] = useState<AdminUser[]>([])
+function PendaftaranView({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([])
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [roleFilter, setRoleFilter] = useState('all')
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  const loadUsers = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const [usersResponse, pendaftaranResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/admin/pengguna`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/admin/anggota/pendaftaran`, { headers: { Authorization: `Bearer ${token}` } }),
-      ])
-      if (usersResponse.status === 401 || pendaftaranResponse.status === 401) { onExpired(); return }
-      if (!usersResponse.ok || !pendaftaranResponse.ok) throw new Error(usersResponse.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat pengguna.')
-      setUsers(await usersResponse.json())
-      setPendaftaran(await pendaftaranResponse.json())
+      const response = await fetch(`${API_BASE}/api/admin/anggota/pendaftaran`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error('Gagal memuat pendaftaran anggota.')
+      setPendaftaran(await response.json())
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
   }, [token, onExpired])
-  useEffect(() => { void loadUsers() }, [loadUsers])
+  useEffect(() => { void load() }, [load])
 
   const decidePendaftaran = async (calon: Pendaftaran, setuju: boolean) => {
     if (!window.confirm(`${setuju ? 'Setujui' : 'Tolak'} pendaftaran ${calon.namaLengkap} (NIK ${calon.nomorIndukKaryawan})?${setuju ? '\n\nSimpanan pokok akan otomatis dikreditkan.' : ''}`)) return
@@ -156,11 +196,208 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.message ?? 'Gagal memproses pendaftaran.')
       setNotice(data.message ?? 'Berhasil.'); window.setTimeout(() => setNotice(''), 3200)
-      await loadUsers()
+      await load()
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal memproses pendaftaran.') }
     finally { setBusyId(0) }
   }
   const pendingPendaftaran = pendaftaran.filter((item) => item.statusKeanggotaan === 'MenungguPersetujuan')
+
+  return <div className="content-wrap">
+    <section className="welcome-row"><div><h2>Pendaftaran anggota baru</h2><p>Menyetujui akan mengaktifkan akun dan mengkreditkan Simpanan Pokok otomatis.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+    <section className="stat-grid"><StatCard label="Menunggu persetujuan" value={pendingPendaftaran.length} icon={<UserPlus size={20} />} tone="amber" /><StatCard label="Total pengajuan" value={pendaftaran.length} icon={<Users size={20} />} tone="teal" /></section>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Pengajuan keanggotaan</h2><p>Anggota mendaftar lewat aplikasi; setujui untuk mengaktifkan akun.</p></div><span className="record-count">{pendingPendaftaran.length} menunggu</span></div>
+      <div className="table-scroll"><table><thead><tr><th>Calon anggota</th><th>NIK</th><th>Email</th><th>Daftar</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {pendaftaran.map((calon) => <tr key={calon.id}>
+          <td><div className="user-cell"><span className="avatar">{calon.namaLengkap.charAt(0).toUpperCase()}</span><strong>{calon.namaLengkap}</strong></div></td>
+          <td className="mono">{calon.nomorIndukKaryawan}</td>
+          <td>{calon.email ?? '—'}</td>
+          <td>{tanggal(calon.dibuatPada)}</td>
+          <td><span className={`status-pill ${calon.statusKeanggotaan === 'Ditolak' ? 'inactive' : ''}`}><i />{calon.statusKeanggotaan === 'MenungguPersetujuan' ? 'Menunggu' : 'Ditolak'}</span></td>
+          <td className="align-right">{calon.statusKeanggotaan === 'MenungguPersetujuan'
+            ? <span style={{ display: 'inline-flex', gap: 6 }}>
+                <button className="toggle-button activate" disabled={busyId === calon.id} onClick={() => void decidePendaftaran(calon, true)}>Setujui</button>
+                <button className="toggle-button deactivate" disabled={busyId === calon.id} onClick={() => void decidePendaftaran(calon, false)}>Tolak</button>
+              </span>
+            : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
+        </tr>)}
+      </tbody></table>{!loading && pendaftaran.length === 0 && <div className="empty-state">Tidak ada pendaftaran anggota baru.</div>}</div>
+    </section>
+  </div>
+}
+
+function AnggotaDirektoriView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [anggota, setAnggota] = useState<AnggotaDirektoriItem[]>([])
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/anggota/direktori`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error('Gagal memuat direktori anggota.')
+      setAnggota(await response.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [token, onExpired])
+  useEffect(() => { void load() }, [load])
+
+  const filtered = useMemo(() => anggota.filter((item) => {
+    const needle = query.toLowerCase()
+    return !needle || [item.namaLengkap, item.nomorIndukKaryawan, item.email ?? ''].some((value) => value.toLowerCase().includes(needle))
+  }), [anggota, query])
+
+  const totalSimpananSemua = anggota.reduce((sum, item) => sum + item.totalSimpanan, 0)
+
+  return <div className="content-wrap">
+    <section className="welcome-row"><div><h2>Direktori anggota</h2><p>Daftar anggota aktif beserta total saldo simpanan. Klik satu baris untuk melihat rincian lengkap.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    <section className="stat-grid">
+      <StatCard label="Anggota aktif" value={anggota.length} icon={<Users size={20} />} tone="teal" />
+      <StatCard label="Total simpanan seluruh anggota" value={totalSimpananSemua} icon={<PiggyBank size={20} />} tone="green" money />
+    </section>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Daftar anggota</h2><p>Total simpanan = pokok + wajib + sukarela + berjangka aktif.</p></div><span className="record-count">{filtered.length} data</span></div>
+      <div className="filters"><label className="search-box"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama, NIK, atau email" /></label></div>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Peran</th><th className="align-right">Total simpanan</th><th>Bergabung</th></tr></thead><tbody>
+        {filtered.map((item) => <tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedId(item.id)}>
+          <td><div className="user-cell"><span className="avatar">{item.namaLengkap.charAt(0).toUpperCase()}</span><div><strong>{item.namaLengkap}</strong><small>{item.email ?? 'Email belum diisi'}</small></div></div></td>
+          <td className="mono">{item.nomorIndukKaryawan}</td>
+          <td><span className={`role-pill ${item.peran.toLowerCase()}`}>{item.peran}</span></td>
+          <td className="align-right" style={{ fontWeight: 700 }}>{rupiah(item.totalSimpanan)}</td>
+          <td>{tanggal(item.dibuatPada)}</td>
+        </tr>)}
+      </tbody></table>{!loading && filtered.length === 0 && <div className="empty-state">Tidak ada anggota yang cocok dengan pencarian.</div>}</div>
+    </section>
+
+    {selectedId !== null && <AnggotaDetailModal id={selectedId} token={token} onExpired={onExpired} onClose={() => setSelectedId(null)} />}
+  </div>
+}
+
+function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; token: string; onExpired: () => void; onClose: () => void }) {
+  const [detail, setDetail] = useState<AnggotaDetail | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let batal = false
+    setLoading(true); setError(''); setDetail(null)
+    fetch(`${API_BASE}/api/admin/anggota/${id}/detail`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (response) => {
+        if (response.status === 401) { onExpired(); return }
+        if (!response.ok) throw new Error('Gagal memuat detail anggota.')
+        const data = await response.json()
+        if (!batal) setDetail(data)
+      })
+      .catch((requestError) => { if (!batal) setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') })
+      .finally(() => { if (!batal) setLoading(false) })
+    return () => { batal = true }
+  }, [id, token, onExpired])
+
+  const statusWarna = (status: string) => ({
+    Aktif: '#2d8155', Disetujui: '#2d8155', Selesai: '#2d8155', Dibayar: '#2d8155', Lunas: '#2d8155',
+    Diajukan: '#ad6a16', MenungguPersetujuan: '#ad6a16', JatuhTempo: '#ad6a16', Ditagih: '#ad6a16',
+    Ditolak: '#b3403a', Ditolak2: '#b3403a', Dibatalkan: 'var(--muted)', Dicairkan: '#3768a8',
+  } as Record<string, string>)[status] ?? 'var(--muted)'
+
+  return <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 35, 30, 0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+    <div style={{ background: '#fff', borderRadius: 14, width: 'min(880px, 100%)', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.25)' }} onClick={(e) => e.stopPropagation()}>
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>Memuat detail anggota…</div>}
+      {error && <div className="alert error" style={{ margin: 20 }}><X size={17} />{error}</div>}
+      {detail && <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', padding: '22px 26px', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <span className="avatar" style={{ width: 48, height: 48, fontSize: 18 }}>{detail.namaLengkap.charAt(0).toUpperCase()}</span>
+            <div>
+              <h2 style={{ margin: 0 }}>{detail.namaLengkap}</h2>
+              <small style={{ color: 'var(--muted)' }}>NIK {detail.nomorIndukKaryawan} · {detail.email ?? 'Email belum diisi'} · {detail.nomorTelepon ?? 'Telepon belum diisi'}</small><br />
+              <span className={`role-pill ${detail.peran.toLowerCase()}`} style={{ marginTop: 6, display: 'inline-block' }}>{detail.peran}</span>{' '}
+              <span className={`status-pill ${detail.aktif ? 'active' : 'inactive'}`} style={{ display: 'inline-flex' }}><i />{detail.aktif ? 'Aktif' : 'Nonaktif'}</span>
+            </div>
+          </div>
+          <button className="icon-button" onClick={onClose} title="Tutup"><X size={20} /></button>
+        </div>
+
+        <div style={{ padding: '18px 26px' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Komponen simpanan</h3>
+          <div className="stat-grid" style={{ marginBottom: 22 }}>
+            <StatCard label="Simpanan Pokok" value={detail.saldoPokok} icon={<PiggyBank size={18} />} tone="teal" money />
+            <StatCard label="Simpanan Wajib" value={detail.saldoWajib} icon={<PiggyBank size={18} />} tone="blue" money />
+            <StatCard label="Simpanan Sukarela" value={detail.saldoSukarela} icon={<PiggyBank size={18} />} tone="amber" money />
+            <StatCard label="Total simpanan" value={detail.totalSimpanan} icon={<Wallet size={18} />} tone="green" money />
+          </div>
+
+          {detail.berjangka.length > 0 && <>
+            <h4 style={{ margin: '0 0 8px', fontSize: 12, color: '#526763' }}>Simpanan Berjangka</h4>
+            <div className="table-scroll" style={{ marginBottom: 22 }}><table><thead><tr><th>No. Sertifikat</th><th>Produk</th><th className="align-right">Nominal</th><th>Tenor</th><th>Status</th><th>Jatuh tempo</th></tr></thead><tbody>
+              {detail.berjangka.map((b) => <tr key={b.nomorSertifikat}>
+                <td className="mono">{b.nomorSertifikat}</td><td>{b.produkNama}</td>
+                <td className="align-right">{rupiah(b.nominal)}</td><td>{b.tenorBulan} bln</td>
+                <td style={{ color: statusWarna(b.status) }}>{b.status}</td>
+                <td>{b.tanggalJatuhTempo ? tanggal(b.tanggalJatuhTempo) : '—'}</td>
+              </tr>)}
+            </tbody></table></div>
+          </>}
+
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Riwayat pinjaman</h3>
+          <div className="table-scroll" style={{ marginBottom: 22 }}><table><thead><tr><th>No. Pinjaman</th><th className="align-right">Pokok</th><th className="align-right">Sisa</th><th>Angsuran</th><th>Status</th><th>Mulai</th></tr></thead><tbody>
+            {detail.pinjaman.map((p) => <tr key={p.nomorPinjaman}>
+              <td className="mono">{p.nomorPinjaman}</td>
+              <td className="align-right">{rupiah(p.pokok)}</td>
+              <td className="align-right">{rupiah(p.sisaPokok)}</td>
+              <td>{p.angsuranTerbayar}/{p.tenorBulan}</td>
+              <td style={{ color: statusWarna(p.status) }}>{p.status}</td>
+              <td>{tanggal(p.tanggalMulai)}</td>
+            </tr>)}
+          </tbody></table>{detail.pinjaman.length === 0 && <div className="empty-state">Belum pernah mengajukan pinjaman.</div>}</div>
+
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Riwayat belanja katalog</h3>
+          <div className="table-scroll"><table><thead><tr><th>No. Transaksi</th><th>Produk</th><th>Jenis</th><th className="align-right">Total</th><th>Metode</th><th>Status</th><th>Tanggal</th></tr></thead><tbody>
+            {detail.belanja.map((b) => <tr key={b.nomorTransaksi}>
+              <td className="mono">{b.nomorTransaksi}</td><td>{b.produkNama}</td><td>{b.jenis}</td>
+              <td className="align-right">{rupiah(b.total)}</td><td>{b.metodePembayaran}</td>
+              <td style={{ color: statusWarna(b.status) }}>{b.status}</td>
+              <td>{tanggal(b.diajukanPada)}</td>
+            </tr>)}
+          </tbody></table>{detail.belanja.length === 0 && <div className="empty-state">Belum pernah berbelanja di katalog.</div>}</div>
+          {detail.totalTagihanKreditBelum > 0 && <div style={{ marginTop: 14, fontSize: 12, color: '#ad6a16' }}>Tagihan kredit belum lunas: <strong>{rupiah(detail.totalTagihanKreditBelum)}</strong></div>}
+        </div>
+      </>}
+    </div>
+  </div>
+}
+
+function AkunView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState(0)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [resetInfo, setResetInfo] = useState<{ nama: string; password: string } | null>(null)
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pengguna`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error(response.status === 403 ? 'Hanya Admin yang bisa mengelola akun.' : 'Gagal memuat pengguna.')
+      setUsers(await response.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [token, onExpired])
+  useEffect(() => { void loadUsers() }, [loadUsers])
+
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
 
   const filteredUsers = useMemo(() => users.filter((user) => {
     const needle = query.toLowerCase()
@@ -176,11 +413,37 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
     setError('')
     try {
       const response = await fetch(`${API_BASE}/api/admin/pengguna/${user.id}/status`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ aktif: !user.aktif }) })
-      if (!response.ok) throw new Error('Status pengguna gagal diperbarui.')
-      const updated: AdminUser = await response.json()
-      setUsers((current) => current.map((item) => item.id === updated.id ? updated : item))
-      setNotice(`${updated.namaLengkap} sekarang ${updated.aktif ? 'aktif' : 'nonaktif'}`); window.setTimeout(() => setNotice(''), 2800)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Status pengguna gagal diperbarui.')
+      setUsers((current) => current.map((item) => item.id === data.id ? data : item))
+      flash(`${data.namaLengkap} sekarang ${data.aktif ? 'aktif' : 'nonaktif'}.`)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal memperbarui status.') }
+  }
+
+  const ubahPeran = async (user: AdminUser, peranBaru: string) => {
+    if (peranBaru === user.peran) return
+    if (!window.confirm(`Ubah peran ${user.namaLengkap} dari ${user.peran} menjadi ${peranBaru}?`)) return
+    setBusyId(user.id); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pengguna/${user.id}/peran`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ peran: peranBaru }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal mengubah peran.')
+      setUsers((current) => current.map((item) => item.id === data.id ? data : item))
+      flash(`Peran ${data.namaLengkap} sekarang ${data.peran}.`)
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mengubah peran.') }
+    finally { setBusyId(0) }
+  }
+
+  const resetAkses = async (user: AdminUser) => {
+    if (!window.confirm(`Reset password ${user.namaLengkap}? Password lama tidak berlaku lagi.`)) return
+    setBusyId(user.id); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/pengguna/${user.id}/reset-akses`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal mereset akses.')
+      setResetInfo({ nama: user.namaLengkap, password: data.passwordSementara })
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mereset akses.') }
+    finally { setBusyId(0) }
   }
 
   const [importBusy, setImportBusy] = useState(false)
@@ -215,32 +478,16 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mengimpor file.') }
     finally { setImportBusy(false) }
   }
-  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
 
   return <div className="content-wrap">
-    <section className="welcome-row"><div><h2>Kontrol akses anggota</h2><p>Kelola status akses pengguna koperasi dengan satu tindakan yang tercatat.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadUsers()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    <section className="welcome-row"><div><h2>Akun & peran pengguna</h2><p>Operasional teknis sistem — aktif/nonaktif akun, ubah peran, reset akses, dan kelola data anggota massal. Khusus Admin.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadUsers()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
-    <section className="stat-grid"><StatCard label="Total pengguna" value={users.length} icon={<Users size={20} />} tone="teal" /><StatCard label="Pengguna aktif" value={activeCount} icon={<BadgeCheck size={20} />} tone="green" /><StatCard label="Menunggu persetujuan" value={pendingPendaftaran.length} icon={<UserPlus size={20} />} tone="amber" /><StatCard label="Peran terdaftar" value={roles.length} icon={<Database size={20} />} tone="blue" /></section>
-
-    <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading"><div><h2>Pendaftaran anggota baru</h2><p>Menyetujui akan mengaktifkan akun dan mengkreditkan Simpanan Pokok otomatis.</p></div><span className="record-count">{pendingPendaftaran.length} menunggu</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Calon anggota</th><th>NIK</th><th>Email</th><th>Daftar</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {pendaftaran.map((calon) => <tr key={calon.id}>
-          <td><div className="user-cell"><span className="avatar">{calon.namaLengkap.charAt(0).toUpperCase()}</span><strong>{calon.namaLengkap}</strong></div></td>
-          <td className="mono">{calon.nomorIndukKaryawan}</td>
-          <td>{calon.email ?? '—'}</td>
-          <td>{tanggal(calon.dibuatPada)}</td>
-          <td><span className={`status-pill ${calon.statusKeanggotaan === 'Ditolak' ? 'inactive' : ''}`}><i />{calon.statusKeanggotaan === 'MenungguPersetujuan' ? 'Menunggu' : 'Ditolak'}</span></td>
-          <td className="align-right">{calon.statusKeanggotaan === 'MenungguPersetujuan'
-            ? <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button className="toggle-button activate" disabled={busyId === calon.id} onClick={() => void decidePendaftaran(calon, true)}>Setujui</button>
-                <button className="toggle-button deactivate" disabled={busyId === calon.id} onClick={() => void decidePendaftaran(calon, false)}>Tolak</button>
-              </span>
-            : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
-        </tr>)}
-      </tbody></table>{!loading && pendaftaran.length === 0 && <div className="empty-state">Tidak ada pendaftaran anggota baru.</div>}</div>
-    </section>
+    {resetInfo && <div className="alert success" style={{ alignItems: 'start' }}>
+      <KeyRound size={17} />
+      <div>Password sementara untuk <strong>{resetInfo.nama}</strong>: <code style={{ background: '#fff', padding: '2px 7px', borderRadius: 5, fontWeight: 700 }}>{resetInfo.password}</code> — sampaikan langsung/aman, lalu anggota disarankan segera menggantinya. <button className="toggle-button" style={{ marginLeft: 8 }} onClick={() => setResetInfo(null)}>Tutup</button></div>
+    </div>}
+    <section className="stat-grid"><StatCard label="Total pengguna" value={users.length} icon={<Users size={20} />} tone="teal" /><StatCard label="Pengguna aktif" value={activeCount} icon={<BadgeCheck size={20} />} tone="green" /><StatCard label="Peran terdaftar" value={roles.length} icon={<Database size={20} />} tone="blue" /></section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Impor / ekspor data anggota</h2><p>Perbarui data banyak anggota sekaligus lewat CSV (dibuka & diedit di Excel), dicocokkan berdasarkan kolom NIK.</p></div></div>
@@ -262,8 +509,243 @@ function UsersView({ token, onExpired }: { token: string; onExpired: () => void 
       )}
     </section>
 
-    <section className="table-panel" id="user-table"><div className="panel-heading"><div><h2>Daftar pengguna</h2><p>Aktifkan atau nonaktifkan akses login anggota.</p></div><span className="record-count">{filteredUsers.length} data</span></div><div className="filters"><label className="search-box"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, NIK, atau email" /></label><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">Semua peran</option>{roles.map((role) => <option key={role} value={role}>{role}</option>)}</select></div><div className="table-scroll"><table><thead><tr><th>Pengguna</th><th>NIK</th><th>Peran</th><th>Status</th><th>Dibuat</th><th className="align-right">Aksi</th></tr></thead><tbody>{filteredUsers.map((user) => <tr key={user.id}><td><div className="user-cell"><span className="avatar">{user.namaLengkap.charAt(0).toUpperCase()}</span><div><strong>{user.namaLengkap}</strong><small>{user.email ?? 'Email belum diisi'}</small></div></div></td><td className="mono">{user.nomorIndukKaryawan}</td><td><span className={`role-pill ${user.peran.toLowerCase()}`}>{user.peran}</span></td><td><span className={`status-pill ${user.aktif ? 'active' : 'inactive'}`}><i />{user.aktif ? 'Aktif' : 'Nonaktif'}</span></td><td>{tanggal(user.dibuatPada)}</td><td className="align-right"><button className={`toggle-button ${user.aktif ? 'deactivate' : 'activate'}`} onClick={() => void toggleUser(user)}>{user.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></td></tr>)}</tbody></table>{!loading && filteredUsers.length === 0 && <div className="empty-state">Tidak ada pengguna yang cocok dengan filter.</div>}</div></section>
+    <section className="table-panel" id="user-table">
+      <div className="panel-heading"><div><h2>Daftar pengguna</h2><p>Aktif/nonaktifkan akses, ubah peran (Admin/Pengurus/Anggota), atau reset password.</p></div><span className="record-count">{filteredUsers.length} data</span></div>
+      <div className="filters"><label className="search-box"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, NIK, atau email" /></label><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">Semua peran</option>{roles.map((role) => <option key={role} value={role}>{role}</option>)}</select></div>
+      <div className="table-scroll"><table><thead><tr><th>Pengguna</th><th>NIK</th><th>Peran</th><th>Status</th><th>Dibuat</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {filteredUsers.map((user) => <tr key={user.id}>
+          <td><div className="user-cell"><span className="avatar">{user.namaLengkap.charAt(0).toUpperCase()}</span><div><strong>{user.namaLengkap}</strong><small>{user.email ?? 'Email belum diisi'}</small></div></div></td>
+          <td className="mono">{user.nomorIndukKaryawan}</td>
+          <td>
+            <select value={user.peran} disabled={busyId === user.id} onChange={(e) => void ubahPeran(user, e.target.value)} style={{ height: 30, padding: '0 6px', border: '1px solid var(--line)', borderRadius: 6, fontSize: 11, background: '#fff' }}>
+              <option value="Admin">Admin</option><option value="Pengurus">Pengurus</option><option value="Anggota">Anggota</option>
+            </select>
+          </td>
+          <td><span className={`status-pill ${user.aktif ? 'active' : 'inactive'}`}><i />{user.aktif ? 'Aktif' : 'Nonaktif'}</span></td>
+          <td>{tanggal(user.dibuatPada)}</td>
+          <td className="align-right"><span style={{ display: 'inline-flex', gap: 6 }}>
+            <button className="toggle-button" disabled={busyId === user.id} onClick={() => void resetAkses(user)}><KeyRound size={12} /> Reset akses</button>
+            <button className={`toggle-button ${user.aktif ? 'deactivate' : 'activate'}`} disabled={busyId === user.id} onClick={() => void toggleUser(user)}>{user.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>
+          </span></td>
+        </tr>)}
+      </tbody></table>{!loading && filteredUsers.length === 0 && <div className="empty-state">Tidak ada pengguna yang cocok dengan filter.</div>}</div>
+    </section>
   </div>
+}
+
+const AUDIT_MODUL_LABEL: Record<string, string> = {
+  Akun: 'Akun', Pendaftaran: 'Pendaftaran', Pinjaman: 'Pinjaman', Simpanan: 'Simpanan',
+  Katalog: 'Katalog', ERAT: 'E-RAT', Akuntansi: 'Akuntansi', SHU: 'SHU', Konfigurasi: 'Konfigurasi',
+}
+
+function AuditTrailView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [data, setData] = useState<AuditLogEntry[]>([])
+  const [total, setTotal] = useState(0)
+  const [halaman, setHalaman] = useState(1)
+  const ukuran = 30
+  const [modulList, setModulList] = useState<string[]>([])
+  const [modulFilter, setModulFilter] = useState('')
+  const [cari, setCari] = useState('')
+  const [dari, setDari] = useState('')
+  const [sampai, setSampai] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const [tab, setTab] = useState<'aplikasi' | 'database'>('aplikasi')
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const params = new URLSearchParams({ halaman: String(halaman), ukuran: String(ukuran) })
+      if (modulFilter) params.set('modul', modulFilter)
+      if (cari.trim()) params.set('cari', cari.trim())
+      if (dari) params.set('dari', new Date(dari).toISOString())
+      if (sampai) params.set('sampai', new Date(`${sampai}T23:59:59`).toISOString())
+      const [logResponse, modulResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/audit-log?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/admin/audit-log/modul`, { headers: { Authorization: `Bearer ${token}` } }),
+      ])
+      if (logResponse.status === 401 || modulResponse.status === 401) { onExpired(); return }
+      if (!logResponse.ok) throw new Error(logResponse.status === 403 ? 'Hanya Admin yang bisa melihat audit trail.' : 'Gagal memuat audit trail.')
+      const payload = await logResponse.json()
+      setData(payload.data); setTotal(payload.total)
+      if (modulResponse.ok) setModulList(await modulResponse.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [token, onExpired, halaman, modulFilter, cari, dari, sampai])
+  useEffect(() => { void load() }, [load])
+
+  const totalHalaman = Math.max(1, Math.ceil(total / ukuran))
+  const terapkanFilter = () => { setHalaman(1); void load() }
+
+  return <div className="content-wrap">
+    <section className="welcome-row"><div><h2>Audit trail</h2><p>Jejak digital setiap perubahan data sensitif & keputusan persetujuan — akun, pinjaman, simpanan, katalog, E-RAT, akuntansi, SHU, dan konfigurasi.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <button className={`toggle-button ${tab === 'aplikasi' ? 'activate' : ''}`} onClick={() => setTab('aplikasi')}>Aktivitas aplikasi</button>
+      <button className={`toggle-button ${tab === 'database' ? 'activate' : ''}`} onClick={() => setTab('database')}>Log database (mentah)</button>
+    </div>
+
+    {tab === 'database' ? <DbAuditLogPanel token={token} onExpired={onExpired} /> : <>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    <section className="stat-grid"><StatCard label="Total tercatat" value={total} icon={<Fingerprint size={20} />} tone="teal" /><StatCard label="Modul terpantau" value={modulList.length} icon={<Database size={20} />} tone="blue" /></section>
+    <p style={{ margin: '-8px 0 14px', fontSize: 12, color: 'var(--muted)' }}>Dicatat oleh aplikasi setiap ada perubahan lewat menu admin console ini. Hanya bisa dibaca, tidak bisa diubah lewat aplikasi.</p>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Riwayat aktivitas</h2><p>Diurutkan dari yang terbaru. Klik baris untuk lihat detail.</p></div><span className="record-count">{total} catatan</span></div>
+      <div className="filters" style={{ flexWrap: 'wrap' }}>
+        <label className="search-box"><Search size={17} /><input value={cari} onChange={(e) => setCari(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && terapkanFilter()} placeholder="Cari ringkasan atau nama pelaku" /></label>
+        <select value={modulFilter} onChange={(e) => { setModulFilter(e.target.value); setHalaman(1) }}>
+          <option value="">Semua modul</option>
+          {modulList.map((m) => <option key={m} value={m}>{AUDIT_MODUL_LABEL[m] ?? m}</option>)}
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>Dari
+          <input type="date" value={dari} onChange={(e) => { setDari(e.target.value); setHalaman(1) }} style={{ height: 34, padding: '0 8px', border: '1px solid var(--line)', borderRadius: 6 }} />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>Sampai
+          <input type="date" value={sampai} onChange={(e) => { setSampai(e.target.value); setHalaman(1) }} style={{ height: 34, padding: '0 8px', border: '1px solid var(--line)', borderRadius: 6 }} />
+        </label>
+        <button className="toggle-button activate" onClick={terapkanFilter}>Terapkan</button>
+      </div>
+      <div className="table-scroll"><table><thead><tr><th>Waktu</th><th>Pelaku</th><th>Modul</th><th>Aksi</th><th>Ringkasan</th></tr></thead><tbody>
+        {data.map((item) => <Fragment key={item.id}>
+          <tr style={{ cursor: item.detail ? 'pointer' : 'default' }} onClick={() => item.detail && setExpanded((current) => current === item.id ? null : item.id)}>
+            <td style={{ whiteSpace: 'nowrap' }}>{waktu(item.waktuUtc)}</td>
+            <td><div className="user-cell"><span className="avatar">{item.pelakuNama.charAt(0).toUpperCase()}</span><div><strong>{item.pelakuNama}</strong><small>{item.pelakuPeran}</small></div></div></td>
+            <td><span className="role-pill pengurus">{AUDIT_MODUL_LABEL[item.modul] ?? item.modul}</span></td>
+            <td className="mono">{item.aksi}</td>
+            <td>{item.ringkasan}</td>
+          </tr>
+          {expanded === item.id && item.detail && <tr>
+            <td colSpan={5} style={{ background: '#f6faf8', padding: '10px 16px', fontSize: 11 }}>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit' }}>{JSON.stringify(JSON.parse(item.detail), null, 2)}</pre>
+              {item.alamatIp && <div style={{ marginTop: 6, color: 'var(--muted)' }}>Alamat IP: {item.alamatIp}</div>}
+            </td>
+          </tr>}
+        </Fragment>)}
+      </tbody></table>{!loading && data.length === 0 && <div className="empty-state">Belum ada aktivitas tercatat untuk filter ini.</div>}</div>
+      {totalHalaman > 1 && <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '14px 0' }}>
+        <button className="toggle-button" disabled={halaman <= 1} onClick={() => setHalaman((h) => h - 1)}>Sebelumnya</button>
+        <small style={{ color: 'var(--muted)' }}>Halaman {halaman} / {totalHalaman}</small>
+        <button className="toggle-button" disabled={halaman >= totalHalaman} onClick={() => setHalaman((h) => h + 1)}>Berikutnya</button>
+      </div>}
+    </section>
+    </>}
+  </div>
+}
+
+function DbAuditLogPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [data, setData] = useState<DbAuditLogEntry[]>([])
+  const [total, setTotal] = useState(0)
+  const [halaman, setHalaman] = useState(1)
+  const ukuran = 30
+  const [tabelList, setTabelList] = useState<string[]>([])
+  const [tabelFilter, setTabelFilter] = useState('')
+  const [cari, setCari] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const [verifikasi, setVerifikasi] = useState<VerifikasiChainResult | null>(null)
+  const [verifikasiBusy, setVerifikasiBusy] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const params = new URLSearchParams({ halaman: String(halaman), ukuran: String(ukuran) })
+      if (tabelFilter) params.set('tabel', tabelFilter)
+      if (cari.trim()) params.set('cari', cari.trim())
+      const [logResponse, tabelResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/audit-log/db?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/admin/audit-log/db/tabel`, { headers: { Authorization: `Bearer ${token}` } }),
+      ])
+      if (logResponse.status === 401 || tabelResponse.status === 401) { onExpired(); return }
+      if (!logResponse.ok) throw new Error('Gagal memuat log database.')
+      const payload = await logResponse.json()
+      setData(payload.data); setTotal(payload.total)
+      if (tabelResponse.ok) setTabelList(await tabelResponse.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [token, onExpired, halaman, tabelFilter, cari])
+  useEffect(() => { void load() }, [load])
+
+  const verifikasiIntegritas = async () => {
+    setVerifikasiBusy(true); setVerifikasi(null); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/audit-log/db/verifikasi`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error('Gagal memverifikasi integritas rantai audit.')
+      setVerifikasi(await response.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal memverifikasi integritas.') }
+    finally { setVerifikasiBusy(false) }
+  }
+
+  const totalHalaman = Math.max(1, Math.ceil(total / ukuran))
+  const terapkanFilter = () => { setHalaman(1); void load() }
+  const opWarna = (op: string) => op === 'INSERT' ? '#2d8155' : op === 'DELETE' ? '#b3403a' : '#ad6a16'
+
+  return <>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    <div className="alert" style={{ background: '#eef6f3', color: '#2f4842', alignItems: 'start' }}>
+      <ShieldCheck size={17} />
+      <div>Tercatat langsung oleh trigger SQL Server pada tabel finansial (Simpanan, Pinjaman, Akuntansi, SHU, Konfigurasi, Pengguna) — mencakup perubahan lewat aplikasi <strong>maupun lewat koneksi database langsung</strong> (dBeaver/SSMS/dll). Setiap baris dirantai dengan hash; edit/hapus retroaktif pada log ini sendiri bisa terdeteksi lewat tombol "Verifikasi integritas".</div>
+    </div>
+
+    {verifikasi && <div className={`alert ${verifikasi.utuh ? 'success' : 'error'}`} style={{ alignItems: 'start' }}>
+      {verifikasi.utuh ? <BadgeCheck size={17} /> : <X size={17} />}
+      <div>
+        {verifikasi.message}
+        {!verifikasi.utuh && <div className="table-scroll" style={{ marginTop: 10 }}><table><thead><tr><th>Id log</th><th>Tabel</th><th>Operasi</th><th>Kunci</th><th>Waktu</th><th>DB login</th><th>Masalah</th></tr></thead><tbody>
+          {verifikasi.baris.map((b) => <tr key={b.id}>
+            <td className="mono">{b.id}</td><td>{b.tabel}</td><td>{b.operasi}</td><td className="mono">{b.kunciPrimer}</td>
+            <td>{waktu(b.waktuUtc)}</td><td>{b.dbLogin}</td>
+            <td>{[b.hashTidakCocok && 'isi baris berubah', b.rantaiTerputus && 'rantai terputus'].filter(Boolean).join(', ')}</td>
+          </tr>)}
+        </tbody></table></div>}
+      </div>
+    </div>}
+
+    <section className="stat-grid">
+      <StatCard label="Total baris tercatat" value={total} icon={<Fingerprint size={20} />} tone="teal" />
+      <StatCard label="Tabel terpantau" value={tabelList.length} icon={<Database size={20} />} tone="blue" />
+    </section>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Log database mentah</h2><p>Setiap INSERT/UPDATE/DELETE pada tabel finansial, siapa pun pelakunya.</p></div>
+        <button className="toggle-button activate" disabled={verifikasiBusy} onClick={() => void verifikasiIntegritas()}>{verifikasiBusy ? 'Memverifikasi...' : 'Verifikasi integritas'}</button>
+      </div>
+      <div className="filters" style={{ flexWrap: 'wrap' }}>
+        <label className="search-box"><Search size={17} /><input value={cari} onChange={(e) => setCari(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && terapkanFilter()} placeholder="Cari kunci baris atau DB login" /></label>
+        <select value={tabelFilter} onChange={(e) => { setTabelFilter(e.target.value); setHalaman(1) }}>
+          <option value="">Semua tabel</option>
+          {tabelList.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <button className="toggle-button activate" onClick={terapkanFilter}>Terapkan</button>
+      </div>
+      <div className="table-scroll"><table><thead><tr><th>Waktu</th><th>Tabel</th><th>Operasi</th><th>Kunci</th><th>DB login</th><th>Aplikasi</th></tr></thead><tbody>
+        {data.map((item) => <Fragment key={item.id}>
+          <tr style={{ cursor: 'pointer' }} onClick={() => setExpanded((current) => current === item.id ? null : item.id)}>
+            <td style={{ whiteSpace: 'nowrap' }}>{waktu(item.waktuUtc)}</td>
+            <td className="mono">{item.tabel}</td>
+            <td style={{ color: opWarna(item.operasi), fontWeight: 700 }}>{item.operasi}</td>
+            <td className="mono">{item.kunciPrimer}</td>
+            <td>{item.dbLogin}</td>
+            <td><small style={{ color: 'var(--muted)' }}>{item.appName ?? '—'}</small></td>
+          </tr>
+          {expanded === item.id && <tr>
+            <td colSpan={6} style={{ background: '#f6faf8', padding: '10px 16px', fontSize: 11 }}>
+              {item.dataSebelum && <div style={{ marginBottom: 8 }}><strong>Sebelum:</strong><pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit' }}>{JSON.stringify(JSON.parse(item.dataSebelum), null, 2)}</pre></div>}
+              {item.dataSesudah && <div><strong>Sesudah:</strong><pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit' }}>{JSON.stringify(JSON.parse(item.dataSesudah), null, 2)}</pre></div>}
+              <div style={{ marginTop: 8, color: 'var(--muted)' }}>Host: {item.hostName ?? '—'} · Hash: <span className="mono">{item.hash.slice(0, 16)}…</span></div>
+            </td>
+          </tr>}
+        </Fragment>)}
+      </tbody></table>{!loading && data.length === 0 && <div className="empty-state">Belum ada perubahan tercatat untuk filter ini.</div>}</div>
+      {totalHalaman > 1 && <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, padding: '14px 0' }}>
+        <button className="toggle-button" disabled={halaman <= 1} onClick={() => setHalaman((h) => h - 1)}>Sebelumnya</button>
+        <small style={{ color: 'var(--muted)' }}>Halaman {halaman} / {totalHalaman}</small>
+        <button className="toggle-button" disabled={halaman >= totalHalaman} onClick={() => setHalaman((h) => h + 1)}>Berikutnya</button>
+      </div>}
+    </section>
+  </>
 }
 
 function LoansView({ token, onExpired }: { token: string; onExpired: () => void }) {
@@ -429,7 +911,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   </div>
 }
 
-function SavingsView({ token, onExpired }: { token: string; onExpired: () => void }) {
+function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: () => void; isAdmin: boolean }) {
   const [konfigurasi, setKonfigurasi] = useState<Konfigurasi | null>(null)
   const [wajib, setWajib] = useState<TagihanWajib[]>([])
   const [sukarela, setSukarela] = useState<TransaksiSukarela[]>([])
@@ -466,7 +948,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
       const [k, w, s, b, p] = await Promise.all(responses.map((r) => r.json()))
       setKonfigurasi(k); setPokokInput(String(k.simpananPokokNominal)); setWajibInput(String(k.simpananWajibNominal))
       setBungaSukarelaInput((k.bungaSukarelaTahunan * 100).toString()); setBungaDepositoInput((k.bungaDepositoTahunan * 100).toString())
-      setPphInput((k.tarifPphBungaSukarela * 100).toString())
+      setPphInput((k.tarifPph * 100).toString())
       setWajib(w); setSukarela(s); setBerjangka(b); setProduk(p)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
@@ -498,7 +980,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
     simpananWajibNominal: Number(wajibInput) || 0,
     bungaSukarelaTahunan: (Number(bungaSukarelaInput) || 0) / 100,
     bungaDepositoTahunan: (Number(bungaDepositoInput) || 0) / 100,
-    tarifPphBungaSukarela: (Number(pphInput) || 0) / 100,
+    tarifPph: (Number(pphInput) || 0) / 100,
   })
   const createProduk = () => {
     if (!produkNama.trim() || !(Number(produkNominal) > 0) || !(Number(produkTenor) > 0)) { setError('Nama, nominal, dan tenor produk wajib diisi.'); return }
@@ -524,24 +1006,24 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading"><div><h2>Konfigurasi simpanan</h2><p>Nominal Simpanan Pokok (saldo awal keanggotaan) dan Simpanan Wajib (tagihan bulanan tanggal {konfigurasi?.tanggalTagihWajib ?? 25}).</p></div></div>
+      <div className="panel-heading"><div><h2>Konfigurasi simpanan</h2><p>Nominal Simpanan Pokok (saldo awal keanggotaan) dan Simpanan Wajib (tagihan bulanan tanggal {konfigurasi?.tanggalTagihWajib ?? 25}).{!isAdmin && ' Hanya Admin yang bisa mengubah nilai ini.'}</p></div></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, padding: '18px 25px 24px' }}>
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Simpanan Pokok
-          <input type="number" value={pokokInput} onChange={(e) => setPokokInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+          <input type="number" disabled={!isAdmin} value={pokokInput} onChange={(e) => setPokokInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Simpanan Wajib / bulan
-          <input type="number" value={wajibInput} onChange={(e) => setWajibInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+          <input type="number" disabled={!isAdmin} value={wajibInput} onChange={(e) => setWajibInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Bunga Sukarela (%/th)
-          <input type="number" step="0.1" value={bungaSukarelaInput} onChange={(e) => setBungaSukarelaInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+          <input type="number" step="0.1" disabled={!isAdmin} value={bungaSukarelaInput} onChange={(e) => setBungaSukarelaInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Bunga Deposito (%/th)
-          <input type="number" step="0.1" value={bungaDepositoInput} onChange={(e) => setBungaDepositoInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+          <input type="number" step="0.1" disabled={!isAdmin} value={bungaDepositoInput} onChange={(e) => setBungaDepositoInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>PPh Bunga Sukarela (%)
-          <input type="number" step="0.1" value={pphInput} onChange={(e) => setPphInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Tarif PPh (%) — Bunga Sukarela, Deposito & SHU
+          <input type="number" step="0.1" disabled={!isAdmin} value={pphInput} onChange={(e) => setPphInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <button className="submit-button" style={{ alignSelf: 'end', height: 40, padding: '0 18px' }} disabled={busyId === 'konfig'} onClick={saveKonfigurasi}>Simpan</button>
+        {isAdmin && <button className="submit-button" style={{ alignSelf: 'end', height: 40, padding: '0 18px' }} disabled={busyId === 'konfig'} onClick={saveKonfigurasi}>Simpan</button>}
       </div>
     </section>
 
@@ -569,7 +1051,7 @@ function SavingsView({ token, onExpired }: { token: string; onExpired: () => voi
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading">
-        <div><h2>Simpanan Sukarela</h2><p>Setoran menambah saldo; penarikan mengurangi saldo. Bunga {konfigurasi ? (konfigurasi.bungaSukarelaTahunan * 100).toFixed(2) : '2.50'}%/th metode saldo harian, dipotong PPh {konfigurasi ? (konfigurasi.tarifPphBungaSukarela * 100).toFixed(0) : '20'}%, dibukukan tanggal terakhir tiap bulan.</p></div>
+        <div><h2>Simpanan Sukarela</h2><p>Setoran menambah saldo; penarikan mengurangi saldo. Bunga {konfigurasi ? (konfigurasi.bungaSukarelaTahunan * 100).toFixed(2) : '2.50'}%/th metode saldo harian, dipotong PPh {konfigurasi ? (konfigurasi.tarifPph * 100).toFixed(0) : '20'}%, dibukukan tanggal terakhir tiap bulan.</p></div>
         <button className="toggle-button activate" disabled={busyId === 'bunga'} onClick={() => void call('bunga', '/api/admin/simpanan/sukarela/bunga', 'POST', {}, 'Hitung & kreditkan bunga sukarela bulan lalu ke semua rekening?')}>Hitung bunga bulan lalu</button>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Jenis</th><th>Nominal</th><th>Saldo saat ini</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
@@ -1549,7 +2031,7 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
   }
 
   return <div className="content-wrap">
-    <section className="welcome-row"><div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    <section className="welcome-row"><div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
 
@@ -1568,9 +2050,9 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
       {hasil && <div style={{ padding: '0 25px 22px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
           <button className="toggle-button activate" disabled={busyId === 'finalisasi'} onClick={() => void finalisasi()}>Finalisasi & kirim ke aplikasi anggota</button>
-          <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)}</span>
+          <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)} · PPh {(hasil.tarifPph * 100).toFixed(0)}%: {rupiah(hasil.totalPajak)} · Neto seluruh anggota: {rupiah(hasil.totalShuNeto)}</span>
         </div>
-        <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan</th><th>Transaksi</th><th>JMA</th><th>JUA</th><th>Total SHU</th></tr></thead><tbody>
+        <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan</th><th>Transaksi</th><th>JMA</th><th>JUA</th><th>Total SHU (Bruto)</th><th>PPh</th><th>Total SHU (Neto)</th></tr></thead><tbody>
           {hasil.rincian.map((r) => <tr key={r.penggunaId}>
             <td><div className="user-cell"><span className="avatar">{r.nama.charAt(0).toUpperCase()}</span><strong>{r.nama}</strong></div></td>
             <td className="mono">{r.nomorIndukKaryawan || '—'}</td>
@@ -1578,19 +2060,23 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
             <td>{rupiah(r.transaksiAnggota)}</td>
             <td>{rupiah(r.jma)}</td>
             <td>{rupiah(r.jua)}</td>
-            <td style={{ fontWeight: 800 }}>{rupiah(r.totalShu)}</td>
+            <td>{rupiah(r.totalShu)}</td>
+            <td style={{ color: '#ad6a16' }}>−{rupiah(r.pajak)}</td>
+            <td style={{ fontWeight: 800 }}>{rupiah(r.totalShuNeto)}</td>
           </tr>)}
         </tbody></table></div>
       </div>}
     </section>
 
     <section className="table-panel">
-      <div className="panel-heading"><div><h2>Riwayat SHU terfinalisasi</h2><p>Estimasi yang sudah tampil di aplikasi anggota.</p></div></div>
-      <div className="table-scroll"><table><thead><tr><th>Tahun</th><th>Total SHU</th><th>% Modal / Usaha</th><th>Jumlah Anggota</th><th>Difinalisasi</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="panel-heading"><div><h2>Riwayat SHU terfinalisasi</h2><p>Estimasi neto (setelah PPh) yang sudah tampil di aplikasi anggota.</p></div></div>
+      <div className="table-scroll"><table><thead><tr><th>Tahun</th><th>Total SHU (Bruto)</th><th>PPh</th><th>Total SHU (Neto)</th><th>% Modal / Usaha</th><th>Jumlah Anggota</th><th>Difinalisasi</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {riwayat.map((r) => [
           <tr key={r.tahun}>
             <td style={{ fontWeight: 800 }}>{r.tahun}</td>
             <td>{rupiah(r.totalShu)}</td>
+            <td style={{ color: '#ad6a16' }}>−{rupiah(r.totalPajak)}</td>
+            <td style={{ fontWeight: 700 }}>{rupiah(r.totalShuNeto)}</td>
             <td>{(r.persenJasaModal * 100).toFixed(0)}% / {(r.persenJasaUsaha * 100).toFixed(0)}%</td>
             <td>{r.jumlahAnggota}</td>
             <td>{tanggal(r.difinalisasiPada)}</td>
@@ -1599,9 +2085,9 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
               <button className="toggle-button activate" onClick={() => void eksporCsv(r.tahun)}>Ekspor CSV</button>
             </span></td>
           </tr>,
-          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={6} style={{ background: '#f7faf9' }}>
-            <table style={{ minWidth: 560 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Total SHU</th></tr></thead><tbody>
-              {expanded.rincian.map((x) => <tr key={x.penggunaId}><td>{x.nama}</td><td className="mono">{x.nomorIndukKaryawan}</td><td>{rupiah(x.jma)}</td><td>{rupiah(x.jua)}</td><td style={{ fontWeight: 700 }}>{rupiah(x.totalShu)}</td></tr>)}
+          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={8} style={{ background: '#f7faf9' }}>
+            <table style={{ minWidth: 560 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Bruto</th><th>PPh</th><th>Neto</th></tr></thead><tbody>
+              {expanded.rincian.map((x) => <tr key={x.penggunaId}><td>{x.nama}</td><td className="mono">{x.nomorIndukKaryawan}</td><td>{rupiah(x.jma)}</td><td>{rupiah(x.jua)}</td><td>{rupiah(x.totalShu)}</td><td style={{ color: '#ad6a16' }}>−{rupiah(x.pajak)}</td><td style={{ fontWeight: 700 }}>{rupiah(x.totalShuNeto)}</td></tr>)}
             </tbody></table>
           </td></tr>,
         ])}

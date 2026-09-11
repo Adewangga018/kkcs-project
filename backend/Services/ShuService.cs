@@ -1,20 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 
-public record ShuBarisHasil(int PenggunaId, string Nama, string NomorIndukKaryawan, decimal SimpananAnggota, decimal TransaksiAnggota, decimal Jma, decimal Jua, decimal TotalShu);
-public record ShuHitungResult(int Tahun, decimal TotalShu, decimal PersenJasaModal, decimal PersenJasaUsaha, decimal TotalSimpananSemuaAnggota, decimal TotalTransaksiSemuaAnggota, List<ShuBarisHasil> Rincian);
+public record ShuBarisHasil(int PenggunaId, string Nama, string NomorIndukKaryawan, decimal SimpananAnggota, decimal TransaksiAnggota, decimal Jma, decimal Jua, decimal TotalShu, decimal Pajak, decimal TotalShuNeto);
+public record ShuHitungResult(int Tahun, decimal TotalShu, decimal PersenJasaModal, decimal PersenJasaUsaha, decimal TarifPph, decimal TotalPajak, decimal TotalShuNeto, decimal TotalSimpananSemuaAnggota, decimal TotalTransaksiSemuaAnggota, List<ShuBarisHasil> Rincian);
 
 /// <summary>
 /// Kalkulator SHU per anggota sesuai rumus koperasi standar:
-///   SHU Anggota = JMA + JUA
+///   SHU Anggota (bruto) = JMA + JUA
 ///   JMA (Jasa Modal Anggota) = (Simpanan Anggota / Total Simpanan) × % Jasa Modal × Total SHU
 ///   JUA (Jasa Usaha Anggota) = (Transaksi Anggota / Total Transaksi) × % Jasa Usaha × Total SHU
+///   SHU Anggota (neto) = SHU bruto − PPh (tarifPph × SHU bruto) — nominal yang benar-benar jadi utang ke anggota.
 /// Simpanan Anggota = saldo Simpanan Pokok + Wajib per akhir tahun buku (snapshot dari mutasi).
 /// Transaksi Anggota = pokok pinjaman yang dicairkan + total pembelian/sewa produk sepanjang tahun buku.
 /// Hanya anggota berstatus Aktif yang diikutkan.
 /// </summary>
 public static class ShuService
 {
-    public static async Task<ShuHitungResult> HitungAsync(KkcsDbContext db, int tahun, decimal totalShu, decimal persenJasaModal, decimal persenJasaUsaha)
+    public static async Task<ShuHitungResult> HitungAsync(KkcsDbContext db, int tahun, decimal totalShu, decimal persenJasaModal, decimal persenJasaUsaha, decimal tarifPph)
     {
         var awalTahun = new DateTime(tahun, 1, 1);
         var akhirTahun = new DateTime(tahun, 12, 31, 23, 59, 59);
@@ -75,11 +76,17 @@ public static class ShuService
             var transaksi = transaksiPerAnggota.GetValueOrDefault(p.Id);
             var jma = totalSimpanan > 0 ? Math.Round(simpanan / totalSimpanan * persenJasaModal * totalShu, 2, MidpointRounding.AwayFromZero) : 0;
             var jua = totalTransaksi > 0 ? Math.Round(transaksi / totalTransaksi * persenJasaUsaha * totalShu, 2, MidpointRounding.AwayFromZero) : 0;
-            return new ShuBarisHasil(p.Id, p.NamaLengkap, p.NomorIndukKaryawan, simpanan, transaksi, jma, jua, jma + jua);
+            var bruto = jma + jua;
+            var pajak = bruto > 0 ? Math.Round(bruto * tarifPph, 2, MidpointRounding.AwayFromZero) : 0;
+            var neto = bruto - pajak;
+            return new ShuBarisHasil(p.Id, p.NamaLengkap, p.NomorIndukKaryawan, simpanan, transaksi, jma, jua, bruto, pajak, neto);
         })
         .OrderByDescending(r => r.TotalShu)
         .ToList();
 
-        return new ShuHitungResult(tahun, totalShu, persenJasaModal, persenJasaUsaha, totalSimpanan, totalTransaksi, rincian);
+        var totalPajak = rincian.Sum(r => r.Pajak);
+        var totalShuNeto = rincian.Sum(r => r.TotalShuNeto);
+
+        return new ShuHitungResult(tahun, totalShu, persenJasaModal, persenJasaUsaha, tarifPph, totalPajak, totalShuNeto, totalSimpanan, totalTransaksi, rincian);
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911061402_MatikanOutputClauseTabelBertrigger")]
+    partial class MatikanOutputClauseTabelBertrigger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -772,7 +775,7 @@ namespace backend.Migrations
                     b.Property<int>("TanggalTagihWajib")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TarifPph")
+                    b.Property<decimal>("TarifPphBungaSukarela")
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
 
@@ -792,7 +795,7 @@ namespace backend.Migrations
                             SimpananPokokNominal = 100000m,
                             SimpananWajibNominal = 50000m,
                             TanggalTagihWajib = 25,
-                            TarifPph = 0.20m
+                            TarifPphBungaSukarela = 0.20m
                         });
                 });
 
@@ -1429,10 +1432,6 @@ namespace backend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("Pajak")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("PenggunaId")
                         .HasColumnType("int");
 
@@ -1444,10 +1443,6 @@ namespace backend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalShuNeto")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -1492,15 +1487,7 @@ namespace backend.Migrations
                     b.Property<int>("Tahun")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TotalPajak")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalShuNeto")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 

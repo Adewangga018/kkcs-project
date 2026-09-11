@@ -29,6 +29,10 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 	public DbSet<JurnalBaris> JurnalBaris => Set<JurnalBaris>();
 	public DbSet<ShuRun> ShuRun => Set<ShuRun>();
 	public DbSet<ShuAnggota> ShuAnggota => Set<ShuAnggota>();
+	public DbSet<AuditLog> AuditLog => Set<AuditLog>();
+	// Tabel & trigger dikelola manual lewat migrasi TambahDbAuditTrail (raw SQL) — dikecualikan dari
+	// migrasi EF (ExcludeFromMigrations) supaya `dotnet ef migrations add` tidak mencoba membuat/mengubahnya.
+	public DbSet<DbAuditLogEntry> DbAuditLog => Set<DbAuditLogEntry>();
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -45,6 +49,10 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<Pengguna>(entity =>
 		{
+			// Tabel punya trigger audit (lihat migrasi TambahDbAuditTrail) — SQL Server melarang klausa
+			// OUTPUT tanpa INTO pada tabel yang punya trigger aktif, jadi EF Core harus dimatikan dari
+			// memakainya untuk INSERT/UPDATE (dia akan fallback ke SELECT terpisah bila perlu nilai balik).
+			entity.ToTable(tb => tb.UseSqlOutputClause(false));
 			entity.HasKey(pengguna => pengguna.Id);
 			entity.HasIndex(pengguna => pengguna.NomorIndukKaryawan).IsUnique();
 			entity.Property(pengguna => pengguna.NamaLengkap).HasMaxLength(150).IsRequired();
@@ -73,6 +81,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<Simpanan>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => item.NomorRekening).IsUnique();
 			entity.Property(item => item.NomorRekening).HasMaxLength(40).IsRequired();
@@ -83,6 +92,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<MutasiSimpanan>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.Property(item => item.Jenis).HasMaxLength(20).IsRequired();
 			entity.Property(item => item.Nominal).HasPrecision(18, 2);
@@ -108,6 +118,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<Pinjaman>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => item.NomorPinjaman).IsUnique();
 			entity.Property(item => item.NomorPinjaman).HasMaxLength(40).IsRequired();
@@ -124,6 +135,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<AngsuranPinjaman>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => new { item.PinjamanId, item.AngsuranKe });
 			entity.Property(item => item.Pokok).HasPrecision(18, 2);
@@ -234,12 +246,13 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<KonfigurasiKoperasi>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.Property(item => item.SimpananPokokNominal).HasPrecision(18, 2);
 			entity.Property(item => item.SimpananWajibNominal).HasPrecision(18, 2);
 			entity.Property(item => item.BungaSukarelaTahunan).HasPrecision(5, 4);
 			entity.Property(item => item.BungaDepositoTahunan).HasPrecision(5, 4);
-			entity.Property(item => item.TarifPphBungaSukarela).HasPrecision(5, 4);
+			entity.Property(item => item.TarifPph).HasPrecision(5, 4);
 			entity.HasData(new KonfigurasiKoperasi
 			{
 				Id = 1,
@@ -248,7 +261,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 				TanggalTagihWajib = 25,
 				BungaSukarelaTahunan = 0.025m,
 				BungaDepositoTahunan = 0.045m,
-				TarifPphBungaSukarela = 0.20m,
+				TarifPph = 0.20m,
 				DiperbaruiPada = new DateTime(2026, 1, 1)
 			});
 		});
@@ -285,6 +298,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<SimpananBerjangka>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => item.NomorSertifikat).IsUnique();
 			entity.Property(item => item.NomorSertifikat).HasMaxLength(40).IsRequired();
@@ -340,6 +354,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<JurnalEntri>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => item.NomorJurnal).IsUnique();
 			entity.HasIndex(item => item.Tanggal);
@@ -353,6 +368,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<JurnalBaris>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.Property(item => item.Debit).HasPrecision(18, 2);
 			entity.Property(item => item.Kredit).HasPrecision(18, 2);
@@ -363,9 +379,12 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<ShuRun>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => item.Tahun).IsUnique();
 			entity.Property(item => item.TotalShu).HasPrecision(18, 2);
+			entity.Property(item => item.TotalPajak).HasPrecision(18, 2);
+			entity.Property(item => item.TotalShuNeto).HasPrecision(18, 2);
 			entity.Property(item => item.PersenJasaModal).HasPrecision(5, 4);
 			entity.Property(item => item.PersenJasaUsaha).HasPrecision(5, 4);
 			entity.Property(item => item.TotalSimpananSemuaAnggota).HasPrecision(18, 2);
@@ -375,6 +394,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 
 		modelBuilder.Entity<ShuAnggota>(entity =>
 		{
+			entity.ToTable(tb => tb.UseSqlOutputClause(false)); // ada trigger audit — lihat catatan di Pengguna di atas
 			entity.HasKey(item => item.Id);
 			entity.HasIndex(item => new { item.ShuRunId, item.PenggunaId }).IsUnique();
 			entity.Property(item => item.SimpananAnggota).HasPrecision(18, 2);
@@ -382,8 +402,38 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.Jma).HasPrecision(18, 2);
 			entity.Property(item => item.Jua).HasPrecision(18, 2);
 			entity.Property(item => item.TotalShu).HasPrecision(18, 2);
+			entity.Property(item => item.Pajak).HasPrecision(18, 2);
+			entity.Property(item => item.TotalShuNeto).HasPrecision(18, 2);
 			entity.HasOne(item => item.ShuRun).WithMany(item => item.Rincian).HasForeignKey(item => item.ShuRunId).OnDelete(DeleteBehavior.Cascade);
 			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
+		});
+
+		modelBuilder.Entity<AuditLog>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.WaktuUtc);
+			entity.HasIndex(item => item.Modul);
+			entity.Property(item => item.PelakuNama).HasMaxLength(150).IsRequired();
+			entity.Property(item => item.PelakuPeran).HasMaxLength(30).IsRequired();
+			entity.Property(item => item.Modul).HasMaxLength(40).IsRequired();
+			entity.Property(item => item.Aksi).HasMaxLength(40).IsRequired();
+			entity.Property(item => item.Ringkasan).HasMaxLength(500).IsRequired();
+			entity.Property(item => item.Detail).HasMaxLength(2000);
+			entity.Property(item => item.AlamatIp).HasMaxLength(50);
+		});
+
+		modelBuilder.Entity<DbAuditLogEntry>(entity =>
+		{
+			entity.ToTable("DbAuditLog", t => t.ExcludeFromMigrations());
+			entity.HasKey(item => item.Id);
+			entity.Property(item => item.Tabel).HasMaxLength(60);
+			entity.Property(item => item.Operasi).HasMaxLength(10);
+			entity.Property(item => item.KunciPrimer).HasMaxLength(50);
+			entity.Property(item => item.DbLogin).HasMaxLength(128);
+			entity.Property(item => item.AppName).HasMaxLength(128);
+			entity.Property(item => item.HostName).HasMaxLength(128);
+			entity.Property(item => item.PrevHash).HasMaxLength(64);
+			entity.Property(item => item.Hash).HasMaxLength(64);
 		});
 	}
 }

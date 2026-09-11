@@ -326,6 +326,18 @@ class AuthService {
     return SavingsOverview.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<List<ShuHistoryEntry>> fetchMyShu() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/shu/saya'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return (jsonDecode(response.body) as List<dynamic>)
+        .map((e) => ShuHistoryEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// [jenis] = 'Setor' atau 'Tarik'.
   Future<void> requestSukarela({required String jenis, required double nominal}) async {
     final token = await _getToken();
@@ -880,7 +892,7 @@ class _HomePageState extends State<HomePage> {
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
               ),
               const SizedBox(height: 20),
-              _TransparencyDashboard(summary: s, loading: _loading, error: _error, onRefresh: _load),
+              _TransparencyDashboard(session: widget.session, summary: s, loading: _loading, error: _error, onRefresh: _load),
               const SizedBox(height: 24),
               _HomeAnnouncementCard(items: s?.pengumuman ?? const [], onOpen: _openTautan),
               const SizedBox(height: 20),
@@ -965,8 +977,9 @@ class _ServiceShell extends StatelessWidget {
 }
 
 class _TransparencyDashboard extends StatelessWidget {
-  const _TransparencyDashboard({required this.summary, required this.loading, required this.error, required this.onRefresh});
+  const _TransparencyDashboard({required this.session, required this.summary, required this.loading, required this.error, required this.onRefresh});
 
+  final AuthSession session;
   final HomeSummary? summary;
   final bool loading;
   final String? error;
@@ -1043,6 +1056,10 @@ class _TransparencyDashboard extends StatelessWidget {
                     icon: Icons.auto_graph_outlined,
                     label: s?.estimasiShuTahun == null ? 'Estimasi SHU' : 'Estimasi SHU ${s!.estimasiShuTahun}',
                     value: s?.estimasiShuNominal == null ? 'Belum tersedia' : formatRupiah(s!.estimasiShuNominal!),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ShuSayaPage(session: session)),
+                    ),
                   )),
                 ]),
                 const SizedBox(height: 12),
@@ -1170,16 +1187,17 @@ class _LatestProductsPreview extends StatelessWidget {
 }
 
 class _DashboardMetric extends StatelessWidget {
-  const _DashboardMetric({required this.icon, required this.label, required this.value});
+  const _DashboardMetric({required this.icon, required this.label, required this.value, this.onTap});
 
   final IconData icon;
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
+    final content = Container(
       constraints: const BoxConstraints(minHeight: 82),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1189,12 +1207,184 @@ class _DashboardMetric extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 19, color: colors.primary),
+          Row(
+            children: [
+              Icon(icon, size: 19, color: colors.primary),
+              if (onTap != null) ...[
+                const Spacer(),
+                Icon(Icons.chevron_right, size: 16, color: colors.onSurfaceVariant),
+              ],
+            ],
+          ),
           const SizedBox(height: 7),
           Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 3),
           Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
         ],
+      ),
+    );
+    if (onTap == null) return content;
+    return InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: content);
+  }
+}
+
+class ShuSayaPage extends StatefulWidget {
+  const ShuSayaPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<ShuSayaPage> createState() => _ShuSayaPageState();
+}
+
+class _ShuSayaPageState extends State<ShuSayaPage> {
+  bool _loading = true;
+  String? _error;
+  List<ShuHistoryEntry> _riwayat = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await AuthService().fetchMyShu();
+      if (!mounted) return;
+      setState(() => _riwayat = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e is ApiException ? e.message : 'Gagal memuat data SHU.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('SHU Saya')),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(_error!, style: TextStyle(color: colors.error)),
+                      ),
+                    Text(
+                      'Sisa Hasil Usaha (SHU) adalah bagian keuntungan koperasi yang dibagikan ke setiap anggota aktif, '
+                      'dihitung dari jasa modal (simpanan pokok+wajib) dan jasa usaha (transaksi pinjaman & belanja) Anda tiap tahun buku.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                    ),
+                    const SizedBox(height: 18),
+                    if (_riwayat.isEmpty && !_loading)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.auto_graph_outlined, size: 48, color: colors.outline),
+                            const SizedBox(height: 12),
+                            Text('Belum ada SHU yang difinalisasi',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Estimasi SHU akan muncul di sini setelah pengurus memfinalisasi tahun buku.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._riwayat.asMap().entries.map((entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _ShuYearCard(data: entry.value, highlighted: entry.key == 0),
+                          )),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShuYearCard extends StatelessWidget {
+  const _ShuYearCard({required this.data, required this.highlighted});
+
+  final ShuHistoryEntry data;
+  final bool highlighted;
+
+  Widget _baris(BuildContext context, String label, double value, {bool bold = false, Color? color}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+            Text(formatRupiah(value),
+                style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600, fontSize: bold ? 15 : 13, color: color)),
+          ],
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      elevation: highlighted ? 2 : 0,
+      color: highlighted ? colors.primaryContainer.withValues(alpha: .35) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: highlighted ? BorderSide(color: colors.primary.withValues(alpha: .4)) : BorderSide(color: colors.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_graph_outlined, size: 18, color: colors.primary),
+                const SizedBox(width: 8),
+                Text('Tahun Buku ${data.tahun}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                if (highlighted) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
+                    child: Text('Terbaru', style: TextStyle(color: colors.onPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 10),
+            _baris(context, 'Simpanan Anda (dasar Jasa Modal)', data.simpananAnggota),
+            _baris(context, 'Transaksi Anda (dasar Jasa Usaha)', data.transaksiAnggota),
+            const Divider(height: 20),
+            _baris(context, 'Jasa Modal Anggota (JMA)', data.jma),
+            _baris(context, 'Jasa Usaha Anggota (JUA)', data.jua),
+            _baris(context, 'Total SHU (Bruto)', data.totalShu),
+            _baris(context, 'PPh Final', -data.pajak, color: Colors.orange.shade800),
+            const Divider(height: 20),
+            _baris(context, 'SHU Diterima (Neto)', data.totalShuNeto, bold: true, color: colors.primary),
+            const SizedBox(height: 10),
+            Text(
+              'Difinalisasi ${_monthLabel(data.difinalisasiPada)} · Jasa Modal ${(data.persenJasaModal * 100).toStringAsFixed(0)}% / Jasa Usaha ${(data.persenJasaUsaha * 100).toStringAsFixed(0)}%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45, fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2869,6 +3059,49 @@ class HomeSummary {
       estimasiShuNominal: (estimasiShu?['totalShu'] as num?)?.toDouble(),
     );
   }
+}
+
+// ── SHU (Sisa Hasil Usaha) ──────────────────────────────────────────────────
+class ShuHistoryEntry {
+  const ShuHistoryEntry({
+    required this.tahun,
+    required this.simpananAnggota,
+    required this.transaksiAnggota,
+    required this.jma,
+    required this.jua,
+    required this.totalShu,
+    required this.pajak,
+    required this.totalShuNeto,
+    required this.persenJasaModal,
+    required this.persenJasaUsaha,
+    required this.difinalisasiPada,
+  });
+
+  final int tahun;
+  final double simpananAnggota;
+  final double transaksiAnggota;
+  final double jma;
+  final double jua;
+  final double totalShu;
+  final double pajak;
+  final double totalShuNeto;
+  final double persenJasaModal;
+  final double persenJasaUsaha;
+  final DateTime difinalisasiPada;
+
+  factory ShuHistoryEntry.fromJson(Map<String, dynamic> json) => ShuHistoryEntry(
+        tahun: json['tahun'] as int,
+        simpananAnggota: (json['simpananAnggota'] as num).toDouble(),
+        transaksiAnggota: (json['transaksiAnggota'] as num).toDouble(),
+        jma: (json['jma'] as num).toDouble(),
+        jua: (json['jua'] as num).toDouble(),
+        totalShu: (json['totalShu'] as num).toDouble(),
+        pajak: (json['pajak'] as num).toDouble(),
+        totalShuNeto: (json['totalShuNeto'] as num).toDouble(),
+        persenJasaModal: (json['persenJasaModal'] as num).toDouble(),
+        persenJasaUsaha: (json['persenJasaUsaha'] as num).toDouble(),
+        difinalisasiPada: DateTime.parse(json['difinalisasiPada'] as String),
+      );
 }
 
 // ── Simpanan ─────────────────────────────────────────────────────────────────

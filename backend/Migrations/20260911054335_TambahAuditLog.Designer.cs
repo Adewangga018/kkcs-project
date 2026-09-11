@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911054335_TambahAuditLog")]
+    partial class TambahAuditLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -364,8 +367,6 @@ namespace backend.Migrations
                     b.HasIndex("PinjamanId", "AngsuranKe");
 
                     b.ToTable("AngsuranPinjaman");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("AuditLog", b =>
@@ -425,69 +426,6 @@ namespace backend.Migrations
                     b.HasIndex("WaktuUtc");
 
                     b.ToTable("AuditLog");
-                });
-
-            modelBuilder.Entity("DbAuditLogEntry", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AppName")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("DataSebelum")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DataSesudah")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DbLogin")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("Hash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("HostName")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("KunciPrimer")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Operasi")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("PrevHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("Tabel")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<DateTime>("WaktuUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DbAuditLog", null, t =>
-                        {
-                            t.ExcludeFromMigrations();
-                        });
                 });
 
             modelBuilder.Entity("EratAgenda", b =>
@@ -684,8 +622,6 @@ namespace backend.Migrations
                     b.HasIndex("JurnalEntriId");
 
                     b.ToTable("JurnalBaris");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("JurnalEntri", b =>
@@ -738,8 +674,6 @@ namespace backend.Migrations
                     b.HasIndex("Tanggal");
 
                     b.ToTable("JurnalEntri");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("KonfigurasiKoperasi", b =>
@@ -772,15 +706,13 @@ namespace backend.Migrations
                     b.Property<int>("TanggalTagihWajib")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TarifPph")
+                    b.Property<decimal>("TarifPphBungaSukarela")
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
 
                     b.HasKey("Id");
 
                     b.ToTable("KonfigurasiKoperasi");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
 
                     b.HasData(
                         new
@@ -792,7 +724,7 @@ namespace backend.Migrations
                             SimpananPokokNominal = 100000m,
                             SimpananWajibNominal = 50000m,
                             TanggalTagihWajib = 25,
-                            TarifPph = 0.20m
+                            TarifPphBungaSukarela = 0.20m
                         });
                 });
 
@@ -870,8 +802,6 @@ namespace backend.Migrations
                     b.HasIndex("SimpananId");
 
                     b.ToTable("MutasiSimpanan");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("PembayaranPinjaman", b =>
@@ -1136,8 +1066,6 @@ namespace backend.Migrations
                         .IsUnique();
 
                     b.ToTable("Pengguna");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("Pinjaman", b =>
@@ -1214,8 +1142,6 @@ namespace backend.Migrations
                     b.HasIndex("PenggunaId");
 
                     b.ToTable("Pinjaman");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("PostingBungaSukarela", b =>
@@ -1429,10 +1355,6 @@ namespace backend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("Pajak")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("PenggunaId")
                         .HasColumnType("int");
 
@@ -1444,10 +1366,6 @@ namespace backend.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalShuNeto")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -1463,8 +1381,6 @@ namespace backend.Migrations
                         .IsUnique();
 
                     b.ToTable("ShuAnggota");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("ShuRun", b =>
@@ -1492,15 +1408,7 @@ namespace backend.Migrations
                     b.Property<int>("Tahun")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("TotalPajak")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("TotalShu")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalShuNeto")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -1520,8 +1428,6 @@ namespace backend.Migrations
                         .IsUnique();
 
                     b.ToTable("ShuRun");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("Simpanan", b =>
@@ -1563,8 +1469,6 @@ namespace backend.Migrations
                     b.HasIndex("PenggunaId");
 
                     b.ToTable("Simpanan");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("SimpananBerjangka", b =>
@@ -1638,8 +1542,6 @@ namespace backend.Migrations
                     b.HasIndex("ProdukBerjangkaId");
 
                     b.ToTable("SimpananBerjangka");
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("TagihanKredit", b =>
