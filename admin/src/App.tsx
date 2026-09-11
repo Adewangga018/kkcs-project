@@ -80,10 +80,11 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'shu' | 'akun' | 'audit'
-const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', anggota: 'Manajemen Anggota', simpanpinjam: 'Simpan Pinjam', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'akun' | 'audit'
+const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', anggota: 'Manajemen Anggota', simpanpinjam: 'Simpan Pinjam', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', akuntansi: 'Akuntansi & Keuangan', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
 type AnggotaTab = 'pendaftaran' | 'direktori' | 'payroll'
 type SimpanPinjamTab = 'simpanan' | 'pinjaman'
+type AkuntansiTab = 'jurnal' | 'neraca' | 'laba-rugi' | 'shu' | 'arus-kas' | 'akun'
 type Peran = 'Admin' | 'Pengurus'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5168'
 const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID')}`
@@ -97,6 +98,7 @@ function App() {
   const [view, setView] = useState<View>('dashboard')
   const [anggotaTab, setAnggotaTab] = useState<AnggotaTab>('pendaftaran')
   const [spTab, setSpTab] = useState<SimpanPinjamTab>('simpanan')
+  const [akuntansiTab, setAkuntansiTab] = useState<AkuntansiTab>('jurnal')
   const [error, setError] = useState('')
   const [loginNIK, setLoginNIK] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -143,10 +145,11 @@ function App() {
   if (!token) return <LoginScreen nik={loginNIK} password={loginPassword} setNik={setLoginNIK} setPassword={setLoginPassword} loading={loginLoading} error={error} onSubmit={login} />
   if (!peran) return <div className="login-page"><div className="login-card"><p>Memuat sesi…</p></div></div>
 
-  const goto = (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab }) => {
+  const goto = (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab; akuntansiTab?: AkuntansiTab }) => {
     setView(target); setMobileNav(false)
     if (opts?.anggotaTab) setAnggotaTab(opts.anggotaTab)
     if (opts?.spTab) setSpTab(opts.spTab)
+    if (opts?.akuntansiTab) setAkuntansiTab(opts.akuntansiTab)
   }
   const isAdmin = peran === 'Admin'
   return <div className="console-shell">
@@ -159,7 +162,6 @@ function App() {
         <button className={`nav-item ${view === 'katalog' ? 'active' : ''}`} onClick={() => goto('katalog')}><Store size={18} /> Katalog</button>
         <button className={`nav-item ${view === 'erat' ? 'active' : ''}`} onClick={() => goto('erat')}><Vote size={18} /> E-RAT</button>
         <button className={`nav-item ${view === 'akuntansi' ? 'active' : ''}`} onClick={() => goto('akuntansi')}><BookOpen size={18} /> Akuntansi</button>
-        <button className={`nav-item ${view === 'shu' ? 'active' : ''}`} onClick={() => goto('shu')}><Calculator size={18} /> SHU</button>
         {isAdmin && <>
           <div style={{ margin: '10px 13px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#7fa39c', textTransform: 'uppercase' }}>Khusus Admin</div>
           <button className={`nav-item ${view === 'akun' ? 'active' : ''}`} onClick={() => goto('akun')}><UserCog size={18} /> Akun & Peran</button>
@@ -179,15 +181,14 @@ function App() {
       {view === 'simpanpinjam' && <SimpanPinjamView token={token} onExpired={handleExpired} isAdmin={isAdmin} tab={spTab} setTab={setSpTab} />}
       {view === 'katalog' && <CatalogView token={token} onExpired={handleExpired} />}
       {view === 'erat' && <EratView token={token} onExpired={handleExpired} />}
-      {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} />}
-      {view === 'shu' && <ShuView token={token} onExpired={handleExpired} />}
+      {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} tab={akuntansiTab} setTab={setAkuntansiTab} />}
       {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
       {view === 'audit' && isAdmin && <AuditTrailView token={token} onExpired={handleExpired} />}
     </main>
   </div>
 }
 
-function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: string; onExpired: () => void; nama: string; isAdmin: boolean; goto: (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab }) => void }) {
+function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: string; onExpired: () => void; nama: string; isAdmin: boolean; goto: (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab; akuntansiTab?: AkuntansiTab }) => void }) {
   const [data, setData] = useState<DashboardRingkasan | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -327,7 +328,7 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
               {Math.abs(data.selisihNeraca) < 1 ? <BadgeCheck size={16} /> : <X size={16} />}
               {Math.abs(data.selisihNeraca) < 1 ? 'Neraca balance' : `Selisih ${rupiah(data.selisihNeraca)}`}
             </div>
-            <button className="toggle-button" style={{ marginTop: 12, width: '100%' }} onClick={() => goto('akuntansi')}>Buka Akuntansi</button>
+            <button className="toggle-button" style={{ marginTop: 12, width: '100%' }} onClick={() => goto('akuntansi', { akuntansiTab: 'neraca' })}>Buka Akuntansi</button>
           </div>
         </section>
 
@@ -342,7 +343,7 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}><span>Neto ke anggota</span><strong>{rupiah(data.shuTerakhir.totalShuNeto)}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span>Jumlah anggota</span><strong>{data.shuTerakhir.jumlahAnggota}</strong></div>
             </> : <div className="empty-state" style={{ padding: '20px 0' }}>Belum ada SHU difinalisasi.</div>}
-            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('shu')}>Buka SHU</button>
+            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('akuntansi', { akuntansiTab: 'shu' })}>Buka SHU</button>
           </div>
         </section>
 
@@ -2050,8 +2051,7 @@ function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) 
   </div>
 }
 
-function AkuntansiView({ token, onExpired }: { token: string; onExpired: () => void }) {
-  const [tab, setTab] = useState<'jurnal' | 'neraca' | 'laba-rugi' | 'arus-kas' | 'akun'>('jurnal')
+function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExpired: () => void; tab: AkuntansiTab; setTab: (t: AkuntansiTab) => void }) {
   const [akun, setAkun] = useState<Akun[]>([])
   const [jurnal, setJurnal] = useState<Jurnal[]>([])
   const [neraca, setNeraca] = useState<Neraca | null>(null)
@@ -2179,10 +2179,11 @@ function AkuntansiView({ token, onExpired }: { token: string; onExpired: () => v
     finally { setBusyId('') }
   }
 
-  const TABS: { key: typeof tab; label: string; icon: ReactNode }[] = [
+  const TABS: { key: AkuntansiTab; label: string; icon: ReactNode }[] = [
     { key: 'jurnal', label: 'Jurnal Umum', icon: <BookOpen size={15} /> },
     { key: 'neraca', label: 'Neraca', icon: <Scale size={15} /> },
     { key: 'laba-rugi', label: 'Laba Rugi', icon: <TrendingUp size={15} /> },
+    { key: 'shu', label: 'SHU', icon: <Calculator size={15} /> },
     { key: 'arus-kas', label: 'Arus Kas', icon: <Banknote size={15} /> },
     { key: 'akun', label: 'Bagan Akun', icon: <Database size={15} /> },
   ]
@@ -2282,6 +2283,8 @@ function AkuntansiView({ token, onExpired }: { token: string; onExpired: () => v
       </div>
     </section>}
 
+    {tab === 'shu' && <ShuPanel token={token} onExpired={onExpired} />}
+
     {tab === 'arus-kas' && arusKas && <section className="table-panel">
       <div className="panel-heading">
         <div><h2>Arus Kas (ringkasan)</h2><p>Pergerakan akun Kas & Bank metode langsung sederhana — bukan klasifikasi operasi/investasi/pendanaan penuh sesuai SAK, cukup untuk pemantauan internal.</p></div>
@@ -2338,7 +2341,7 @@ function AkuntansiView({ token, onExpired }: { token: string; onExpired: () => v
   </div>
 }
 
-function ShuView({ token, onExpired }: { token: string; onExpired: () => void }) {
+function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [riwayat, setRiwayat] = useState<ShuRiwayat[]>([])
   const [hasil, setHasil] = useState<ShuHitung | null>(null)
   const [expanded, setExpanded] = useState<{ tahun: number; rincian: ShuBaris[] } | null>(null)
@@ -2429,13 +2432,16 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
     URL.revokeObjectURL(url)
   }
 
-  return <div className="content-wrap">
-    <section className="welcome-row"><div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+  return <>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading"><div><h2>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota.</p></div></div>
+      <div className="panel-heading">
+        <div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div>
+        <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div>
+      </div>
+      <div className="panel-heading" style={{ paddingTop: 0 }}><div><h2 style={{ fontSize: 15 }}>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota.</p></div></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '18px 25px 8px', alignItems: 'end' }}>
         <label style={labelStyle}>Tahun buku<input type="number" value={tahun} onChange={(e) => setTahun(Number(e.target.value))} style={{ ...inputStyle, width: 100 }} /></label>
         <label style={labelStyle}>Total SHU (Rp)<input type="number" value={totalShu} onChange={(e) => setTotalShu(e.target.value)} style={{ ...inputStyle, width: 160 }} /></label>
@@ -2492,7 +2498,7 @@ function ShuView({ token, onExpired }: { token: string; onExpired: () => void })
         ])}
       </tbody></table>{!loading && riwayat.length === 0 && <div className="empty-state">Belum ada SHU yang difinalisasi.</div>}</div>
     </section>
-  </div>
+  </>
 }
 
 function StatCard({ label, value, icon, tone, money }: { label: string; value: number; icon: ReactNode; tone: string; money?: boolean }) {
