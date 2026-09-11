@@ -487,6 +487,35 @@ app.MapPost("/api/admin/pengguna/impor", async (HttpRequest request, KkcsDbConte
     });
 }).RequireAuthorization("Admin").DisableAntiforgery();
 
+// ── Anggota: ganti password sendiri (self-service) — beda dari reset akses oleh Admin, di sini
+// pengguna harus tahu password lamanya sendiri. Lihat juga POST /api/admin/pengguna/{id}/reset-akses.
+app.MapPost("/api/auth/ganti-password", async (ClaimsPrincipal principal, GantiPasswordRequest request, KkcsDbContext db, AuditService audit) =>
+{
+    var pengguna = await FindCurrentUser(principal, db);
+    if (pengguna is null) return Results.Unauthorized();
+
+    if (string.IsNullOrWhiteSpace(request.PasswordLama) || !BCrypt.Net.BCrypt.Verify(request.PasswordLama, pengguna.PasswordHash))
+    {
+        return Results.BadRequest(new { message = "Password saat ini salah." });
+    }
+    if (string.IsNullOrWhiteSpace(request.PasswordBaru) || request.PasswordBaru.Length < 8)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["passwordBaru"] = ["Password baru minimal 8 karakter."]
+        });
+    }
+    if (BCrypt.Net.BCrypt.Verify(request.PasswordBaru, pengguna.PasswordHash))
+    {
+        return Results.BadRequest(new { message = "Password baru tidak boleh sama dengan password saat ini." });
+    }
+
+    pengguna.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.PasswordBaru);
+    await db.SaveChangesAsync();
+    await audit.CatatAsync(principal, "Akun", "GantiPassword", $"{pengguna.NamaLengkap} (NIK {pengguna.NomorIndukKaryawan}) mengganti password sendiri.", pengguna.Id);
+    return Results.Ok(new { message = "Password berhasil diganti." });
+}).RequireAuthorization();
+
 app.MapPut("/api/auth/profile", async (ClaimsPrincipal principal, ProfileRequest request, KkcsDbContext db) =>
 {
     var pengguna = await FindCurrentUser(principal, db);
@@ -2745,6 +2774,7 @@ record UserResponse(
 record AuthResponse(string Token, UserResponse User);
 
 record ProfileRequest(string NamaLengkap, string? Email, string? NomorTelepon, string? Alamat);
+record GantiPasswordRequest(string PasswordLama, string PasswordBaru);
 
 record DashboardTrenBulanan(string Label, decimal Pendapatan, decimal Beban, decimal LabaBersih);
 record DashboardShuTerakhir(int Tahun, decimal TotalShu, decimal TotalShuNeto, int JumlahAnggota, DateTime DifinalisasiPada);

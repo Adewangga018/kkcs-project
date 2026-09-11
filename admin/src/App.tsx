@@ -80,8 +80,10 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'dashboard' | 'pendaftaran' | 'anggota' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu' | 'akun' | 'audit'
-const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', pendaftaran: 'Pendaftaran anggota', anggota: 'Direktori anggota', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'shu' | 'akun' | 'audit'
+const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', anggota: 'Manajemen Anggota', simpanpinjam: 'Simpan Pinjam', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type AnggotaTab = 'pendaftaran' | 'direktori' | 'payroll'
+type SimpanPinjamTab = 'simpanan' | 'pinjaman'
 type Peran = 'Admin' | 'Pengurus'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5168'
 const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID')}`
@@ -93,6 +95,8 @@ function App() {
   const [peran, setPeran] = useState<Peran | null>(null)
   const [nama, setNama] = useState('')
   const [view, setView] = useState<View>('dashboard')
+  const [anggotaTab, setAnggotaTab] = useState<AnggotaTab>('pendaftaran')
+  const [spTab, setSpTab] = useState<SimpanPinjamTab>('simpanan')
   const [error, setError] = useState('')
   const [loginNIK, setLoginNIK] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -118,7 +122,7 @@ function App() {
         if (batal) return
         if (!['Admin', 'Pengurus'].includes(data.peran)) { handleExpired(); setError('Akun ini bukan akun admin atau pengurus.'); return }
         setPeran(data.peran as Peran); setNama(data.namaLengkap as string)
-        if (data.peran === 'Pengurus') setView((v) => (v === 'akun' || v === 'audit') ? 'pendaftaran' : v)
+        if (data.peran === 'Pengurus') setView((v) => (v === 'akun' || v === 'audit') ? 'dashboard' : v)
       } catch { /* diamkan — panel lain akan melaporkan error jaringan */ }
     })()
     return () => { batal = true }
@@ -139,20 +143,21 @@ function App() {
   if (!token) return <LoginScreen nik={loginNIK} password={loginPassword} setNik={setLoginNIK} setPassword={setLoginPassword} loading={loginLoading} error={error} onSubmit={login} />
   if (!peran) return <div className="login-page"><div className="login-card"><p>Memuat sesi…</p></div></div>
 
-  const goto = (target: View) => { setView(target); setMobileNav(false) }
+  const goto = (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab }) => {
+    setView(target); setMobileNav(false)
+    if (opts?.anggotaTab) setAnggotaTab(opts.anggotaTab)
+    if (opts?.spTab) setSpTab(opts.spTab)
+  }
   const isAdmin = peran === 'Admin'
   return <div className="console-shell">
     <aside className={`sidebar ${mobileNav ? 'is-open' : ''}`}>
       <div className="brand-lockup"><div className="brand-mark">K</div><div><strong>KKCS</strong><span>Admin Console</span></div></div>
       <nav className="primary-nav">
         <button className={`nav-item ${view === 'dashboard' ? 'active' : ''}`} onClick={() => goto('dashboard')}><LayoutDashboard size={18} /> Dashboard</button>
-        <button className={`nav-item ${view === 'pendaftaran' ? 'active' : ''}`} onClick={() => goto('pendaftaran')}><UserPlus size={18} /> Pendaftaran</button>
-        <button className={`nav-item ${view === 'anggota' ? 'active' : ''}`} onClick={() => goto('anggota')}><Users size={18} /> Direktori Anggota</button>
-        <button className={`nav-item ${view === 'simpanan' ? 'active' : ''}`} onClick={() => goto('simpanan')}><PiggyBank size={18} /> Simpanan</button>
-        <button className={`nav-item ${view === 'pinjaman' ? 'active' : ''}`} onClick={() => goto('pinjaman')}><HandCoins size={18} /> Pinjaman</button>
+        <button className={`nav-item ${view === 'anggota' ? 'active' : ''}`} onClick={() => goto('anggota')}><Users size={18} /> Manajemen Anggota</button>
+        <button className={`nav-item ${view === 'simpanpinjam' ? 'active' : ''}`} onClick={() => goto('simpanpinjam')}><PiggyBank size={18} /> Simpan Pinjam</button>
         <button className={`nav-item ${view === 'katalog' ? 'active' : ''}`} onClick={() => goto('katalog')}><Store size={18} /> Katalog</button>
         <button className={`nav-item ${view === 'erat' ? 'active' : ''}`} onClick={() => goto('erat')}><Vote size={18} /> E-RAT</button>
-        <button className={`nav-item ${view === 'payroll' ? 'active' : ''}`} onClick={() => goto('payroll')}><Receipt size={18} /> Payroll</button>
         <button className={`nav-item ${view === 'akuntansi' ? 'active' : ''}`} onClick={() => goto('akuntansi')}><BookOpen size={18} /> Akuntansi</button>
         <button className={`nav-item ${view === 'shu' ? 'active' : ''}`} onClick={() => goto('shu')}><Calculator size={18} /> SHU</button>
         {isAdmin && <>
@@ -160,7 +165,6 @@ function App() {
           <button className={`nav-item ${view === 'akun' ? 'active' : ''}`} onClick={() => goto('akun')}><UserCog size={18} /> Akun & Peran</button>
           <button className={`nav-item ${view === 'audit' ? 'active' : ''}`} onClick={() => goto('audit')}><Fingerprint size={18} /> Audit Trail</button>
         </>}
-        <button className="nav-item"><Database size={18} /> Data koperasi <span className="nav-soon">segera</span></button>
       </nav>
       <div className="sidebar-footer"><ShieldCheck size={16} /> Role-based access</div>
     </aside>
@@ -171,13 +175,10 @@ function App() {
         <div className="topbar-actions"><button className="profile-chip" onClick={logout} title={nama}><span className="mini-avatar"><Users size={16} /></span><span>{isAdmin ? 'Admin' : 'Pengurus'}</span><LogOut size={15} /></button></div>
       </header>
       {view === 'dashboard' && <DashboardView token={token} onExpired={handleExpired} nama={nama} isAdmin={isAdmin} goto={goto} />}
-      {view === 'pendaftaran' && <PendaftaranView token={token} onExpired={handleExpired} />}
-      {view === 'anggota' && <AnggotaDirektoriView token={token} onExpired={handleExpired} />}
-      {view === 'simpanan' && <SavingsView token={token} onExpired={handleExpired} isAdmin={isAdmin} />}
-      {view === 'pinjaman' && <LoansView token={token} onExpired={handleExpired} />}
+      {view === 'anggota' && <AnggotaMenuView token={token} onExpired={handleExpired} tab={anggotaTab} setTab={setAnggotaTab} />}
+      {view === 'simpanpinjam' && <SimpanPinjamView token={token} onExpired={handleExpired} isAdmin={isAdmin} tab={spTab} setTab={setSpTab} />}
       {view === 'katalog' && <CatalogView token={token} onExpired={handleExpired} />}
       {view === 'erat' && <EratView token={token} onExpired={handleExpired} />}
-      {view === 'payroll' && <PayrollView token={token} onExpired={handleExpired} />}
       {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} />}
       {view === 'shu' && <ShuView token={token} onExpired={handleExpired} />}
       {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
@@ -186,7 +187,7 @@ function App() {
   </div>
 }
 
-function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: string; onExpired: () => void; nama: string; isAdmin: boolean; goto: (target: View) => void }) {
+function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: string; onExpired: () => void; nama: string; isAdmin: boolean; goto: (target: View, opts?: { anggotaTab?: AnggotaTab; spTab?: SimpanPinjamTab }) => void }) {
   const [data, setData] = useState<DashboardRingkasan | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -208,12 +209,12 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
   const hariIni = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
 
   const aksi = data ? [
-    { label: 'Pendaftaran anggota', jumlah: data.pendaftaranMenunggu, target: 'pendaftaran' as View },
-    { label: 'Simpanan Wajib', jumlah: data.wajibMenunggu, target: 'simpanan' as View },
-    { label: 'Simpanan Sukarela', jumlah: data.sukarelaMenunggu, target: 'simpanan' as View },
-    { label: 'Simpanan Berjangka', jumlah: data.berjangkaMenunggu, target: 'simpanan' as View },
-    { label: 'Pengajuan Pinjaman', jumlah: data.pengajuanPinjamanMenunggu, target: 'pinjaman' as View },
-    { label: 'Pembayaran Pinjaman', jumlah: data.pembayaranPinjamanMenunggu, target: 'pinjaman' as View },
+    { label: 'Pendaftaran anggota', jumlah: data.pendaftaranMenunggu, target: 'anggota' as View, anggotaTab: 'pendaftaran' as AnggotaTab },
+    { label: 'Simpanan Wajib', jumlah: data.wajibMenunggu, target: 'simpanpinjam' as View, spTab: 'simpanan' as SimpanPinjamTab },
+    { label: 'Simpanan Sukarela', jumlah: data.sukarelaMenunggu, target: 'simpanpinjam' as View, spTab: 'simpanan' as SimpanPinjamTab },
+    { label: 'Simpanan Berjangka', jumlah: data.berjangkaMenunggu, target: 'simpanpinjam' as View, spTab: 'simpanan' as SimpanPinjamTab },
+    { label: 'Pengajuan Pinjaman', jumlah: data.pengajuanPinjamanMenunggu, target: 'simpanpinjam' as View, spTab: 'pinjaman' as SimpanPinjamTab },
+    { label: 'Pembayaran Pinjaman', jumlah: data.pembayaranPinjamanMenunggu, target: 'simpanpinjam' as View, spTab: 'pinjaman' as SimpanPinjamTab },
     { label: 'Titipan produk', jumlah: data.titipanMenunggu, target: 'katalog' as View },
     { label: 'Pembelian produk', jumlah: data.pembelianMenunggu, target: 'katalog' as View },
   ].filter((a) => a.jumlah > 0) : []
@@ -263,7 +264,7 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '4px 25px 24px' }}>
             {aksi.map((a) => (
-              <button key={a.label} onClick={() => goto(a.target)} style={{
+              <button key={a.label} onClick={() => goto(a.target, { anggotaTab: a.anggotaTab, spTab: a.spTab })} style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10,
                 border: '1px solid #f2d9b8', background: '#fdf7ee', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#8a5a1f',
               }}>
@@ -352,7 +353,7 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
             <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{rupiah(data.payrollTotalPeriodeIni)}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{data.payrollJumlahAnggota} anggota terpotong bulan ini</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span>Tagihan kredit belum lunas</span><strong style={{ color: data.tagihanKreditBelumLunas > 0 ? '#ad6a16' : 'inherit' }}>{rupiah(data.tagihanKreditBelumLunas)}</strong></div>
-            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('payroll')}>Buka Payroll</button>
+            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('anggota', { anggotaTab: 'payroll' })}>Buka Payroll</button>
           </div>
         </section>
       </div>
@@ -413,6 +414,38 @@ function DonutChart({ items, total }: { items: { label: string; value: number; c
       </div>
     </div>
   </div>
+}
+
+function MenuTabBar<T extends string>({ tabs, active, onChange }: { tabs: { key: T; label: string }[]; active: T; onChange: (key: T) => void }) {
+  return <div style={{ display: 'flex', gap: 8, padding: '30px 42px 0', maxWidth: 1380, margin: '0 auto' }}>
+    {tabs.map((t) => (
+      <button key={t.key} className={`toggle-button ${active === t.key ? 'activate' : ''}`} onClick={() => onChange(t.key)}>{t.label}</button>
+    ))}
+  </div>
+}
+
+function AnggotaMenuView({ token, onExpired, tab, setTab }: { token: string; onExpired: () => void; tab: AnggotaTab; setTab: (t: AnggotaTab) => void }) {
+  return <>
+    <MenuTabBar tabs={[
+      { key: 'pendaftaran', label: 'Pendaftaran' },
+      { key: 'direktori', label: 'Direktori Anggota' },
+      { key: 'payroll', label: 'Payroll' },
+    ]} active={tab} onChange={setTab} />
+    {tab === 'pendaftaran' && <PendaftaranView token={token} onExpired={onExpired} />}
+    {tab === 'direktori' && <AnggotaDirektoriView token={token} onExpired={onExpired} />}
+    {tab === 'payroll' && <PayrollView token={token} onExpired={onExpired} />}
+  </>
+}
+
+function SimpanPinjamView({ token, onExpired, isAdmin, tab, setTab }: { token: string; onExpired: () => void; isAdmin: boolean; tab: SimpanPinjamTab; setTab: (t: SimpanPinjamTab) => void }) {
+  return <>
+    <MenuTabBar tabs={[
+      { key: 'simpanan', label: 'Simpanan' },
+      { key: 'pinjaman', label: 'Pinjaman' },
+    ]} active={tab} onChange={setTab} />
+    {tab === 'simpanan' && <SavingsView token={token} onExpired={onExpired} isAdmin={isAdmin} />}
+    {tab === 'pinjaman' && <LoansView token={token} onExpired={onExpired} />}
+  </>
 }
 
 function PendaftaranView({ token, onExpired }: { token: string; onExpired: () => void }) {

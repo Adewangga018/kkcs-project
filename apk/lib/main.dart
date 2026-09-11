@@ -405,6 +405,16 @@ class AuthService {
     return AuthUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<void> changePassword({required String passwordLama, required String passwordBaru}) async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.post(
+          Uri.parse('$baseUrl/api/auth/ganti-password'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+          body: jsonEncode({'passwordLama': passwordLama, 'passwordBaru': passwordBaru}),
+        ));
+    _ensureSuccess(response);
+  }
+
   Future<AuthUser> uploadProfilePhoto(XFile photo) async {
     final token = await _getToken();
     final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/auth/profile/photo'))
@@ -3838,6 +3848,122 @@ class _PersonalDataCard extends StatelessWidget {
   }
 }
 
+class _ChangePasswordCard extends StatefulWidget {
+  const _ChangePasswordCard({required this.auth, required this.onSuccess});
+
+  final AuthService auth;
+  final VoidCallback onSuccess;
+
+  @override
+  State<_ChangePasswordCard> createState() => _ChangePasswordCardState();
+}
+
+class _ChangePasswordCardState extends State<_ChangePasswordCard> {
+  final _formKey = GlobalKey<FormState>();
+  final _oldController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _obscureOld = true;
+  bool _obscureNew = true;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _oldController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.auth.changePassword(passwordLama: _oldController.text, passwordBaru: _newController.text);
+      if (!mounted) return;
+      _oldController.clear();
+      _newController.clear();
+      _confirmController.clear();
+      widget.onSuccess();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('Ganti password', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text('Masukkan password saat ini, lalu password baru minimal 8 karakter.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+            const SizedBox(height: 14),
+            if (_error != null) ...[
+              Text(_error!, style: TextStyle(color: colors.error, fontSize: 12.5)),
+              const SizedBox(height: 10),
+            ],
+            TextFormField(
+              controller: _oldController,
+              obscureText: _obscureOld,
+              decoration: InputDecoration(
+                labelText: 'Password saat ini',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscureOld = !_obscureOld),
+                ),
+              ),
+              validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _newController,
+              obscureText: _obscureNew,
+              decoration: InputDecoration(
+                labelText: 'Password baru',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                ),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Wajib diisi';
+                if (v.length < 8) return 'Minimal 8 karakter';
+                return null;
+              },
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _confirmController,
+              obscureText: _obscureNew,
+              decoration: const InputDecoration(labelText: 'Konfirmasi password baru'),
+              validator: (v) => v != _newController.text ? 'Konfirmasi tidak sama dengan password baru' : null,
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: _saving ? null : _submit,
+              icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.lock_reset_outlined),
+              label: Text(_saving ? 'Menyimpan...' : 'Ganti password'),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
 class _CashFlowCard extends StatefulWidget {
   const _CashFlowCard({required this.loading, required this.error, required this.data, required this.onRefresh});
 
@@ -4201,6 +4327,8 @@ class _AccountPageState extends State<AccountPage> {
               saving: _savingProfile,
               onSave: _saveProfile,
             ),
+            const SizedBox(height: 20),
+            _ChangePasswordCard(auth: widget.auth, onSuccess: () => _showMessage('Password berhasil diganti.')),
             const SizedBox(height: 20),
             _CashFlowCard(loading: _loadingCashFlow, error: _cashFlowError, data: _cashFlow, onRefresh: _loadCashFlow),
             const SizedBox(height: 20),
