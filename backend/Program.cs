@@ -217,6 +217,88 @@ app.MapPost("/api/admin/pengguna/{id:int}/reset-akses", async (int id, ClaimsPri
     });
 }).RequireAuthorization("Admin");
 
+// ── Pengurus: Dashboard utama — ringkasan lintas modul untuk pengurus/admin sekali lihat ─────
+app.MapGet("/api/admin/dashboard/ringkasan", async (KkcsDbContext db) =>
+{
+    var hariIni = DateTime.UtcNow.Date;
+    var awalBulan = new DateTime(hariIni.Year, hariIni.Month, 1);
+    var awalTahun = new DateTime(hariIni.Year, 1, 1);
+
+    // Anggota
+    var totalAnggotaAktif = await db.Pengguna.CountAsync(p => p.StatusKeanggotaan == "Aktif" && p.Aktif);
+    var pendaftaranMenunggu = await db.Pengguna.CountAsync(p => p.StatusKeanggotaan == "MenungguPersetujuan");
+
+    // Simpanan
+    var totalSimpananPerJenis = await db.Simpanan.Include(s => s.JenisSimpanan)
+        .GroupBy(s => s.JenisSimpanan.Kode)
+        .Select(g => new { Kode = g.Key, Total = g.Sum(s => s.Saldo) })
+        .ToListAsync();
+    decimal SaldoJenis(string kode) => totalSimpananPerJenis.FirstOrDefault(x => x.Kode == kode)?.Total ?? 0;
+    var totalBerjangkaAktif = await db.SimpananBerjangka.Where(b => b.Status == "Aktif" || b.Status == "JatuhTempo").SumAsync(b => (decimal?)b.Nominal) ?? 0;
+    var totalSimpananSemua = SaldoJenis("POKOK") + SaldoJenis("WAJIB") + SaldoJenis("SUKARELA") + totalBerjangkaAktif;
+    var wajibMenunggu = await db.TagihanWajib.CountAsync(t => t.Status == "Ditagih");
+    var sukarelaMenunggu = await db.TransaksiSukarela.CountAsync(t => t.Status == "Diajukan");
+    var berjangkaMenunggu = await db.SimpananBerjangka.CountAsync(b => b.Status == "Diajukan" || b.PencairanDiajukan);
+
+    // Pinjaman
+    var pinjamanAktifCount = await db.Pinjaman.CountAsync(p => p.Status == "Aktif");
+    var totalSisaPokok = await db.Pinjaman.Where(p => p.Status == "Aktif").SumAsync(p => (decimal?)p.SisaPokok) ?? 0;
+    var pengajuanPinjamanMenunggu = await db.PengajuanPinjaman.CountAsync(p => p.Status == "Diajukan");
+    var pembayaranPinjamanMenunggu = await db.PembayaranPinjaman.CountAsync(p => p.Status == "Diajukan");
+
+    // Katalog
+    var titipanMenunggu = await db.Produk.CountAsync(p => p.Status == "MenungguPersetujuan");
+    var pembelianMenunggu = await db.PembelianProduk.CountAsync(p => p.Status == "Diajukan");
+    var tagihanKreditBelumLunas = await db.TagihanKredit.Where(t => t.Status != "Lunas").SumAsync(t => (decimal?)t.Total) ?? 0;
+
+    // Akuntansi (dihitung langsung dari buku besar, selalu sinkron dengan jurnal)
+    var neraca = await AkuntansiReportService.HitungNeracaAsync(db, hariIni);
+    var labaRugiTahunIni = await AkuntansiReportService.HitungLabaRugiAsync(db, awalTahun, hariIni);
+    var labaRugiBulanIni = await AkuntansiReportService.HitungLabaRugiAsync(db, awalBulan, hariIni);
+
+    // Tren 6 bulan terakhir (pendapatan vs beban) untuk grafik ringkas.
+    var trenBulanan = new List<DashboardTrenBulanan>();
+    var namaBulan = new[] { "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des" };
+    for (var i = 5; i >= 0; i--)
+    {
+        var bulan = new DateTime(awalBulan.Year, awalBulan.Month, 1).AddMonths(-i);
+        var akhirBulan = bulan.AddMonths(1).AddDays(-1);
+        var lr = await AkuntansiReportService.HitungLabaRugiAsync(db, bulan, akhirBulan);
+        trenBulanan.Add(new DashboardTrenBulanan($"{namaBulan[bulan.Month - 1]} {bulan.Year % 100}", lr.TotalPendapatan, lr.TotalBeban, lr.LabaBersih));
+    }
+
+    // SHU tahun terakhir yang difinalisasi
+    var shuTerakhir = await db.ShuRun.AsNoTracking().OrderByDescending(s => s.Tahun)
+        .Select(s => new DashboardShuTerakhir(s.Tahun, s.TotalShu, s.TotalShuNeto, s.Rincian.Count, s.DifinalisasiPada))
+        .FirstOrDefaultAsync();
+
+    // Payroll periode berjalan
+    var payroll = await BuatRekapPayroll(db, hariIni.ToString("yyyy-MM"));
+
+    // Audit trail — aktivitas terbaru untuk pemantauan cepat
+    var auditHariIni = await db.AuditLog.CountAsync(a => a.WaktuUtc.Date == hariIni);
+    var auditAktivitasTerbaru = await db.AuditLog.AsNoTracking().OrderByDescending(a => a.Id).Take(6)
+        .Select(a => new DashboardAktivitas(a.WaktuUtc, a.PelakuNama, a.Modul, a.Aksi, a.Ringkasan))
+        .ToListAsync();
+
+    var totalMenunggu = pendaftaranMenunggu + wajibMenunggu + sukarelaMenunggu + berjangkaMenunggu
+        + pengajuanPinjamanMenunggu + pembayaranPinjamanMenunggu + titipanMenunggu + pembelianMenunggu;
+
+    return Results.Ok(new DashboardRingkasanResponse(
+        totalAnggotaAktif, pendaftaranMenunggu,
+        totalSimpananSemua, SaldoJenis("POKOK"), SaldoJenis("WAJIB"), SaldoJenis("SUKARELA"), totalBerjangkaAktif,
+        wajibMenunggu, sukarelaMenunggu, berjangkaMenunggu,
+        pinjamanAktifCount, totalSisaPokok, pengajuanPinjamanMenunggu, pembayaranPinjamanMenunggu,
+        titipanMenunggu, pembelianMenunggu, tagihanKreditBelumLunas,
+        neraca.TotalAset, neraca.TotalLiabilitas, neraca.TotalEkuitas, neraca.Selisih,
+        labaRugiTahunIni.TotalPendapatan, labaRugiTahunIni.TotalBeban, labaRugiTahunIni.LabaBersih,
+        labaRugiBulanIni.LabaBersih,
+        trenBulanan, shuTerakhir,
+        payroll.TotalPotongan, payroll.Baris.Count,
+        auditHariIni, auditAktivitasTerbaru,
+        totalMenunggu));
+}).RequireAuthorization("Pengurus");
+
 // ── Admin: Audit trail — jejak digital perubahan data sensitif & persetujuan ─
 app.MapGet("/api/admin/audit-log", async (KkcsDbContext db, string? modul, string? aksi, int? penggunaId, DateTime? dari, DateTime? sampai, string? cari, int? halaman, int? ukuran) =>
 {
@@ -469,6 +551,68 @@ app.MapPost("/api/auth/profile/photo", async (ClaimsPrincipal principal, IFormFi
     await db.SaveChangesAsync();
     return Results.Ok(ToUserResponse(pengguna));
 }).RequireAuthorization().DisableAntiforgery();
+
+// ── Anggota: arus kas pribadi — rekap uang masuk/keluar dari seluruh aktivitas (simpanan, pinjaman,
+// katalog) supaya anggota bisa lihat pergerakan uangnya sendiri dalam satu tempat, di halaman profil. ──
+app.MapGet("/api/akun/arus-kas", async (ClaimsPrincipal principal, KkcsDbContext db) =>
+{
+    var pengguna = await FindActiveMember(principal, db);
+    if (pengguna is null) return BelumAktif();
+
+    var semua = new List<ArusKasItemResponse>();
+
+    // Simpanan: setiap mutasi lintas jenis (Pokok/Wajib/Sukarela/Berjangka) — Setor & Bunga = masuk,
+    // Tarik & Pajak = keluar.
+    var mutasi = await db.MutasiSimpanan.AsNoTracking()
+        .Include(m => m.Simpanan).ThenInclude(s => s.JenisSimpanan)
+        .Where(m => m.Simpanan.PenggunaId == pengguna.Id)
+        .ToListAsync();
+    foreach (var m in mutasi)
+    {
+        var masuk = m.Jenis is "Setor" or "Bunga";
+        var label = m.Jenis switch
+        {
+            "Setor" => $"Setoran {m.Simpanan.JenisSimpanan.Nama}",
+            "Tarik" => $"Penarikan {m.Simpanan.JenisSimpanan.Nama}",
+            "Bunga" => $"Bunga {m.Simpanan.JenisSimpanan.Nama}",
+            "Pajak" => $"PPh {m.Simpanan.JenisSimpanan.Nama}",
+            _ => m.Simpanan.JenisSimpanan.Nama
+        };
+        semua.Add(new ArusKasItemResponse(m.TanggalTransaksi, "Simpanan", label, masuk ? "Masuk" : "Keluar", m.Nominal));
+    }
+
+    // Pinjaman: pencairan = masuk, angsuran/pelunasan yang sudah dibayar = keluar.
+    var pinjaman = await db.Pinjaman.AsNoTracking().Where(p => p.PenggunaId == pengguna.Id).ToListAsync();
+    foreach (var p in pinjaman)
+    {
+        semua.Add(new ArusKasItemResponse(p.TanggalMulai, "Pinjaman", $"Pencairan pinjaman {p.NomorPinjaman}", "Masuk", p.Pokok));
+    }
+    var angsuran = await db.AngsuranPinjaman.AsNoTracking()
+        .Include(a => a.Pinjaman)
+        .Where(a => a.Pinjaman.PenggunaId == pengguna.Id && a.Status == "Dibayar")
+        .ToListAsync();
+    foreach (var a in angsuran)
+    {
+        var label = a.Jenis == "Pelunasan" ? $"Pelunasan dipercepat {a.Pinjaman.NomorPinjaman}" : $"Angsuran ke-{a.AngsuranKe} {a.Pinjaman.NomorPinjaman}";
+        semua.Add(new ArusKasItemResponse(a.DibayarPada ?? a.JatuhTempo, "Pinjaman", label, "Keluar", a.Total));
+    }
+
+    // Katalog: pembelian yang sudah diproses — Tunai (Selesai) dan Kredit (Disetujui, potong gaji nanti).
+    var pembelian = await db.PembelianProduk.AsNoTracking().Include(x => x.Produk)
+        .Where(x => x.PembeliId == pengguna.Id && (x.Status == "Selesai" || x.Status == "Disetujui"))
+        .ToListAsync();
+    foreach (var x in pembelian)
+    {
+        var label = $"{x.Jenis} {x.Produk.Nama} ({(x.MetodePembayaran == "Kredit" ? "Kredit, potong gaji" : "Tunai")})";
+        semua.Add(new ArusKasItemResponse(x.DiprosesPada ?? x.DiajukanPada, "Katalog", label, "Keluar", x.Total));
+    }
+
+    var totalMasuk = semua.Where(x => x.Arah == "Masuk").Sum(x => x.Nominal);
+    var totalKeluar = semua.Where(x => x.Arah == "Keluar").Sum(x => x.Nominal);
+    var riwayat = semua.OrderByDescending(x => x.Tanggal).Take(50).ToList();
+
+    return Results.Ok(new ArusKasSayaResponse(totalMasuk, totalKeluar, totalMasuk - totalKeluar, riwayat));
+}).RequireAuthorization();
 
 app.MapGet("/api/produk", async (ClaimsPrincipal principal, KkcsDbContext db) =>
 {
@@ -792,7 +936,10 @@ app.MapPost("/api/admin/produk/tagihan-kredit/kirim", async (RekapTagihanRequest
 
 app.MapPost("/api/admin/produk/tagihan-kredit/lunas", async (RekapTagihanRequest? request, KkcsDbContext db, JurnalService jurnalService) =>
 {
-    var query = db.TagihanKredit.Include(item => item.Pembelian).Where(item => item.Status != "Lunas");
+    // Hanya tagihan yang sudah berstatus "DikirimKeSDM" yang boleh dilunasi — tagihan "Belum" wajib
+    // dikirim ke SDM dulu (endpoint /kirim di atas) supaya tidak ada yang "lompat" langsung jadi lunas
+    // tanpa tercatat pernah dikirim untuk potong gaji.
+    var query = db.TagihanKredit.Include(item => item.Pembelian).Where(item => item.Status == "DikirimKeSDM");
     if (request?.PenggunaId is int pid) query = query.Where(item => item.PenggunaId == pid);
     var target = await query.ToListAsync();
     decimal totalDitagih = 0;
@@ -1842,13 +1989,24 @@ app.MapGet("/api/admin/simpanan/sukarela", async (KkcsDbContext db, SimpananServ
     var data = await db.TransaksiSukarela.AsNoTracking().Include(item => item.Pengguna)
         .OrderByDescending(item => item.Status == "Diajukan").ThenByDescending(item => item.DiajukanPada)
         .ToListAsync();
+
+    // Posting bunga bulanan terakhir per anggota (kalau ada) — ditampilkan ringkas di tabel supaya
+    // pengurus bisa lihat hasil "Hitung bunga bulan lalu" tanpa harus buka riwayat mutasi.
+    var bungaTerakhirPerAnggota = await db.PostingBungaSukarela.AsNoTracking()
+        .GroupBy(item => item.PenggunaId)
+        .Select(g => g.OrderByDescending(item => item.Periode).First())
+        .ToDictionaryAsync(item => item.PenggunaId);
+
     var result = new List<AdminTransaksiSukarelaResponse>();
     foreach (var item in data)
     {
+        var bungaTerakhir = bungaTerakhirPerAnggota.GetValueOrDefault(item.PenggunaId);
         result.Add(new AdminTransaksiSukarelaResponse(
             item.Id, item.Pengguna.NamaLengkap, item.Pengguna.NomorIndukKaryawan,
             item.Jenis, item.Nominal, item.Catatan, item.Status, item.CatatanReview, item.DiajukanPada, item.DiprosesPada,
-            await simpananService.SaldoAsync(item.PenggunaId, "SUKARELA")));
+            await simpananService.SaldoAsync(item.PenggunaId, "SUKARELA"),
+            bungaTerakhir is null ? null : new BungaSukarelaTerakhirResponse(
+                bungaTerakhir.Periode, bungaTerakhir.BungaBruto, bungaTerakhir.Pajak, bungaTerakhir.BungaNeto)));
     }
     return Results.Ok(result);
 }).RequireAuthorization("Pengurus");
@@ -1932,12 +2090,18 @@ app.MapGet("/api/admin/simpanan/berjangka", async (KkcsDbContext db) =>
     var data = await db.SimpananBerjangka.AsNoTracking().Include(item => item.Pengguna).Include(item => item.Produk)
         .OrderByDescending(item => item.Status == "Diajukan").ThenByDescending(item => item.Status == "JatuhTempo").ThenByDescending(item => item.DiajukanPada)
         .ToListAsync();
-    return Results.Ok(data.Select(item => new AdminBerjangkaResponse(
-        item.Id, item.Pengguna.NamaLengkap, item.Pengguna.NomorIndukKaryawan, item.Produk.Nama,
-        item.NomorSertifikat, item.Nominal, item.TenorBulan, item.Status, item.CatatanReview,
-        item.DiajukanPada, item.TanggalMulai, item.TanggalJatuhTempo, item.DicairkanPada,
-        item.BungaDibayar ?? BungaDeposito.Hitung(item.Nominal, konfigurasi.BungaDepositoTahunan, item.TenorBulan),
-        item.PencairanDiajukan, item.PencairanDiajukanPada, item.AlasanPencairan)).ToList());
+    return Results.Ok(data.Select(item =>
+    {
+        var estimasiBunga = item.BungaDibayar ?? BungaDeposito.Hitung(item.Nominal, konfigurasi.BungaDepositoTahunan, item.TenorBulan);
+        var estimasiPajak = item.PajakBunga ?? Math.Round(estimasiBunga * konfigurasi.TarifPph, 2, MidpointRounding.AwayFromZero);
+        var estimasiNeto = item.BungaNeto ?? (estimasiBunga - estimasiPajak);
+        return new AdminBerjangkaResponse(
+            item.Id, item.Pengguna.NamaLengkap, item.Pengguna.NomorIndukKaryawan, item.Produk.Nama,
+            item.NomorSertifikat, item.Nominal, item.TenorBulan, item.Status, item.CatatanReview,
+            item.DiajukanPada, item.TanggalMulai, item.TanggalJatuhTempo, item.DicairkanPada,
+            estimasiBunga, estimasiPajak, estimasiNeto, item.PajakBunga != null,
+            item.PencairanDiajukan, item.PencairanDiajukanPada, item.AlasanPencairan);
+    }).ToList());
 }).RequireAuthorization("Pengurus");
 
 app.MapPost("/api/admin/simpanan/berjangka/{id:int}/putusan", async (int id, PutusanPengajuanRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
@@ -2000,6 +2164,8 @@ app.MapPost("/api/admin/simpanan/berjangka/{id:int}/pencairan", async (int id, C
     berjangka.Status = "Dicairkan";
     berjangka.DicairkanPada = DateTime.UtcNow;
     berjangka.BungaDibayar = bunga; // tetap bruto — konsisten dengan pola bunga sukarela (dicatat penuh, pajak dipotong terpisah).
+    berjangka.PajakBunga = pajak;
+    berjangka.BungaNeto = bungaNeto;
 
     // Reklasifikasi internal: pokok (+bunga neto bila ada) pindah dari Simpanan Berjangka ke Simpanan Sukarela — bukan kas keluar.
     // PPh atas bunga bruto dibukukan sebagai Utang PPh, sama seperti posting bunga sukarela bulanan.
@@ -2580,6 +2746,25 @@ record AuthResponse(string Token, UserResponse User);
 
 record ProfileRequest(string NamaLengkap, string? Email, string? NomorTelepon, string? Alamat);
 
+record DashboardTrenBulanan(string Label, decimal Pendapatan, decimal Beban, decimal LabaBersih);
+record DashboardShuTerakhir(int Tahun, decimal TotalShu, decimal TotalShuNeto, int JumlahAnggota, DateTime DifinalisasiPada);
+record DashboardAktivitas(DateTime WaktuUtc, string PelakuNama, string Modul, string Aksi, string Ringkasan);
+record DashboardRingkasanResponse(
+    int TotalAnggotaAktif, int PendaftaranMenunggu,
+    decimal TotalSimpanan, decimal SaldoPokok, decimal SaldoWajib, decimal SaldoSukarela, decimal SaldoBerjangka,
+    int WajibMenunggu, int SukarelaMenunggu, int BerjangkaMenunggu,
+    int PinjamanAktifCount, decimal TotalSisaPokokPinjaman, int PengajuanPinjamanMenunggu, int PembayaranPinjamanMenunggu,
+    int TitipanMenunggu, int PembelianMenunggu, decimal TagihanKreditBelumLunas,
+    decimal TotalAset, decimal TotalLiabilitas, decimal TotalEkuitas, decimal SelisihNeraca,
+    decimal PendapatanTahunIni, decimal BebanTahunIni, decimal LabaBersihTahunIni,
+    decimal LabaBersihBulanIni,
+    List<DashboardTrenBulanan> TrenBulanan, DashboardShuTerakhir? ShuTerakhir,
+    decimal PayrollTotalPeriodeIni, int PayrollJumlahAnggota,
+    int AuditHariIni, List<DashboardAktivitas> AktivitasTerbaru,
+    int TotalMenunggu);
+record ArusKasItemResponse(DateTime Tanggal, string Kategori, string Keterangan, string Arah, decimal Nominal);
+record ArusKasSayaResponse(decimal TotalMasuk, decimal TotalKeluar, decimal SaldoBersih, List<ArusKasItemResponse> Riwayat);
+
 record PengajuanPinjamanRequest(decimal Nominal, int TenorBulan, string Tujuan);
 
 record EratVoteRequest(int OpsiId);
@@ -2809,8 +2994,9 @@ record ShuSayaResponse(
     decimal PersenJasaModal, decimal PersenJasaUsaha, DateTime DifinalisasiPada);
 
 record AdminTagihanWajibResponse(int Id, string NamaAnggota, string NomorIndukKaryawan, string Periode, decimal Nominal, DateTime JatuhTempo, string Status, string? CatatanReview, DateTime DibuatPada, DateTime? DiprosesPada);
-record AdminTransaksiSukarelaResponse(int Id, string NamaAnggota, string NomorIndukKaryawan, string Jenis, decimal Nominal, string? Catatan, string Status, string? CatatanReview, DateTime DiajukanPada, DateTime? DiprosesPada, decimal SaldoSukarela);
-record AdminBerjangkaResponse(int Id, string NamaAnggota, string NomorIndukKaryawan, string ProdukNama, string NomorSertifikat, decimal Nominal, int TenorBulan, string Status, string? CatatanReview, DateTime DiajukanPada, DateTime? TanggalMulai, DateTime? TanggalJatuhTempo, DateTime? DicairkanPada, decimal EstimasiBunga, bool PencairanDiajukan, DateTime? PencairanDiajukanPada, string? AlasanPencairan);
+record AdminTransaksiSukarelaResponse(int Id, string NamaAnggota, string NomorIndukKaryawan, string Jenis, decimal Nominal, string? Catatan, string Status, string? CatatanReview, DateTime DiajukanPada, DateTime? DiprosesPada, decimal SaldoSukarela, BungaSukarelaTerakhirResponse? BungaTerakhir);
+record BungaSukarelaTerakhirResponse(string Periode, decimal Bruto, decimal Pajak, decimal Neto);
+record AdminBerjangkaResponse(int Id, string NamaAnggota, string NomorIndukKaryawan, string ProdukNama, string NomorSertifikat, decimal Nominal, int TenorBulan, string Status, string? CatatanReview, DateTime DiajukanPada, DateTime? TanggalMulai, DateTime? TanggalJatuhTempo, DateTime? DicairkanPada, decimal EstimasiBunga, decimal EstimasiPajak, decimal EstimasiBungaNeto, bool SudahDicairkan, bool PencairanDiajukan, DateTime? PencairanDiajukanPada, string? AlasanPencairan);
 
 record ToggleUserStatusRequest(bool Aktif);
 record PeranRequest(string Peran);

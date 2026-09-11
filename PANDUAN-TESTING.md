@@ -61,8 +61,49 @@ sisi anggotanya juga. Login admin console tetap pakai akun ASD Anda.
 3. **Simpanan Sukarela** — setujui/tolak setoran Siti & Rudi. Setelah disetujui, cek saldo sukarela mereka bertambah.
 4. **Simpanan Berjangka**:
    - Setujui/tolak pengajuan Rudi (masih `Diajukan`).
-   - Berjangka Agus statusnya **JatuhTempo** → klik **Cairkan**. Perhatikan pesan hasil: pokok + bunga **neto** (sudah dipotong PPh) masuk ke saldo Sukarela Agus. Ini contoh langsung fitur PPh yang baru kita aktifkan untuk bunga deposito.
+   - Berjangka Agus sudah **Dicairkan** (contoh yang sudah dijalankan) — pokok + bunga **neto** (sudah dipotong PPh) masuk ke saldo Sukarela Agus. Tabel "Pengajuan Simpanan Berjangka" sekarang menampilkan **PPh** dan **Neto** langsung di bawah kolom "Est. bunga" untuk tiap baris (belum cair → berlabel "Est. PPh"/"Est. neto"; sudah cair → berlabel "PPh"/"Neto" sebagai angka final). Coba lihat baris Rudi (masih `Diajukan`, jadi masih estimasi) vs baris Agus (sudah `Dicairkan`, angka final: bruto Rp 11.250, PPh Rp 2.250, neto Rp 9.000).
    - Coba buat 1 produk berjangka baru sendiri lewat panel "Paket Simpanan Berjangka" untuk lihat form-nya.
+
+### 3a. Cara kerja & cara test perhitungan Bunga Sukarela
+
+Tombol **"Hitung bunga bulan lalu"** di panel Simpanan Sukarela (`POST /api/admin/simpanan/sukarela/bunga`)
+memanggil `BungaSukarela.PostingAsync` (`backend/Services/SimpananService.cs`). Rumusnya:
+
+1. **Metode saldo harian** — untuk tiap hari dalam bulan yang ditutup, `Bunga hari itu = saldo akhir hari × (bunga tahunan ÷ 365)`. Kalau ada setor/tarik di hari itu, saldo yang dipakai adalah saldo **setelah** mutasi terakhir hari itu. Total bunga sebulan = jumlah bunga harian tadi, dibulatkan 2 desimal.
+2. **Hanya bisa menutup bulan yang sudah lewat** — bulan berjalan (dan masa depan) selalu menghasilkan 0, karena saldo hariannya belum final. Tombol di admin console defaultnya menutup **bulan lalu** dari tanggal hari ini.
+3. **Dibukukan dengan tanggal transaksi = tanggal terakhir bulan itu** (bukan tanggal Anda klik tombolnya) — jadi kalau Anda proses bulan Agustus hari ini, mutasinya tercatat seolah terjadi 31 Agustus.
+4. **PPh dipotong dari bunga bruto**: mutasi "Bunga" dicatat penuh (bruto) sebagai riwayat, lalu mutasi "Pajak" terpisah mengurangi saldo — jadi saldo akhir anggota hanya bertambah sebesar **bunga neto** (bruto − PPh). Sama polanya dengan yang sudah Anda lihat di pencairan deposito.
+5. **Idempoten** — sekali suatu periode+anggota sudah diposkan (dicatat di tabel `PostingBungaSukarela`), tombol ini tidak akan menghitung ulang/dobel untuk periode yang sama.
+6. Kalau dibiarkan, background job (`SimpananBackgroundService`) otomatis menjalankan penutupan bulan lalu ini setiap 6 jam — tombol di admin console ini murni untuk memicu manual/segera.
+
+**Supaya bisa langsung lihat hasilnya sekarang** (bukan menunggu Oktober): setoran sukarela Budi
+(Rp 500.000, disetujui) baru tercatat **bulan ini (September)**, jadi kalau Anda klik "Hitung bunga bulan
+lalu" sekarang, yang dihitung adalah bulan **Agustus** — di mana saldo Budi masih 0 sepanjang bulan, jadi
+bunganya 0. Untuk melihat perhitungan yang nyata, mundurkan tanggal mutasi setoran Budi ke bulan Agustus
+lebih dulu (sekali jalan, lewat SQL):
+
+```sql
+UPDATE MutasiSimpanan
+SET TanggalTransaksi = '2026-08-01'
+WHERE Id = (
+  SELECT TOP 1 m.Id FROM MutasiSimpanan m
+  JOIN Simpanan s ON s.Id = m.SimpananId
+  JOIN Pengguna p ON p.Id = s.PenggunaId
+  WHERE p.NomorIndukKaryawan = 'ANG001' AND m.Jenis = 'Setor' AND m.Nominal = 500000
+);
+```
+
+Setelah itu klik **"Hitung bunga bulan lalu"** di admin console — Budi akan dapat bunga bruto
+`500.000 × 2,5% ÷ 365 × 31 hari ≈ Rp 1.062`, dipotong PPh 20% (`≈ Rp 212`), saldo sukarela Budi
+bertambah neto `≈ Rp 850`.
+
+> **Update:** langkah backdate + hitung bunga di atas **sudah dijalankan** sebagai contoh — hasil
+> persisnya: bruto **Rp 1.061,64**, PPh **Rp 212,33**, neto **Rp 849,31** (periode 2026-08), sudah
+> tercermin di saldo sukarela Budi dan tampil langsung di tabel **Simpanan Sukarela** (kolom "Saldo saat
+> ini" sekarang menampilkan info bunga bulan lalu + PPh secara ringkas di bawah nominal saldo, tanpa
+> menambah lebar tabel). Tombol "Hitung bunga bulan lalu" bersifat idempoten, jadi kalau Anda klik lagi
+> untuk periode yang sama, Budi tidak akan dihitung dobel — hanya anggota lain yang belum pernah
+> diproses untuk periode itu yang akan diproses.
 
 ---
 

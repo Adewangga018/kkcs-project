@@ -306,6 +306,8 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
 			entity.Property(item => item.CatatanReview).HasMaxLength(500);
 			entity.Property(item => item.BungaDibayar).HasPrecision(18, 2);
+			entity.Property(item => item.PajakBunga).HasPrecision(18, 2);
+			entity.Property(item => item.BungaNeto).HasPrecision(18, 2);
 			entity.Property(item => item.AlasanPencairan).HasMaxLength(500);
 			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Cascade);
 			entity.HasOne(item => item.Produk).WithMany(item => item.SimpananBerjangka).HasForeignKey(item => item.ProdukBerjangkaId).OnDelete(DeleteBehavior.Restrict);

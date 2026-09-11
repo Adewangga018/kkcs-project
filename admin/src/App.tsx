@@ -18,11 +18,28 @@ type AnggotaDetail = {
   berjangka: BerjangkaRingkas[]; pinjaman: PinjamanRingkas[]; belanja: BelanjaRingkas[]; totalTagihanKreditBelum: number
 }
 type Pendaftaran = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; statusKeanggotaan: string; dibuatPada: string }
+type DashboardTren = { label: string; pendapatan: number; beban: number; labaBersih: number }
+type DashboardShuTerakhir = { tahun: number; totalShu: number; totalShuNeto: number; jumlahAnggota: number; difinalisasiPada: string }
+type DashboardAktivitas = { waktuUtc: string; pelakuNama: string; modul: string; aksi: string; ringkasan: string }
+type DashboardRingkasan = {
+  totalAnggotaAktif: number; pendaftaranMenunggu: number
+  totalSimpanan: number; saldoPokok: number; saldoWajib: number; saldoSukarela: number; saldoBerjangka: number
+  wajibMenunggu: number; sukarelaMenunggu: number; berjangkaMenunggu: number
+  pinjamanAktifCount: number; totalSisaPokokPinjaman: number; pengajuanPinjamanMenunggu: number; pembayaranPinjamanMenunggu: number
+  titipanMenunggu: number; pembelianMenunggu: number; tagihanKreditBelumLunas: number
+  totalAset: number; totalLiabilitas: number; totalEkuitas: number; selisihNeraca: number
+  pendapatanTahunIni: number; bebanTahunIni: number; labaBersihTahunIni: number; labaBersihBulanIni: number
+  trenBulanan: DashboardTren[]; shuTerakhir: DashboardShuTerakhir | null
+  payrollTotalPeriodeIni: number; payrollJumlahAnggota: number
+  auditHariIni: number; aktivitasTerbaru: DashboardAktivitas[]
+  totalMenunggu: number
+}
 type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPph: number; diperbaruiPada: string }
 type TagihanWajib = { id: number; namaAnggota: string; nomorIndukKaryawan: string; periode: string; nominal: number; jatuhTempo: string; status: string; catatanReview: string | null; dibuatPada: string; diprosesPada: string | null }
-type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number }
+type BungaSukarelaTerakhir = { periode: string; bruto: number; pajak: number; neto: number }
+type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number; bungaTerakhir: BungaSukarelaTerakhir | null }
 type ProdukBerjangka = { id: number; nama: string; nominal: number; tenorBulan: number; aktif: boolean }
-type SimpananBerjangka = { id: number; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; nomorSertifikat: string; nominal: number; tenorBulan: number; status: string; catatanReview: string | null; diajukanPada: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null; dicairkanPada: string | null; estimasiBunga: number; pencairanDiajukan: boolean; pencairanDiajukanPada: string | null; alasanPencairan: string | null }
+type SimpananBerjangka = { id: number; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; nomorSertifikat: string; nominal: number; tenorBulan: number; status: string; catatanReview: string | null; diajukanPada: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null; dicairkanPada: string | null; estimasiBunga: number; estimasiPajak: number; estimasiBungaNeto: number; sudahDicairkan: boolean; pencairanDiajukan: boolean; pencairanDiajukanPada: string | null; alasanPencairan: string | null }
 type Produk = { id: number; kode: string; nama: string; deskripsi: string | null; jenis: string; harga: number; stok: number; satuan: string; fotoUrl: string | null; sumber: string; diajukanOleh: string | null; status: string; aktif: boolean; catatanReview: string | null }
 type PembelianProduk = { id: number; nomorTransaksi: string; namaPembeli: string; nomorIndukKaryawan: string; produkNama: string; jenis: string; jumlah: number; hargaSatuan: number; total: number; metodePembayaran: string; status: string; catatan: string | null; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null }
 type TagihanKredit = { id: number; pembelianProdukId: number; penggunaId: number; nomorTransaksi: string; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; total: number; status: string; dibuatPada: string; dikirimPada: string | null; lunasPada: string | null }
@@ -63,8 +80,8 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'pendaftaran' | 'anggota' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu' | 'akun' | 'audit'
-const VIEW_TITLE: Record<View, string> = { pendaftaran: 'Pendaftaran anggota', anggota: 'Direktori anggota', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type View = 'dashboard' | 'pendaftaran' | 'anggota' | 'pinjaman' | 'simpanan' | 'katalog' | 'erat' | 'payroll' | 'akuntansi' | 'shu' | 'akun' | 'audit'
+const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', pendaftaran: 'Pendaftaran anggota', anggota: 'Direktori anggota', pinjaman: 'Manajemen pinjaman', simpanan: 'Manajemen simpanan', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', payroll: 'Laporan potong gaji', akuntansi: 'Akuntansi & Keuangan', shu: 'Kalkulator SHU', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
 type Peran = 'Admin' | 'Pengurus'
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5168'
 const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID')}`
@@ -75,7 +92,7 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem('kkcs_admin_token') ?? '')
   const [peran, setPeran] = useState<Peran | null>(null)
   const [nama, setNama] = useState('')
-  const [view, setView] = useState<View>('pendaftaran')
+  const [view, setView] = useState<View>('dashboard')
   const [error, setError] = useState('')
   const [loginNIK, setLoginNIK] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -128,7 +145,8 @@ function App() {
     <aside className={`sidebar ${mobileNav ? 'is-open' : ''}`}>
       <div className="brand-lockup"><div className="brand-mark">K</div><div><strong>KKCS</strong><span>Admin Console</span></div></div>
       <nav className="primary-nav">
-        <button className={`nav-item ${view === 'pendaftaran' ? 'active' : ''}`} onClick={() => goto('pendaftaran')}><LayoutDashboard size={18} /> Pendaftaran</button>
+        <button className={`nav-item ${view === 'dashboard' ? 'active' : ''}`} onClick={() => goto('dashboard')}><LayoutDashboard size={18} /> Dashboard</button>
+        <button className={`nav-item ${view === 'pendaftaran' ? 'active' : ''}`} onClick={() => goto('pendaftaran')}><UserPlus size={18} /> Pendaftaran</button>
         <button className={`nav-item ${view === 'anggota' ? 'active' : ''}`} onClick={() => goto('anggota')}><Users size={18} /> Direktori Anggota</button>
         <button className={`nav-item ${view === 'simpanan' ? 'active' : ''}`} onClick={() => goto('simpanan')}><PiggyBank size={18} /> Simpanan</button>
         <button className={`nav-item ${view === 'pinjaman' ? 'active' : ''}`} onClick={() => goto('pinjaman')}><HandCoins size={18} /> Pinjaman</button>
@@ -152,6 +170,7 @@ function App() {
         <div><p className="eyebrow">OPERASIONAL</p><h1>{VIEW_TITLE[view]}</h1></div>
         <div className="topbar-actions"><button className="profile-chip" onClick={logout} title={nama}><span className="mini-avatar"><Users size={16} /></span><span>{isAdmin ? 'Admin' : 'Pengurus'}</span><LogOut size={15} /></button></div>
       </header>
+      {view === 'dashboard' && <DashboardView token={token} onExpired={handleExpired} nama={nama} isAdmin={isAdmin} goto={goto} />}
       {view === 'pendaftaran' && <PendaftaranView token={token} onExpired={handleExpired} />}
       {view === 'anggota' && <AnggotaDirektoriView token={token} onExpired={handleExpired} />}
       {view === 'simpanan' && <SavingsView token={token} onExpired={handleExpired} isAdmin={isAdmin} />}
@@ -164,6 +183,235 @@ function App() {
       {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
       {view === 'audit' && isAdmin && <AuditTrailView token={token} onExpired={handleExpired} />}
     </main>
+  </div>
+}
+
+function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: string; onExpired: () => void; nama: string; isAdmin: boolean; goto: (target: View) => void }) {
+  const [data, setData] = useState<DashboardRingkasan | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/dashboard/ringkasan`, { headers: { Authorization: `Bearer ${token}` } })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error('Gagal memuat dashboard.')
+      setData(await response.json())
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [token, onExpired])
+  useEffect(() => { void load() }, [load])
+
+  const jam = new Date().getHours()
+  const salam = jam < 11 ? 'Selamat pagi' : jam < 15 ? 'Selamat siang' : jam < 18 ? 'Selamat sore' : 'Selamat malam'
+  const hariIni = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
+
+  const aksi = data ? [
+    { label: 'Pendaftaran anggota', jumlah: data.pendaftaranMenunggu, target: 'pendaftaran' as View },
+    { label: 'Simpanan Wajib', jumlah: data.wajibMenunggu, target: 'simpanan' as View },
+    { label: 'Simpanan Sukarela', jumlah: data.sukarelaMenunggu, target: 'simpanan' as View },
+    { label: 'Simpanan Berjangka', jumlah: data.berjangkaMenunggu, target: 'simpanan' as View },
+    { label: 'Pengajuan Pinjaman', jumlah: data.pengajuanPinjamanMenunggu, target: 'pinjaman' as View },
+    { label: 'Pembayaran Pinjaman', jumlah: data.pembayaranPinjamanMenunggu, target: 'pinjaman' as View },
+    { label: 'Titipan produk', jumlah: data.titipanMenunggu, target: 'katalog' as View },
+    { label: 'Pembelian produk', jumlah: data.pembelianMenunggu, target: 'katalog' as View },
+  ].filter((a) => a.jumlah > 0) : []
+
+  const komposisiSimpanan = data ? [
+    { label: 'Pokok', value: data.saldoPokok, color: '#087f78' },
+    { label: 'Wajib', value: data.saldoWajib, color: '#436a97' },
+    { label: 'Sukarela', value: data.saldoSukarela, color: '#ad6a16' },
+    { label: 'Berjangka', value: data.saldoBerjangka, color: '#7c5cbf' },
+  ].filter((k) => k.value > 0) : []
+
+  return <div className="content-wrap">
+    <section className="welcome-row" style={{
+      background: 'linear-gradient(120deg, #0b6e69 0%, #0f8a7f 55%, #14a693 100%)',
+      borderRadius: 16, padding: '28px 32px', color: '#fff', marginBottom: 24, alignItems: 'center',
+      boxShadow: '0 18px 45px rgba(11,110,105,.28)',
+    }}>
+      <div>
+        <p className="eyebrow" style={{ color: '#bdeee3' }}>{hariIni.toUpperCase()}</p>
+        <h1 style={{ margin: '4px 0 6px', fontSize: 26 }}>{salam}, {nama.split(' ')[0]} 👋</h1>
+        <p style={{ color: '#dcf3ec', margin: 0, fontSize: 13 }}>
+          {data && data.totalMenunggu > 0
+            ? `Ada ${data.totalMenunggu} hal yang menunggu tindakan Anda hari ini.`
+            : 'Semua tugas persetujuan sudah tuntas — koperasi berjalan lancar.'}
+        </p>
+      </div>
+      <div className="sync-label" style={{ color: '#dcf3ec' }}><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" style={{ color: '#dcf3ec' }} onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div>
+    </section>
+
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+
+    {data && <>
+      {/* Hero stats */}
+      <section className="stat-grid">
+        <StatCard label="Anggota aktif" value={data.totalAnggotaAktif} icon={<Users size={20} />} tone="teal" />
+        <StatCard label="Total simpanan koperasi" value={data.totalSimpanan} icon={<PiggyBank size={20} />} tone="blue" money />
+        <StatCard label="Pinjaman aktif (sisa pokok)" value={data.totalSisaPokokPinjaman} icon={<HandCoins size={20} />} tone="amber" money />
+        <StatCard label="Laba bersih tahun ini" value={data.labaBersihTahunIni} icon={<TrendingUp size={20} />} tone="green" money />
+      </section>
+
+      {/* Perlu tindakan */}
+      {aksi.length > 0 && (
+        <section className="table-panel" style={{ marginBottom: 22, borderColor: '#f2d9b8' }}>
+          <div className="panel-heading">
+            <div><h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={18} color="#bd6d1d" /> Perlu tindakan Anda</h2><p>Klik salah satu untuk langsung menuju menu terkait.</p></div>
+            <span className="record-count" style={{ color: '#ad6a16', background: '#f8ead0' }}>{data.totalMenunggu} total</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '4px 25px 24px' }}>
+            {aksi.map((a) => (
+              <button key={a.label} onClick={() => goto(a.target)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10,
+                border: '1px solid #f2d9b8', background: '#fdf7ee', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#8a5a1f',
+              }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%', background: '#ad6a16', color: '#fff', fontSize: 11 }}>{a.jumlah}</span>
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="dash-grid-2">
+        {/* Tren keuangan 6 bulan */}
+        <section className="table-panel">
+          <div className="panel-heading">
+            <div><h2>Tren keuangan 6 bulan</h2><p>Pendapatan vs beban per bulan, dihitung langsung dari buku besar.</p></div>
+          </div>
+          <div style={{ padding: '4px 25px 24px' }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, fontSize: 11, color: 'var(--muted)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: 3, background: '#087f78', display: 'inline-block' }} />Pendapatan</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 10 }}><i style={{ width: 9, height: 9, borderRadius: 3, background: '#d98a4a', display: 'inline-block' }} />Beban</span>
+            </div>
+            <TrenChart data={data.trenBulanan} />
+          </div>
+        </section>
+
+        {/* Komposisi simpanan */}
+        <section className="table-panel">
+          <div className="panel-heading"><div><h2>Komposisi simpanan</h2><p>Sebaran saldo aktif per jenis.</p></div></div>
+          <div style={{ padding: '4px 25px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
+            <DonutChart items={komposisiSimpanan} total={data.totalSimpanan} />
+            <div style={{ display: 'grid', gap: 8, flex: 1, minWidth: 0 }}>
+              {komposisiSimpanan.map((k) => (
+                <div key={k.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, gap: 8 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <i style={{ width: 9, height: 9, borderRadius: 3, background: k.color, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.label}</span>
+                  </span>
+                  <strong style={{ flexShrink: 0 }}>{rupiah(k.value)}</strong>
+                </div>
+              ))}
+              {komposisiSimpanan.length === 0 && <small style={{ color: 'var(--muted)' }}>Belum ada saldo simpanan.</small>}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="dash-grid-3">
+        {/* Kesehatan neraca */}
+        <section className="table-panel">
+          <div className="panel-heading"><div><h2>Kesehatan neraca</h2><p>Per hari ini.</p></div></div>
+          <div style={{ padding: '4px 25px 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}><span>Aset</span><strong>{rupiah(data.totalAset)}</strong></div>
+            <div style={{ height: 8, borderRadius: 5, background: '#e5f4ef', overflow: 'hidden', marginBottom: 14 }}><div style={{ width: '100%', height: '100%', background: '#087f78' }} /></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}><span>Liabilitas + Ekuitas</span><strong>{rupiah(data.totalLiabilitas + data.totalEkuitas)}</strong></div>
+            <div style={{ height: 8, borderRadius: 5, background: '#e1eaf5', overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ width: data.totalAset > 0 ? `${Math.min(100, ((data.totalLiabilitas + data.totalEkuitas) / data.totalAset) * 100)}%` : '0%', height: '100%', background: '#436a97' }} />
+            </div>
+            <div className={`alert ${Math.abs(data.selisihNeraca) < 1 ? 'success' : 'error'}`} style={{ margin: 0 }}>
+              {Math.abs(data.selisihNeraca) < 1 ? <BadgeCheck size={16} /> : <X size={16} />}
+              {Math.abs(data.selisihNeraca) < 1 ? 'Neraca balance' : `Selisih ${rupiah(data.selisihNeraca)}`}
+            </div>
+            <button className="toggle-button" style={{ marginTop: 12, width: '100%' }} onClick={() => goto('akuntansi')}>Buka Akuntansi</button>
+          </div>
+        </section>
+
+        {/* SHU terakhir */}
+        <section className="table-panel">
+          <div className="panel-heading"><div><h2>SHU terakhir</h2><p>Tahun buku terfinalisasi.</p></div></div>
+          <div style={{ padding: '4px 25px 24px' }}>
+            {data.shuTerakhir ? <>
+              <div style={{ fontSize: 30, fontWeight: 800, color: '#087f78', fontFamily: "'Space Grotesk', sans-serif" }}>{data.shuTerakhir.tahun}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>Difinalisasi {tanggal(data.shuTerakhir.difinalisasiPada)}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}><span>Total SHU (bruto)</span><strong>{rupiah(data.shuTerakhir.totalShu)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}><span>Neto ke anggota</span><strong>{rupiah(data.shuTerakhir.totalShuNeto)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span>Jumlah anggota</span><strong>{data.shuTerakhir.jumlahAnggota}</strong></div>
+            </> : <div className="empty-state" style={{ padding: '20px 0' }}>Belum ada SHU difinalisasi.</div>}
+            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('shu')}>Buka SHU</button>
+          </div>
+        </section>
+
+        {/* Payroll & tagihan kredit */}
+        <section className="table-panel">
+          <div className="panel-heading"><div><h2>Payroll periode ini</h2><p>Potongan gaji siap dikirim ke SDM.</p></div></div>
+          <div style={{ padding: '4px 25px 24px' }}>
+            <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{rupiah(data.payrollTotalPeriodeIni)}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{data.payrollJumlahAnggota} anggota terpotong bulan ini</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span>Tagihan kredit belum lunas</span><strong style={{ color: data.tagihanKreditBelumLunas > 0 ? '#ad6a16' : 'inherit' }}>{rupiah(data.tagihanKreditBelumLunas)}</strong></div>
+            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('payroll')}>Buka Payroll</button>
+          </div>
+        </section>
+      </div>
+
+      {/* Aktivitas terbaru */}
+      <section className="table-panel">
+        <div className="panel-heading">
+          <div><h2>Aktivitas terbaru</h2><p>{data.auditHariIni} aktivitas tercatat hari ini di seluruh sistem.</p></div>
+          {isAdmin && <button className="toggle-button" onClick={() => goto('audit')}>Lihat Audit Trail</button>}
+        </div>
+        <div style={{ padding: '4px 25px 20px' }}>
+          {data.aktivitasTerbaru.length === 0 && <div className="empty-state">Belum ada aktivitas tercatat.</div>}
+          {data.aktivitasTerbaru.map((a, i) => (
+            <div key={i} style={{ display: 'flex', gap: 12, padding: '11px 0', borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
+              <span className="avatar" style={{ flexShrink: 0 }}>{a.pelakuNama.charAt(0).toUpperCase()}</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 12.5 }}><strong>{a.pelakuNama}</strong> <span className="role-pill pengurus" style={{ marginLeft: 4 }}>{a.modul}</span></div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.ringkasan}</div>
+              </div>
+              <small style={{ color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>{waktu(a.waktuUtc)}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>}
+  </div>
+}
+
+function TrenChart({ data }: { data: DashboardTren[] }) {
+  const max = Math.max(1, ...data.map((d) => Math.max(d.pendapatan, d.beban)))
+  return <div style={{ display: 'flex', alignItems: 'end', gap: 14, height: 160 }}>
+    {data.map((d) => (
+      <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'end' }}>
+        <div style={{ display: 'flex', alignItems: 'end', gap: 3, height: 120, width: '100%', justifyContent: 'center' }} title={`Pendapatan ${rupiah(d.pendapatan)} · Beban ${rupiah(d.beban)}`}>
+          <div style={{ width: 9, borderRadius: '3px 3px 0 0', background: '#087f78', height: `${Math.max(2, (d.pendapatan / max) * 120)}px` }} />
+          <div style={{ width: 9, borderRadius: '3px 3px 0 0', background: '#d98a4a', height: `${Math.max(2, (d.beban / max) * 120)}px` }} />
+        </div>
+        <small style={{ fontSize: 10.5, color: 'var(--muted)' }}>{d.label}</small>
+      </div>
+    ))}
+  </div>
+}
+
+function DonutChart({ items, total }: { items: { label: string; value: number; color: string }[]; total: number }) {
+  let acc = 0
+  const stops = items.map((item) => {
+    const start = total > 0 ? (acc / total) * 360 : 0
+    acc += item.value
+    const end = total > 0 ? (acc / total) * 360 : 0
+    return `${item.color} ${start}deg ${end}deg`
+  })
+  const gradient = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : '#edf2f0'
+  return <div style={{ flexShrink: 0, width: 108, height: 108, borderRadius: '50%', background: gradient, display: 'grid', placeItems: 'center' }}>
+    <div style={{ width: 68, height: 68, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', textAlign: 'center', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
+      <div>
+        <div style={{ fontSize: 9, color: 'var(--muted)' }}>Total</div>
+        <div style={{ fontSize: 10, fontWeight: 800 }}>{total >= 1_000_000 ? `${(total / 1_000_000).toFixed(1)}jt` : rupiah(total)}</div>
+      </div>
+    </div>
   </div>
 }
 
@@ -1059,7 +1307,13 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
           <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td><span className={`role-pill ${item.jenis === 'Tarik' ? 'admin' : ''}`}>{item.jenis}</span></td>
           <td>{rupiah(item.nominal)}</td>
-          <td>{rupiah(item.saldoSukarela)}</td>
+          <td>
+            {rupiah(item.saldoSukarela)}
+            {item.bungaTerakhir && <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+              <div>Bunga {item.bungaTerakhir.periode}: <span style={{ color: '#2d8155', fontWeight: 600 }}>+{rupiah(item.bungaTerakhir.bruto)}</span></div>
+              <div>PPh: <span style={{ color: '#ad6a16', fontWeight: 600 }}>−{rupiah(item.bungaTerakhir.pajak)}</span> · neto +{rupiah(item.bungaTerakhir.neto)}</div>
+            </div>}
+          </td>
           <td>{tanggal(item.diajukanPada)}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'inactive' : ''}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
@@ -1105,7 +1359,13 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
           <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorSertifikat}</small></td>
           <td>{rupiah(item.nominal)}</td>
           <td>{item.tenorBulan} bln</td>
-          <td>{rupiah(item.estimasiBunga)}</td>
+          <td>
+            {rupiah(item.estimasiBunga)}
+            <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+              <div>{item.sudahDicairkan ? 'PPh' : 'Est. PPh'}: <span style={{ color: '#ad6a16', fontWeight: 600 }}>−{rupiah(item.estimasiPajak)}</span></div>
+              <div>{item.sudahDicairkan ? 'Neto' : 'Est. neto'}: <span style={{ color: '#2d8155', fontWeight: 600 }}>{rupiah(item.estimasiBungaNeto)}</span></div>
+            </div>
+          </td>
           <td>{item.tanggalJatuhTempo ? tanggal(item.tanggalJatuhTempo) : '—'}</td>
           <td>
             <span className={`status-pill ${item.status === 'Aktif' || item.status === 'Dicairkan' ? 'active' : item.status === 'Ditolak' ? 'inactive' : ''}`}><i />{item.status}</span>
@@ -1116,7 +1376,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
               <button className="toggle-button activate" disabled={busyId === `b-${item.id}`} onClick={() => putusan(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/putusan`, true, `berjangka ${item.namaAnggota} ${rupiah(item.nominal)}`)}>Setujui</button>
               <button className="toggle-button deactivate" disabled={busyId === `b-${item.id}`} onClick={() => putusan(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/putusan`, false, `berjangka ${item.namaAnggota}`)}>Tolak</button>
             </span>}
-            {item.status === 'JatuhTempo' && <button className="toggle-button activate" disabled={busyId === `b-${item.id}`} onClick={() => void call(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/pencairan`, 'POST', undefined, `Cairkan (jatuh tempo) ${item.namaAnggota} ${rupiah(item.nominal)} + bunga ${rupiah(item.estimasiBunga)}?`)}>Cairkan</button>}
+            {item.status === 'JatuhTempo' && <button className="toggle-button activate" disabled={busyId === `b-${item.id}`} onClick={() => void call(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/pencairan`, 'POST', undefined, `Cairkan (jatuh tempo) ${item.namaAnggota} ${rupiah(item.nominal)} + bunga neto ${rupiah(item.estimasiBungaNeto)} (bruto ${rupiah(item.estimasiBunga)}, PPh ${rupiah(item.estimasiPajak)})?`)}>Cairkan</button>}
             {item.status === 'Aktif' && item.pencairanDiajukan && <span style={{ display: 'inline-flex', gap: 6 }}>
               <button className="toggle-button activate" disabled={busyId === `b-${item.id}`} onClick={() => void call(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/pencairan`, 'POST', undefined, `Setujui pencairan DIPERCEPAT ${item.namaAnggota}?\n\nAnggota hanya menerima pokok ${rupiah(item.nominal)}. Bunga ${rupiah(item.estimasiBunga)} HANGUS.`)}>Setujui cair</button>
               <button className="toggle-button deactivate" disabled={busyId === `b-${item.id}`} onClick={() => void call(`b-${item.id}`, `/api/admin/simpanan/berjangka/${item.id}/pencairan/tolak`, 'POST', undefined, `Tolak pengajuan pencairan dipercepat ${item.namaAnggota}? Simpanan tetap aktif.`)}>Tolak cair</button>
@@ -1327,16 +1587,16 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
 
     <section className="table-panel">
       <div className="panel-heading">
-        <div><h2>Rekap tagihan kredit</h2><p>Rekap hutang kredit produk per anggota untuk dikirim ke SDM (potong gaji). Total outstanding ditampilkan: <strong>{rupiah(totalOutstanding)}</strong>.</p></div>
+        <div><h2>Rekap tagihan kredit</h2><p>Rekap hutang kredit produk per anggota untuk dikirim ke SDM (potong gaji). Tagihan harus berstatus "Dikirim ke SDM" dulu sebelum bisa ditandai Lunas. Total outstanding ditampilkan: <strong>{rupiah(totalOutstanding)}</strong>.</p></div>
         <select value={rekapAnggota} onChange={(e) => setRekapAnggota(e.target.value)} style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8, background: '#fff' }}>
           <option value="semua">Semua anggota</option>
           {rekap.map((g) => <option key={g.penggunaId} value={String(g.penggunaId)}>{g.nama}</option>)}
         </select>
       </div>
-      {rekapAnggota === 'semua' && rekap.some((g) => g.totalBelum > 0) && (
+      {rekapAnggota === 'semua' && (rekap.some((g) => g.totalBelum > 0) || rekap.some((g) => g.totalDikirim > 0)) && (
         <div style={{ padding: '12px 25px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 8 }}>
-          <button className="toggle-button activate" disabled={busyId === 'rekap-kirim'} onClick={() => void call('rekap-kirim', '/api/admin/produk/tagihan-kredit/kirim', 'POST', {}, 'Tandai SEMUA tagihan "Belum" dikirim ke SDM?')}>Kirim semua ke SDM</button>
-          <button className="toggle-button activate" disabled={busyId === 'rekap-lunas'} onClick={() => void call('rekap-lunas', '/api/admin/produk/tagihan-kredit/lunas', 'POST', {}, 'Tandai SEMUA tagihan belum lunas menjadi LUNAS?')}>Tandai semua lunas</button>
+          {rekap.some((g) => g.totalBelum > 0) && <button className="toggle-button activate" disabled={busyId === 'rekap-kirim'} onClick={() => void call('rekap-kirim', '/api/admin/produk/tagihan-kredit/kirim', 'POST', {}, 'Tandai SEMUA tagihan "Belum" dikirim ke SDM?')}>Kirim semua ke SDM</button>}
+          {rekap.some((g) => g.totalDikirim > 0) && <button className="toggle-button activate" disabled={busyId === 'rekap-lunas'} onClick={() => void call('rekap-lunas', '/api/admin/produk/tagihan-kredit/lunas', 'POST', {}, 'Tandai SEMUA tagihan yang SUDAH DIKIRIM ke SDM menjadi LUNAS? (Tagihan yang belum dikirim tidak akan disentuh.)')}>Tandai semua lunas</button>}
         </div>
       )}
       <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Belum ditagih</th><th>Dikirim ke SDM</th><th>Lunas</th><th className="align-right">Aksi</th></tr></thead><tbody>
@@ -1349,7 +1609,7 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
             <td className="align-right"><span style={{ display: 'inline-flex', gap: 6 }}>
               <button className="toggle-button" onClick={() => setRekapExpanded(rekapExpanded === g.penggunaId ? null : g.penggunaId)}>{rekapExpanded === g.penggunaId ? 'Tutup' : 'Rincian'}</button>
               {g.totalBelum > 0 && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/kirim', 'POST', { penggunaId: g.penggunaId }, `Tandai tagihan "Belum" milik ${g.nama} (${rupiah(g.totalBelum)}) dikirim ke SDM?`)}>Kirim ke SDM</button>}
-              {(g.totalBelum > 0 || g.totalDikirim > 0) && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/lunas', 'POST', { penggunaId: g.penggunaId }, `Tandai semua tagihan ${g.nama} (${rupiah(g.totalBelum + g.totalDikirim)}) LUNAS?`)}>Tandai lunas</button>}
+              {g.totalDikirim > 0 && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/lunas', 'POST', { penggunaId: g.penggunaId }, `Tandai tagihan ${g.nama} yang sudah dikirim ke SDM (${rupiah(g.totalDikirim)}) LUNAS?`)}>Tandai lunas</button>}
             </span></td>
           </tr>,
           rekapExpanded === g.penggunaId && <tr key={`${g.penggunaId}-d`}><td colSpan={5} style={{ background: '#f7faf9' }}>
@@ -1535,6 +1795,7 @@ function currentPeriode() {
 }
 
 function PayrollView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [tab, setTab] = useState<'rekap' | 'terkirim'>('rekap')
   const [periode, setPeriode] = useState(currentPeriode())
   const [rekap, setRekap] = useState<PayrollRekap | null>(null)
   const [loading, setLoading] = useState(false)
@@ -1600,6 +1861,12 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
       <div><h2>Laporan potong gaji (payroll)</h2><p>Rekap otomatis Simpanan Wajib + Tagihan Kredit produk per anggota untuk periode terpilih, siap dikirim ke bagian SDM.</p></div>
       <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div>
     </section>
+    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <button className={`toggle-button ${tab === 'rekap' ? 'activate' : ''}`} onClick={() => setTab('rekap')}>Rekap periode ini</button>
+      <button className={`toggle-button ${tab === 'terkirim' ? 'activate' : ''}`} onClick={() => setTab('terkirim')}>Sudah dikirim ke SDM</button>
+    </div>
+
+    {tab === 'terkirim' ? <TerkirimSdmPanel token={token} onExpired={onExpired} /> : <>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
     <section className="stat-grid">
@@ -1631,6 +1898,95 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
         </tr>)}
       </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}</div>
     </section>
+    </>}
+  </div>
+}
+
+function TerkirimSdmPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [wajib, setWajib] = useState<TagihanWajib[]>([])
+  const [kredit, setKredit] = useState<TagihanKredit[]>([])
+  const [periodeFilter, setPeriodeFilter] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+  const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const [wajibResponse, kreditResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/simpanan/wajib`, { headers }),
+        fetch(`${API_BASE}/api/admin/produk/tagihan-kredit`, { headers }),
+      ])
+      if (wajibResponse.status === 401 || kreditResponse.status === 401) { onExpired(); return }
+      if (!wajibResponse.ok || !kreditResponse.ok) throw new Error('Gagal memuat riwayat terkirim ke SDM.')
+      const wajibData: TagihanWajib[] = await wajibResponse.json()
+      const kreditData: TagihanKredit[] = await kreditResponse.json()
+      setWajib(wajibData.filter((item) => item.status === 'Dibayar'))
+      setKredit(kreditData.filter((item) => item.status === 'DikirimKeSDM' || item.status === 'Lunas'))
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [headers, onExpired])
+  useEffect(() => { void load() }, [load])
+
+  const tandaiLunas = async (penggunaId: number, nama: string) => {
+    if (!window.confirm(`Tandai semua tagihan kredit ${nama} yang sudah dikirim ke SDM sebagai LUNAS?`)) return
+    setBusyId(`k-${penggunaId}`); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/produk/tagihan-kredit/lunas`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ penggunaId }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menandai lunas.')
+      flash(data.message ?? 'Berhasil.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menandai lunas.') }
+    finally { setBusyId('') }
+  }
+
+  const wajibTampil = periodeFilter ? wajib.filter((item) => item.periode === periodeFilter) : wajib
+  const totalWajib = wajibTampil.reduce((sum, item) => sum + item.nominal, 0)
+  const totalKredit = kredit.reduce((sum, item) => sum + item.total, 0)
+
+  return <div>
+    {error && <div className="alert error"><X size={17} />{error}</div>}
+    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+    <section className="stat-grid">
+      <StatCard label="Simpanan Wajib sudah dibayar" value={totalWajib} icon={<PiggyBank size={20} />} tone="blue" money />
+      <StatCard label="Tagihan Kredit terkirim/lunas" value={totalKredit} icon={<HandCoins size={20} />} tone="amber" money />
+    </section>
+
+    <section className="table-panel" style={{ marginBottom: 22 }}>
+      <div className="panel-heading">
+        <div><h2>Simpanan Wajib — sudah dibayar</h2><p>Tagihan wajib yang sudah disetujui pengurus (saldo sudah dikreditkan) — riwayat seluruh periode.</p></div>
+        <input type="month" value={periodeFilter} onChange={(e) => setPeriodeFilter(e.target.value)} placeholder="Semua periode" style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+      </div>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Periode</th><th>Nominal</th><th>Diproses</th></tr></thead><tbody>
+        {wajibTampil.map((item) => <tr key={item.id}>
+          <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><strong>{item.namaAnggota}</strong></div></td>
+          <td className="mono">{item.nomorIndukKaryawan}</td>
+          <td>{item.periode}</td>
+          <td>{rupiah(item.nominal)}</td>
+          <td>{item.diprosesPada ? tanggal(item.diprosesPada) : '—'}</td>
+        </tr>)}
+      </tbody></table>{!loading && wajibTampil.length === 0 && <div className="empty-state">Belum ada Simpanan Wajib yang sudah dibayar.</div>}</div>
+    </section>
+
+    <section className="table-panel">
+      <div className="panel-heading"><div><h2>Tagihan Kredit — sudah dikirim ke SDM</h2><p>Termasuk yang masih menunggu potongan gaji (Dikirim) maupun yang sudah lunas.</p></div></div>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Transaksi</th><th>Total</th><th>Dikirim</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {kredit.map((item) => <tr key={item.id}>
+          <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><strong>{item.namaAnggota}</strong></div></td>
+          <td className="mono">{item.nomorIndukKaryawan}</td>
+          <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorTransaksi}</small></td>
+          <td>{rupiah(item.total)}</td>
+          <td>{item.dikirimPada ? tanggal(item.dikirimPada) : '—'}</td>
+          <td><span className={`status-pill ${item.status === 'Lunas' ? 'active' : ''}`}><i />{item.status === 'Lunas' ? `Lunas${item.lunasPada ? ` (${tanggal(item.lunasPada)})` : ''}` : 'Dikirim, menunggu potong gaji'}</span></td>
+          <td className="align-right">{item.status === 'DikirimKeSDM' && <button className="toggle-button activate" disabled={busyId === `k-${item.penggunaId}`} onClick={() => void tandaiLunas(item.penggunaId, item.namaAnggota)}>Tandai lunas</button>}</td>
+        </tr>)}
+      </tbody></table>{!loading && kredit.length === 0 && <div className="empty-state">Belum ada Tagihan Kredit yang dikirim ke SDM.</div>}</div>
+    </section>
   </div>
 }
 
@@ -1640,14 +1996,24 @@ const inputStyle: CSSProperties = { height: 38, padding: '0 10px', border: '1px 
 const labelStyle: CSSProperties = { display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }
 
 function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) {
+  // Sengaja tidak pakai elemen <table> di sini — CSS global untuk tabel data admin (table{min-width:760px})
+  // memaksa ringkasan kecil ini melebar dan tumpang tindih dengan kolom sebelahnya saat disusun berdampingan.
   const total = items.reduce((s, a) => s + a.saldo, 0)
-  return <div style={{ flex: 1, minWidth: 260 }}>
+  return <div style={{ flex: 1, minWidth: 260, maxWidth: '100%' }}>
     <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 8px' }}>{title}</h3>
-    <table style={{ width: '100%' }}><tbody>
-      {items.map((a) => <tr key={a.kode}><td className="mono" style={{ padding: '4px 0', color: 'var(--muted)', fontSize: 11 }}>{a.kode}</td><td style={{ padding: '4px 8px' }}>{a.nama}</td><td style={{ padding: '4px 0', textAlign: 'right' }}>{rupiah(a.saldo)}</td></tr>)}
-      {items.length === 0 && <tr><td colSpan={3} style={{ padding: '6px 0', color: 'var(--muted)', fontSize: 12 }}>Belum ada saldo.</td></tr>}
-      <tr style={{ borderTop: '1px solid var(--line)', fontWeight: 800 }}><td colSpan={2} style={{ padding: '6px 0' }}>Total</td><td style={{ padding: '6px 0', textAlign: 'right' }}>{rupiah(total)}</td></tr>
-    </tbody></table>
+    <div>
+      {items.map((a) => <div key={a.kode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '6px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+        <span style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'baseline' }}>
+          <span className="mono" style={{ color: 'var(--muted)', fontSize: 11, flexShrink: 0 }}>{a.kode}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nama}</span>
+        </span>
+        <span style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>{rupiah(a.saldo)}</span>
+      </div>)}
+      {items.length === 0 && <div style={{ padding: '6px 0', color: 'var(--muted)', fontSize: 12 }}>Belum ada saldo.</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--line)', fontWeight: 800, padding: '6px 0', fontSize: 12 }}>
+        <span>Total</span><span>{rupiah(total)}</span>
+      </div>
+    </div>
   </div>
 }
 

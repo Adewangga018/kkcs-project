@@ -326,6 +326,16 @@ class AuthService {
     return SavingsOverview.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<PersonalCashFlow> fetchCashFlow() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/akun/arus-kas'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    return PersonalCashFlow.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<List<ShuHistoryEntry>> fetchMyShu() async {
     final token = await _getToken();
     final response = await _sendRequest(() => http.get(
@@ -3265,6 +3275,37 @@ class SavingsOverview {
       );
 }
 
+// ── Arus kas pribadi ─────────────────────────────────────────────────────────
+class CashFlowItem {
+  const CashFlowItem({required this.tanggal, required this.kategori, required this.keterangan, required this.masuk, required this.nominal});
+  final DateTime tanggal;
+  final String kategori;
+  final String keterangan;
+  final bool masuk;
+  final double nominal;
+  factory CashFlowItem.fromJson(Map<String, dynamic> json) => CashFlowItem(
+        tanggal: DateTime.parse(json['tanggal'] as String),
+        kategori: json['kategori'] as String,
+        keterangan: json['keterangan'] as String,
+        masuk: json['arah'] == 'Masuk',
+        nominal: (json['nominal'] as num).toDouble(),
+      );
+}
+
+class PersonalCashFlow {
+  const PersonalCashFlow({required this.totalMasuk, required this.totalKeluar, required this.saldoBersih, required this.riwayat});
+  final double totalMasuk;
+  final double totalKeluar;
+  final double saldoBersih;
+  final List<CashFlowItem> riwayat;
+  factory PersonalCashFlow.fromJson(Map<String, dynamic> json) => PersonalCashFlow(
+        totalMasuk: (json['totalMasuk'] as num).toDouble(),
+        totalKeluar: (json['totalKeluar'] as num).toDouble(),
+        saldoBersih: (json['saldoBersih'] as num).toDouble(),
+        riwayat: (json['riwayat'] as List<dynamic>).map((e) => CashFlowItem.fromJson(e as Map<String, dynamic>)).toList(),
+      );
+}
+
 String _statusLabel(String status) => switch (status) {
       'Ditagih' => 'Menunggu konfirmasi pengurus',
       'Dibayar' => 'Lunas',
@@ -3797,6 +3838,133 @@ class _PersonalDataCard extends StatelessWidget {
   }
 }
 
+class _CashFlowCard extends StatefulWidget {
+  const _CashFlowCard({required this.loading, required this.error, required this.data, required this.onRefresh});
+
+  final bool loading;
+  final String? error;
+  final PersonalCashFlow? data;
+  final Future<void> Function() onRefresh;
+
+  @override
+  State<_CashFlowCard> createState() => _CashFlowCardState();
+}
+
+class _CashFlowCardState extends State<_CashFlowCard> {
+  bool _showAll = false;
+
+  IconData _iconFor(String kategori) => switch (kategori) {
+        'Simpanan' => Icons.savings_outlined,
+        'Pinjaman' => Icons.request_quote_outlined,
+        'Katalog' => Icons.storefront_outlined,
+        _ => Icons.swap_horiz,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final data = widget.data;
+    final riwayat = data?.riwayat ?? const <CashFlowItem>[];
+    final tampil = _showAll ? riwayat : riwayat.take(6).toList();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Expanded(child: Text('Arus kas pribadi', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+            IconButton(
+              onPressed: widget.loading ? null : () => widget.onRefresh(),
+              icon: widget.loading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.refresh, size: 20),
+              tooltip: 'Muat ulang',
+            ),
+          ]),
+          Text('Ringkasan uang masuk & keluar dari simpanan, pinjaman, dan belanja katalog Anda.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+          const SizedBox(height: 14),
+          if (widget.error != null)
+            Text(widget.error!, style: TextStyle(color: colors.error))
+          else if (data == null && widget.loading)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Center(child: CircularProgressIndicator()))
+          else if (data != null) ...[
+            Row(children: [
+              Expanded(child: _CashFlowStat(label: 'Masuk', value: data.totalMasuk, color: Colors.green.shade700, icon: Icons.arrow_downward)),
+              const SizedBox(width: 10),
+              Expanded(child: _CashFlowStat(label: 'Keluar', value: data.totalKeluar, color: Colors.red.shade700, icon: Icons.arrow_upward)),
+              const SizedBox(width: 10),
+              Expanded(child: _CashFlowStat(label: 'Bersih', value: data.saldoBersih, color: colors.primary, icon: Icons.account_balance_wallet_outlined)),
+            ]),
+            const SizedBox(height: 12),
+            if (riwayat.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text('Belum ada aktivitas keuangan tercatat.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+              )
+            else ...[
+              const Divider(height: 20),
+              ...tampil.map((item) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: (item.masuk ? Colors.green : Colors.red).withValues(alpha: .1),
+                        child: Icon(_iconFor(item.kategori), size: 16, color: item.masuk ? Colors.green.shade700 : Colors.red.shade700),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(item.keterangan, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          Text(_monthLabel(item.tanggal), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45, fontSize: 11)),
+                        ]),
+                      ),
+                      Text(
+                        '${item.masuk ? '+' : '−'}${formatRupiah(item.nominal)}',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: item.masuk ? Colors.green.shade700 : Colors.red.shade700),
+                      ),
+                    ]),
+                  )),
+              if (riwayat.length > 6)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() => _showAll = !_showAll),
+                    child: Text(_showAll ? 'Tampilkan lebih sedikit' : 'Lihat semua (${riwayat.length})'),
+                  ),
+                ),
+            ],
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _CashFlowStat extends StatelessWidget {
+  const _CashFlowStat({required this.label, required this.value, required this.color, required this.icon});
+
+  final String label;
+  final double value;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 15, color: color),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: .85))),
+        const SizedBox(height: 2),
+        Text(formatRupiah(value), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: color)),
+      ]),
+    );
+  }
+}
+
 class _AccountSectionCard extends StatelessWidget {
   const _AccountSectionCard({required this.icon, required this.title, required this.subtitle, required this.children});
 
@@ -3872,6 +4040,10 @@ class _AccountPageState extends State<AccountPage> {
   bool _savingProfile = false;
   bool _uploadingPhoto = false;
 
+  bool _loadingCashFlow = true;
+  String? _cashFlowError;
+  PersonalCashFlow? _cashFlow;
+
   @override
   void initState() {
     super.initState();
@@ -3880,6 +4052,24 @@ class _AccountPageState extends State<AccountPage> {
     _emailController = TextEditingController(text: _user.email ?? '');
     _phoneController = TextEditingController(text: _user.nomorTelepon ?? '');
     _addressController = TextEditingController(text: _user.alamat ?? '');
+    _loadCashFlow();
+  }
+
+  Future<void> _loadCashFlow() async {
+    setState(() {
+      _loadingCashFlow = true;
+      _cashFlowError = null;
+    });
+    try {
+      final data = await AuthService().fetchCashFlow();
+      if (!mounted) return;
+      setState(() => _cashFlow = data);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _cashFlowError = error is ApiException ? error.message : 'Gagal memuat arus kas.');
+    } finally {
+      if (mounted) setState(() => _loadingCashFlow = false);
+    }
   }
 
   @override
@@ -4011,6 +4201,8 @@ class _AccountPageState extends State<AccountPage> {
               saving: _savingProfile,
               onSave: _saveProfile,
             ),
+            const SizedBox(height: 20),
+            _CashFlowCard(loading: _loadingCashFlow, error: _cashFlowError, data: _cashFlow, onRefresh: _loadCashFlow),
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: () => _logout(context),

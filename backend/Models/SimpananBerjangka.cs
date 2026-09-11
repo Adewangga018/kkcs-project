@@ -25,9 +25,14 @@ public class SimpananBerjangka
 
     public DateTime? DicairkanPada { get; set; }
 
-    // Bunga yang dibayarkan saat pencairan (flat: nominal x rate x tenor/12).
-    // 0 jika dicairkan sebelum jatuh tempo.
+    // Bunga BRUTO yang dihitung saat pencairan (flat: nominal x rate x tenor/12).
+    // 0 jika dicairkan sebelum jatuh tempo (pencairan dipercepat, bunga hangus).
     public decimal? BungaDibayar { get; set; }
+
+    // PPh yang dipotong dari BungaDibayar di atas, dan bunga neto yang benar-benar masuk ke Simpanan
+    // Sukarela (BungaDibayar - PajakBunga). Keduanya 0/null kalau BungaDibayar juga 0/null.
+    public decimal? PajakBunga { get; set; }
+    public decimal? BungaNeto { get; set; }
 
     // Pengajuan pencairan dipercepat oleh anggota (sebelum jatuh tempo).
     public bool PencairanDiajukan { get; set; }
