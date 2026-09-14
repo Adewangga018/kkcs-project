@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
-import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, Fingerprint, HandCoins, KeyRound, LayoutDashboard, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
+import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, KeyRound, LayoutDashboard, Lightbulb, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
 
 type AdminUser = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string }
@@ -80,8 +80,8 @@ type PaymentRequest = {
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
 }
 
-type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'akun' | 'audit'
-const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', anggota: 'Manajemen Anggota', simpanpinjam: 'Simpan Pinjam', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', akuntansi: 'Akuntansi & Keuangan', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail' }
+type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'akun' | 'audit' | 'panduan'
+const VIEW_TITLE: Record<View, string> = { dashboard: 'Dashboard', anggota: 'Manajemen Anggota', simpanpinjam: 'Simpan Pinjam', katalog: 'Katalog produk', erat: 'E-RAT & dokumen', akuntansi: 'Akuntansi & Keuangan', akun: 'Akun & Peran Pengguna', audit: 'Audit Trail', panduan: 'Panduan Pengurus' }
 type AnggotaTab = 'pendaftaran' | 'direktori' | 'payroll'
 type SimpanPinjamTab = 'simpanan' | 'pinjaman'
 type AkuntansiTab = 'jurnal' | 'neraca' | 'laba-rugi' | 'shu' | 'arus-kas' | 'akun'
@@ -167,6 +167,8 @@ function App() {
           <button className={`nav-item ${view === 'akun' ? 'active' : ''}`} onClick={() => goto('akun')}><UserCog size={18} /> Akun & Peran</button>
           <button className={`nav-item ${view === 'audit' ? 'active' : ''}`} onClick={() => goto('audit')}><Fingerprint size={18} /> Audit Trail</button>
         </>}
+        <div style={{ margin: '10px 13px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#7fa39c', textTransform: 'uppercase' }}>Bantuan</div>
+        <button className={`nav-item ${view === 'panduan' ? 'active' : ''}`} onClick={() => goto('panduan')}><HelpCircle size={18} /> Panduan Pengurus</button>
       </nav>
       <div className="sidebar-footer"><ShieldCheck size={16} /> Role-based access</div>
     </aside>
@@ -184,6 +186,7 @@ function App() {
       {view === 'akuntansi' && <AkuntansiView token={token} onExpired={handleExpired} tab={akuntansiTab} setTab={setAkuntansiTab} />}
       {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
       {view === 'audit' && isAdmin && <AuditTrailView token={token} onExpired={handleExpired} />}
+      {view === 'panduan' && <PanduanView isAdmin={isAdmin} goto={goto} />}
     </main>
   </div>
 }
@@ -2499,6 +2502,175 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
       </tbody></table>{!loading && riwayat.length === 0 && <div className="empty-state">Belum ada SHU yang difinalisasi.</div>}</div>
     </section>
   </>
+}
+
+type PanduanItem = {
+  key: string; icon: ReactNode; judul: string; warna: string; latar: string
+  ringkasan: string
+  poin: string[]
+  tips?: string
+  target?: View
+  adminOnly?: boolean
+}
+
+function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View) => void }) {
+  const menu: PanduanItem[] = [
+    {
+      key: 'dashboard', icon: <LayoutDashboard size={22} />, judul: 'Dashboard', warna: '#087f78', latar: '#d8f1ec',
+      ringkasan: 'Halaman pertama yang Anda lihat — ringkasan kondisi koperasi hari ini dalam sekali pandang.',
+      poin: [
+        'Kartu besar di atas menunjukkan jumlah anggota aktif, total simpanan koperasi, pinjaman aktif, dan laba bersih tahun berjalan.',
+        'Kotak kuning "Perlu tindakan Anda" muncul kalau ada pengajuan yang menunggu persetujuan — klik salah satu chip-nya untuk langsung dibawa ke menu & tab yang tepat.',
+        'Grafik tren 6 bulan menampilkan pendapatan vs beban, dan donut chart menunjukkan komposisi simpanan anggota.',
+        'Bagian bawah memuat aktivitas terbaru yang tercatat di seluruh sistem.',
+      ],
+      tips: 'Jadikan halaman ini kebiasaan pertama tiap kali login — supaya tidak ada pengajuan anggota yang lolos tanpa diproses.',
+    },
+    {
+      key: 'anggota', icon: <Users size={22} />, judul: 'Manajemen Anggota', warna: '#375e86', latar: '#e2ecf7',
+      ringkasan: 'Satu menu, tiga tab: dari calon anggota mendaftar sampai potongan gajinya direkap.',
+      poin: [
+        'Tab "Pendaftaran" — setujui atau tolak calon anggota baru. Setelah disetujui, Simpanan Pokok otomatis dikreditkan.',
+        'Tab "Direktori Anggota" — cari anggota, klik namanya untuk pop-up detail lengkap: rincian simpanan, riwayat pinjaman, dan riwayat belanja katalog.',
+        'Tab "Payroll" — rekap otomatis Simpanan Wajib + Tagihan Kredit per anggota untuk periode berjalan, siap dikirim ke bagian SDM, plus riwayat yang sudah dikirim/lunas.',
+      ],
+      tips: 'Anggota baru wajib disetujui dulu di tab Pendaftaran sebelum muncul di Direktori maupun bisa ikut transaksi lain.',
+      target: 'anggota',
+    },
+    {
+      key: 'simpanpinjam', icon: <PiggyBank size={22} />, judul: 'Simpan Pinjam', warna: '#ad6a16', latar: '#f8ead0',
+      ringkasan: 'Jantung operasional koperasi — kelola simpanan anggota dan proses pinjaman, dalam dua tab.',
+      poin: [
+        'Tab "Simpanan" — atur nominal Pokok/Wajib & suku bunga, setujui tagihan Wajib per periode, setujui setoran/penarikan Sukarela, kelola paket & pencairan Simpanan Berjangka (deposito), dan trigger hitung bunga bulanan.',
+        'Tab "Pinjaman" — tinjau pengajuan pinjaman baru (setujui/tolak), proses pembayaran angsuran & pelunasan dipercepat, lihat riwayat lengkap tiap pinjaman anggota.',
+      ],
+      tips: 'Bunga simpanan sukarela dan bunga deposito sama-sama otomatis dipotong PPh sebelum masuk ke saldo anggota — nominalnya selalu ditampilkan terpisah (bruto vs neto) di tabelnya.',
+      target: 'simpanpinjam',
+    },
+    {
+      key: 'katalog', icon: <Store size={22} />, judul: 'Katalog', warna: '#6b4fa8', latar: '#ece4f7',
+      ringkasan: 'Toko koperasi — baik barang milik koperasi sendiri maupun barang titipan anggota.',
+      poin: [
+        'Kelola produk milik koperasi (tambah, ubah harga & stok) dan setujui/tolak produk titipan yang diajukan anggota.',
+        'Setujui transaksi pembelian — Tunai langsung selesai, sedangkan Kredit (potong gaji) membuat Tagihan Kredit baru.',
+        'Kelola Tagihan Kredit: kirim ke SDM, lalu tandai lunas setelah potongan gaji dikonfirmasi — tagihan wajib berstatus "Dikirim ke SDM" dulu sebelum bisa dilunasi.',
+      ],
+      target: 'katalog',
+    },
+    {
+      key: 'erat', icon: <Vote size={22} />, judul: 'E-RAT & Dokumen', warna: '#2d8155', latar: '#e4f3e7',
+      ringkasan: 'Rapat Anggota Tahunan secara digital — voting dan arsip dokumen resmi.',
+      poin: [
+        'Buat agenda voting (misalnya pemilihan pengurus atau persetujuan program kerja), tambah/hapus pilihan, lalu tayangkan agar anggota bisa memberi suara lewat aplikasi.',
+        'Tutup agenda setelah selesai untuk mengunci hasil voting.',
+        'Unggah dan kelola dokumen RAT (laporan tahunan) yang bisa diunduh anggota.',
+      ],
+      target: 'erat',
+    },
+    {
+      key: 'akuntansi', icon: <BookOpen size={22} />, judul: 'Akuntansi & Keuangan', warna: '#087f78', latar: '#d8f1ec',
+      ringkasan: '"Dapur" koperasi — semua transaksi di menu lain otomatis tercatat di sini sebagai jurnal.',
+      poin: [
+        'Tab "Jurnal Umum" — riwayat semua jurnal (otomatis dari transaksi + manual), dan form untuk mencatat transaksi di luar sistem (gaji staf, listrik, sewa, dll).',
+        'Tab "Neraca" — Aset vs Liabilitas+Ekuitas per tanggal, dengan indikator apakah sudah balance.',
+        'Tab "Laba Rugi" — pendapatan dikurangi beban pada rentang tanggal, jadi dasar penentuan Total SHU.',
+        'Tab "SHU" — kalkulator Sisa Hasil Usaha: hitung pratinjau per anggota (JMA + JUA, sudah dipotong PPh), lalu finalisasi agar tayang ke aplikasi anggota.',
+        'Tab "Arus Kas" — pergerakan kas masuk/keluar pada rentang tanggal.',
+        'Tab "Bagan Akun" — daftar akun akuntansi standar; boleh menambah akun baru non-sistem.',
+      ],
+      tips: 'Kalau Neraca tidak balance (selisih ≠ Rp 0), biasanya ada jurnal manual yang kurang tepat — cek di tab Jurnal Umum.',
+      target: 'akuntansi',
+    },
+  ]
+
+  const adminMenu: PanduanItem[] = [
+    {
+      key: 'akun', icon: <UserCog size={22} />, judul: 'Akun & Peran Pengguna', warna: '#725128', latar: '#f8ead0',
+      ringkasan: 'Khusus Admin — kelola siapa saja yang punya akses ke sistem dan sebagai apa.',
+      poin: [
+        'Lihat semua akun, aktifkan/nonaktifkan login seseorang.',
+        'Ubah peran pengguna: Admin, Pengurus, atau Anggota (tidak bisa menurunkan/menonaktifkan satu-satunya Admin yang tersisa).',
+        'Reset akses (password) anggota yang lupa password — sistem membuatkan password sementara untuk disampaikan langsung.',
+        'Impor/ekspor data anggota massal lewat CSV.',
+      ],
+      target: 'akun', adminOnly: true,
+    },
+    {
+      key: 'audit', icon: <Fingerprint size={22} />, judul: 'Audit Trail', warna: '#9a5a41', latar: '#f8e9e2',
+      ringkasan: 'Khusus Admin — jejak digital setiap perubahan data sensitif, untuk transparansi dan pengawasan.',
+      poin: [
+        'Tab "Aktivitas aplikasi" — siapa melakukan apa lewat admin console (persetujuan, perubahan peran, dll), bisa difilter per modul.',
+        'Tab "Log database" — dicatat langsung oleh database, mencakup perubahan lewat jalur mana pun (termasuk kalau ada yang mengedit data langsung lewat tool database), lengkap dengan tombol verifikasi integritas rantai datanya.',
+      ],
+      target: 'audit', adminOnly: true,
+    },
+  ]
+
+  const semua = isAdmin ? [...menu, ...adminMenu] : menu
+
+  return <div className="content-wrap">
+    <section className="welcome-row" style={{
+      background: 'linear-gradient(120deg, #0b6e69 0%, #0f8a7f 55%, #14a693 100%)',
+      borderRadius: 16, padding: '28px 32px', color: '#fff', marginBottom: 24, alignItems: 'center',
+      boxShadow: '0 18px 45px rgba(11,110,105,.28)',
+    }}>
+      <div>
+        <p className="eyebrow" style={{ color: '#bdeee3', display: 'flex', alignItems: 'center', gap: 6 }}><HelpCircle size={14} /> PANDUAN PENGURUS</p>
+        <h1 style={{ margin: '4px 0 6px', fontSize: 24 }}>Bingung mulai dari mana? 👋</h1>
+        <p style={{ color: '#dcf3ec', margin: 0, fontSize: 13, maxWidth: 560 }}>
+          Halaman ini menjelaskan setiap menu di admin console — apa fungsinya dan apa saja yang bisa Anda lakukan di sana.
+          Klik "Buka menu ini" pada tiap kartu untuk langsung mencobanya.
+        </p>
+      </div>
+    </section>
+
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+      {semua.map((m) => (
+        <a key={m.key} href={`#panduan-${m.key}`} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20,
+          background: m.latar, color: m.warna, fontSize: 12, fontWeight: 700, textDecoration: 'none',
+        }}>{m.judul}</a>
+      ))}
+    </div>
+
+    <div style={{ display: 'grid', gap: 18 }}>
+      {semua.map((m) => (
+        <section key={m.key} id={`panduan-${m.key}`} className="table-panel" style={{ scrollMarginTop: 20 }}>
+          <div className="panel-heading" style={{ alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: m.latar, color: m.warna, flexShrink: 0 }}>{m.icon}</span>
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{m.judul} {m.adminOnly && <span className="role-pill admin">Khusus Admin</span>}</h2>
+                <p>{m.ringkasan}</p>
+              </div>
+            </div>
+            {m.target && <button className="toggle-button activate" style={{ flexShrink: 0 }} onClick={() => goto(m.target as View)}>Buka menu ini</button>}
+          </div>
+          <div style={{ padding: '4px 25px 22px' }}>
+            <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8 }}>
+              {m.poin.map((p, i) => <li key={i} style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{p}</li>)}
+            </ul>
+            {m.tips && (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'start', marginTop: 16, padding: '12px 14px', borderRadius: 10, background: '#fdf7ee', border: '1px solid #f2d9b8' }}>
+                <Lightbulb size={16} color="#ad6a16" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 12.5, color: '#8a5a1f' }}>{m.tips}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      ))}
+    </div>
+
+    <section className="table-panel" style={{ marginTop: 18 }}>
+      <div style={{ padding: '20px 25px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: '#e5f4ef', color: 'var(--teal-dark)', flexShrink: 0 }}><HelpCircle size={22} /></span>
+        <div>
+          <strong style={{ display: 'block', marginBottom: 3 }}>Masih ada yang membingungkan?</strong>
+          <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>Tanyakan ke sesama pengurus atau hubungi tim pengembang aplikasi — halaman ini akan terus diperbarui seiring bertambahnya fitur baru.</span>
+        </div>
+      </div>
+    </section>
+  </div>
 }
 
 function StatCard({ label, value, icon, tone, money }: { label: string; value: number; icon: ReactNode; tone: string; money?: boolean }) {
