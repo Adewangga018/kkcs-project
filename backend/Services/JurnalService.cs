@@ -14,9 +14,11 @@ public static class KodeAkun
     public const string SimpananBerjangka = "2-2300";
     public const string UtangPph = "2-2400";
     public const string UtangShuAnggota = "2-2500";
+    public const string UtangJasaPengurus = "2-2600";
     public const string SimpananPokok = "3-3100";
     public const string SimpananWajib = "3-3200";
     public const string ShuDitahan = "3-3900";
+    public const string CadanganKoperasi = "3-3910";
     public const string PendapatanJasaPinjaman = "4-4100";
     public const string PendapatanPenjualanProduk = "4-4200";
     public const string BebanBungaSukarela = "5-5100";

@@ -3,12 +3,16 @@
 Dokumen ini berisi data dummy yang sudah disiapkan di database (bukan mock — data nyata lewat API,
 supaya jurnal akuntansi & audit trail-nya ikut konsisten) beserta langkah-langkah testing per menu.
 
+> **Update 14 Sep 2026**: seluruh data dummy sebelumnya (akun ANG001–ANG005, transaksi, jurnal, dan
+> SHU run lama) sudah dihapus total dan dibuat ULANG dari nol lewat API asli — Neraca sekarang mulai
+> seimbang dari Rp 0 lagi. Skenario di bawah ini sudah diperbarui dan diverifikasi berjalan (Neraca
+> selisih = 0 setelah seeding).
+
 - **Admin console**: http://localhost:5173
 - **Backend API**: http://localhost:5168
 - **Login Anda (ASD)**: tetap sebagai Admin, pakai kredensial Anda sendiri seperti biasa.
 
-> Kalau backend belum jalan, jalankan `dotnet run` di folder `backend/`. Admin console (`npm run dev`
-> di folder `admin/`) sudah jalan di background.
+> Kalau backend belum jalan, jalankan `dotnet run` di folder `backend/`.
 
 ---
 
@@ -18,96 +22,58 @@ Semua pakai password yang sama supaya gampang diingat.
 
 | Nama | NIK | Password | Status | Peran skenario |
 |---|---|---|---|---|
-| Budi Santoso | `ANG001` | `Anggota123!` | Aktif | Anggota "lengkap" — riwayat simpanan, pinjaman lunas, belanja selesai |
-| Siti Aminah | `ANG002` | `Anggota123!` | Aktif | Pinjaman aktif berjalan + ada pengajuan menunggu persetujuan |
-| Rudi Hartono | `ANG003` | `Anggota123!` | Aktif | Serba "baru diajukan" — pinjaman, berjangka, titipan produk |
+| Budi Santoso | `ANG001` | `Anggota123!` | Aktif | Simpanan wajib+sukarela disetujui, pinjaman **Lunas** (pelunasan dipercepat), belanja tunai selesai |
+| Siti Aminah | `ANG002` | `Anggota123!` | Aktif | Pinjaman **Aktif** + 1 angsuran menunggu persetujuan, tagihan kredit belum lunas |
+| Rudi Hartono | `ANG003` | `Anggota123!` | Aktif | Serba "baru diajukan" — pinjaman, simpanan berjangka, titipan produk (sudah disetujui) |
 | Dewi Lestari | `ANG004` | `Anggota123!` | **Menunggu persetujuan** | Untuk tes alur approve/reject pendaftaran anggota baru |
-| Agus Wijaya | `ANG005` | `Anggota123!` | Aktif | Katalog & kredit — titipan produk, beli tunai, beli kredit |
+| Agus Wijaya | `ANG005` | `Anggota123!` | Aktif | Deposito **sudah dicairkan** (contoh jatuh tempo), titipan produk pending, tagihan kredit belum lunas |
 
-Anda bisa login ke aplikasi anggota (Flutter/web member) pakai NIK+password di atas kalau mau melihat
-sisi anggotanya juga. Login admin console tetap pakai akun ASD Anda.
+Login ke aplikasi anggota (Flutter/web member) pakai NIK+password di atas. Login admin console tetap
+pakai akun ASD Anda.
 
 ---
 
-## 2. Menu Pendaftaran
+## 2. Menu Manajemen Anggota → tab Pendaftaran
 
 **Data siap:** Dewi Lestari (`ANG004`) berstatus **Menunggu Persetujuan** — sengaja belum disentuh.
 
-**Yang bisa Anda test:**
-1. Buka menu **Pendaftaran** → cari "Dewi Lestari" di tabel.
-2. Klik **Setujui** → cek Simpanan Pokok Rp 100.000 otomatis masuk (lihat di menu Simpanan / Direktori Anggota).
-3. Kalau mau lihat alur tolak, daftarkan 1 akun baru sendiri lewat aplikasi anggota dulu, lalu klik **Tolak** di sini.
+1. Cari "Dewi Lestari" di tabel → klik **Setujui** → cek Simpanan Pokok Rp 100.000 otomatis masuk.
+2. Kalau mau lihat alur tolak, daftarkan 1 akun baru sendiri lewat aplikasi anggota, lalu klik **Tolak**.
 
 ---
 
-## 3. Menu Simpanan
+## 3. Menu Simpan Pinjam → tab Simpanan
 
 **Data siap:**
 
-| Anggota | Simpanan Wajib (periode 2026-09) | Simpanan Sukarela | Simpanan Berjangka |
+| Anggota | Simpanan Wajib (periode berjalan) | Simpanan Sukarela | Simpanan Berjangka |
 |---|---|---|---|
 | Budi | **Dibayar** (sudah disetujui) | Rp 500.000, **Disetujui** | — |
 | Siti | **Ditagih** (menunggu) | Rp 300.000, **menunggu persetujuan** | — |
 | Rudi | **Ditagih** (menunggu) | Rp 200.000, **menunggu persetujuan** | Deposito 3 Bulan Rp 1.000.000, **menunggu persetujuan** |
-| Agus | **Ditagih** (menunggu) | — | Deposito 3 Bulan Rp 1.000.000, **status JatuhTempo** (siap dicairkan) |
+| Agus | **Ditagih** (menunggu) | — (baru terisi setelah pencairan di bawah) | Deposito 3 Bulan Rp 1.000.000, **sudah Dicairkan** (contoh selesai) |
 | ASD (akun Anda) | **Ditagih** (menunggu) | — | — |
 
-> Catatan: tagihan Simpanan Wajib periode berjalan otomatis dibuat untuk **semua** anggota aktif
-> (termasuk akun ASD Anda sendiri) — itu bukan bug, itu cara kerja normal fitur "Buat tagihan bulan ini".
-
 **Yang bisa Anda test:**
-1. **Konfigurasi simpanan** — ubah nominal Pokok/Wajib/bunga/PPh, simpan, lihat berubah di panel lain.
-2. **Simpanan Wajib** — approve tagihan Siti/Rudi/Agus satu-satu, atau pakai tombol **"Setujui semua periode ini"** untuk uji approval massal. Tagihan Budi biarkan saja (sudah lunas, buat pembanding).
-3. **Simpanan Sukarela** — setujui/tolak setoran Siti & Rudi. Setelah disetujui, cek saldo sukarela mereka bertambah.
+1. **Konfigurasi simpanan** — ubah nominal Pokok/Wajib/bunga/PPh, lihat berubah di panel lain.
+2. **Simpanan Wajib** — approve tagihan Siti/Rudi/Agus satu-satu, atau **"Setujui semua periode ini"**.
+3. **Simpanan Sukarela** — setujui/tolak setoran Siti & Rudi, cek saldo bertambah setelah disetujui.
 4. **Simpanan Berjangka**:
    - Setujui/tolak pengajuan Rudi (masih `Diajukan`).
-   - Berjangka Agus sudah **Dicairkan** (contoh yang sudah dijalankan) — pokok + bunga **neto** (sudah dipotong PPh) masuk ke saldo Sukarela Agus. Tabel "Pengajuan Simpanan Berjangka" sekarang menampilkan **PPh** dan **Neto** langsung di bawah kolom "Est. bunga" untuk tiap baris (belum cair → berlabel "Est. PPh"/"Est. neto"; sudah cair → berlabel "PPh"/"Neto" sebagai angka final). Coba lihat baris Rudi (masih `Diajukan`, jadi masih estimasi) vs baris Agus (sudah `Dicairkan`, angka final: bruto Rp 11.250, PPh Rp 2.250, neto Rp 9.000).
-   - Coba buat 1 produk berjangka baru sendiri lewat panel "Paket Simpanan Berjangka" untuk lihat form-nya.
-
-### 3a. Cara kerja & cara test perhitungan Bunga Sukarela
-
-Tombol **"Hitung bunga bulan lalu"** di panel Simpanan Sukarela (`POST /api/admin/simpanan/sukarela/bunga`)
-memanggil `BungaSukarela.PostingAsync` (`backend/Services/SimpananService.cs`). Rumusnya:
-
-1. **Metode saldo harian** — untuk tiap hari dalam bulan yang ditutup, `Bunga hari itu = saldo akhir hari × (bunga tahunan ÷ 365)`. Kalau ada setor/tarik di hari itu, saldo yang dipakai adalah saldo **setelah** mutasi terakhir hari itu. Total bunga sebulan = jumlah bunga harian tadi, dibulatkan 2 desimal.
-2. **Hanya bisa menutup bulan yang sudah lewat** — bulan berjalan (dan masa depan) selalu menghasilkan 0, karena saldo hariannya belum final. Tombol di admin console defaultnya menutup **bulan lalu** dari tanggal hari ini.
-3. **Dibukukan dengan tanggal transaksi = tanggal terakhir bulan itu** (bukan tanggal Anda klik tombolnya) — jadi kalau Anda proses bulan Agustus hari ini, mutasinya tercatat seolah terjadi 31 Agustus.
-4. **PPh dipotong dari bunga bruto**: mutasi "Bunga" dicatat penuh (bruto) sebagai riwayat, lalu mutasi "Pajak" terpisah mengurangi saldo — jadi saldo akhir anggota hanya bertambah sebesar **bunga neto** (bruto − PPh). Sama polanya dengan yang sudah Anda lihat di pencairan deposito.
-5. **Idempoten** — sekali suatu periode+anggota sudah diposkan (dicatat di tabel `PostingBungaSukarela`), tombol ini tidak akan menghitung ulang/dobel untuk periode yang sama.
-6. Kalau dibiarkan, background job (`SimpananBackgroundService`) otomatis menjalankan penutupan bulan lalu ini setiap 6 jam — tombol di admin console ini murni untuk memicu manual/segera.
-
-**Supaya bisa langsung lihat hasilnya sekarang** (bukan menunggu Oktober): setoran sukarela Budi
-(Rp 500.000, disetujui) baru tercatat **bulan ini (September)**, jadi kalau Anda klik "Hitung bunga bulan
-lalu" sekarang, yang dihitung adalah bulan **Agustus** — di mana saldo Budi masih 0 sepanjang bulan, jadi
-bunganya 0. Untuk melihat perhitungan yang nyata, mundurkan tanggal mutasi setoran Budi ke bulan Agustus
-lebih dulu (sekali jalan, lewat SQL):
-
-```sql
-UPDATE MutasiSimpanan
-SET TanggalTransaksi = '2026-08-01'
-WHERE Id = (
-  SELECT TOP 1 m.Id FROM MutasiSimpanan m
-  JOIN Simpanan s ON s.Id = m.SimpananId
-  JOIN Pengguna p ON p.Id = s.PenggunaId
-  WHERE p.NomorIndukKaryawan = 'ANG001' AND m.Jenis = 'Setor' AND m.Nominal = 500000
-);
-```
-
-Setelah itu klik **"Hitung bunga bulan lalu"** di admin console — Budi akan dapat bunga bruto
-`500.000 × 2,5% ÷ 365 × 31 hari ≈ Rp 1.062`, dipotong PPh 20% (`≈ Rp 212`), saldo sukarela Budi
-bertambah neto `≈ Rp 850`.
-
-> **Update:** langkah backdate + hitung bunga di atas **sudah dijalankan** sebagai contoh — hasil
-> persisnya: bruto **Rp 1.061,64**, PPh **Rp 212,33**, neto **Rp 849,31** (periode 2026-08), sudah
-> tercermin di saldo sukarela Budi dan tampil langsung di tabel **Simpanan Sukarela** (kolom "Saldo saat
-> ini" sekarang menampilkan info bunga bulan lalu + PPh secara ringkas di bawah nominal saldo, tanpa
-> menambah lebar tabel). Tombol "Hitung bunga bulan lalu" bersifat idempoten, jadi kalau Anda klik lagi
-> untuk periode yang sama, Budi tidak akan dihitung dobel — hanya anggota lain yang belum pernah
-> diproses untuk periode itu yang akan diproses.
+   - Deposito Agus sudah **Dicairkan**: pokok Rp 1.000.000 + bunga neto Rp 9.000 (bruto Rp 11.250, PPh Rp 2.250) masuk ke Simpanan Sukarela Agus — cek kolom PPh/Neto di baris ini vs baris Rudi yang masih estimasi.
+   - Coba buat 1 produk berjangka baru sendiri lewat panel "Paket Simpanan Berjangka".
+5. **Hitung bunga bulan lalu** — karena semua setoran sukarela baru terjadi bulan ini, bulan lalu saldonya masih 0 sehingga bunganya 0. Untuk melihat hasil nyata, mundurkan tanggal mutasi setoran Budi ke bulan lalu dulu (contoh sebelumnya di dokumen ini masih relevan sebagai referensi cara kerja):
+   ```sql
+   UPDATE MutasiSimpanan SET TanggalTransaksi = '2026-08-01'
+   WHERE Id = (SELECT TOP 1 m.Id FROM MutasiSimpanan m
+     JOIN Simpanan s ON s.Id = m.SimpananId JOIN Pengguna p ON p.Id = s.PenggunaId
+     WHERE p.NomorIndukKaryawan = 'ANG001' AND m.Jenis = 'Setor' AND m.Nominal = 500000);
+   ```
+   Lalu klik **"Hitung bunga bulan lalu"** di admin console.
 
 ---
 
-## 4. Menu Pinjaman
+## 4. Menu Simpan Pinjam → tab Pinjaman
 
 **Data siap:**
 
@@ -115,138 +81,118 @@ bertambah neto `≈ Rp 850`.
 |---|---|---|---|
 | Budi | Rp 3.000.000, 12 bulan | **Lunas** | Dilunasi dipercepat (tanpa bunga sisa) — contoh riwayat selesai |
 | Siti | Rp 5.000.000, 12 bulan | **Aktif** | Ada **1 pengajuan angsuran menunggu persetujuan** |
-| Rudi | Rp 2.000.000, 24 bulan | — | **Pengajuan pinjaman baru, menunggu persetujuan** (belum jadi pinjaman aktif) |
+| Rudi | Rp 2.000.000, 24 bulan | — | **Pengajuan pinjaman baru, menunggu persetujuan** |
 
 **Yang bisa Anda test:**
-1. Buka tab **Pengajuan** → lihat pengajuan Rudi → klik **Setujui** (jadi pinjaman aktif + jadwal angsuran otomatis dibuat) atau **Tolak** untuk lihat alur penolakan.
-2. Buka tab **Pembayaran** → lihat pengajuan angsuran Siti → **Setujui** → cek sisa pokok & progres angsuran Siti berkurang, dan munculnya jurnal otomatis di menu Akuntansi.
-3. Lihat detail riwayat pinjaman Budi (klik baris pinjamannya) → expand angsuran → lihat 12 baris "Dibatalkan" + 1 baris "Pelunasan" — ini bukti fitur pelunasan dipercepat tanpa bunga sisa.
-4. Coba ajukan pinjaman baru sendiri lewat akun Siti/Rudi/Agus (login member) kalau mau lihat sisi form pengajuan anggota.
+1. Tab **Pengajuan** → pengajuan Rudi → **Setujui** (jadi pinjaman aktif + jadwal angsuran) atau **Tolak**.
+2. Tab **Pembayaran** → pengajuan angsuran Siti → **Setujui** → cek sisa pokok & progres berkurang, jurnal otomatis muncul.
+3. Detail riwayat pinjaman Budi → expand angsuran → 12 baris "Dibatalkan" + 1 baris "Pelunasan".
+4. Coba ajukan pinjaman baru sendiri lewat akun Siti/Rudi/Agus (login member).
 
 ---
 
-## 5. Menu Katalog
+## 5. Menu Manajemen Anggota → tab Katalog & Kredit
 
 **Data siap:**
-
-- **Stok koperasi** sudah ditambah: Beras 50 paket, Minyak Goreng 80 botol, Gula Pasir 100 paket (tadinya 0, jadi pembelian bisa diuji).
+- **Stok koperasi**: Beras, Minyak Goreng, Gula Pasir masih tersedia (sisa stok berkurang dari transaksi di bawah).
 - **Titipan produk**:
   - "Madu Hutan Asli" (diajukan Agus) — **menunggu persetujuan**.
   - "Telur Ayam Kampung" (diajukan Rudi) — **sudah disetujui**, aktif dijual.
-- **Transaksi pembelian**:
-  - Agus beli Beras 2 paket, **Tunai** — **menunggu persetujuan**.
-  - Agus beli Minyak 3 botol, **Kredit** — **menunggu persetujuan**.
-  - Siti beli Gula 2 paket, **Kredit** — **sudah disetujui**, tagihan kredit **Belum lunas** (Rp 34.000).
-  - Budi beli Telur Ayam Kampung 1 kg, **Tunai** — **Selesai** (riwayat lengkap).
+- **Transaksi pembelian** (semua sudah diputuskan pengurus):
+  - Agus beli Beras 2 paket, Tunai — **Selesai**.
+  - Agus beli Minyak 3 botol, Kredit — **Disetujui**, tagihan kredit **Belum lunas** (Rp 109.500).
+  - Siti beli Gula 2 paket, Kredit — **Disetujui**, tagihan kredit **Belum lunas** (Rp 34.000).
+  - Budi beli Telur Ayam Kampung 1 kg, Tunai — **Selesai**.
 
 **Yang bisa Anda test:**
-1. **Persetujuan titipan** — setujui/tolak "Madu Hutan Asli" milik Agus. Kalau disetujui, boleh langsung coba belanja produk itu sendiri (misal login sebagai anggota lain, atau ajukan lewat endpoint).
-2. **Pembelian Tunai** — setujui pembelian Beras milik Agus → status langsung `Selesai`, stok Beras berkurang, jurnal Kas bertambah otomatis.
-3. **Pembelian Kredit (titipan koperasi)** — setujui pembelian Minyak (Kredit) milik Agus → status `Disetujui`, dan **Tagihan Kredit baru muncul** (`Belum` lunas) — ini yang jadi bahan Menu Payroll.
-4. **Tagihan Kredit** — buka panel Tagihan Kredit, lihat 2 tagihan (Siti & Agus setelah langkah 3): coba tombol **"Kirim ke SDM"** lalu **"Tandai Lunas"** untuk lihat siklus penuhnya.
+1. **Persetujuan titipan** — setujui/tolak "Madu Hutan Asli" milik Agus.
+2. **Tagihan Kredit** — buka panel Tagihan Kredit, lihat 2 tagihan (Siti & Agus): coba **"Tandai Lunas"** langsung (alur disederhanakan — tidak ada lagi status perantara "Dikirim ke SDM", cukup Belum → Lunas).
 
 ---
 
-## 6. Menu Payroll (Laporan potong gaji)
+## 6. Menu Manajemen Anggota → tab Payroll
 
-Data ini otomatis terbentuk dari Simpanan Wajib yang **sudah disetujui** + Tagihan Kredit yang **belum lunas**
-pada periode berjalan (2026-09) — tidak perlu seed terpisah.
+Terbentuk otomatis dari Simpanan Wajib **belum disetujui** + Tagihan Kredit **belum lunas** + cicilan
+pinjaman jatuh tempo bulan ini, pada periode berjalan.
 
-**Yang bisa Anda test:**
-1. Buka menu **Payroll**, klik **Muat rekap periode ini**.
-2. Anda akan melihat baris Budi (potongan Simpanan Wajib Rp 50.000) dan Siti (potongan Tagihan Kredit Rp 34.000, kalau belum ditandai lunas di langkah Katalog di atas).
-3. Setujui lebih banyak tagihan wajib di menu Simpanan (Rudi/Agus) lalu muat ulang rekap — baris baru akan muncul.
-4. Coba tombol ekspor CSV untuk lihat format rekap yang dikirim ke bagian SDM/payroll.
+1. Klik **Muat rekap periode ini** → lihat baris Budi (potongan wajib) dan Siti/Agus (tagihan kredit, kalau belum ditandai lunas).
+2. Klik **"Setujui semua Simpanan Wajib periode ini"** untuk menyetujui semua tagihan wajib sekaligus.
+3. Coba ekspor CSV — ini langkah terakhir alurnya: approve lewat sistem, lalu ekspor untuk dikirim ke bagian penggajian (di luar sistem, sebagai file).
 
 ---
 
 ## 7. Menu Akuntansi
 
-Setiap transaksi yang Anda setujui di atas (simpanan, pinjaman, pembelian) **otomatis membuat jurnal**
-lewat sistem — tidak ada langkah manual yang perlu disiapkan lagi, sudah ada ~13 jurnal otomatis dari seeding.
+**Neraca sudah seimbang dari nol** (selisih Rp 0) setelah reset — semua akun berasal dari transaksi
+dummy yang baru dibuat lewat API.
 
-**Yang bisa Anda test:**
-1. Tab **Jurnal Umum** — lihat daftar jurnal, termasuk 1 contoh **jurnal manual**: "Pembayaran listrik kantor bulan September" (Rp 250.000, Debit Beban Operasional Lain / Kredit Kas) — dicatat oleh "Sistem Seed Data".
-2. Coba **tambah jurnal manual** sendiri (misal transaksi non-sistem lain) lewat form di bagian bawah tab ini.
-3. Tab **Bagan Akun** — lihat daftar akun standar, coba tambah 1 akun baru custom.
-4. Tab **Neraca** — pilih tanggal hari ini, cek Aset (Kas + Piutang Pinjaman) vs Liabilitas+Ekuitas (Simpanan anggota, dst.) — harus balance (selisih = 0).
-5. Tab **Laba Rugi** — pilih rentang tanggal tahun ini, lihat Pendapatan Jasa Pinjaman & Penjualan Produk vs Beban.
-6. Tab **Arus Kas** — lihat mutasi kas masuk/keluar dari semua transaksi yang sudah Anda proses.
-
----
-
-## 8. Menu SHU
-
-**Sengaja belum difinalisasi** supaya Anda bisa coba seluruh alurnya dari awal dengan data yang sudah realistis
-(Budi & Siti sudah punya simpanan pokok+wajib dan riwayat pinjaman/belanja; Rudi & Agus juga sudah py simpanan pokok).
-
-**Yang bisa Anda test:**
-1. Isi form: Tahun `2026`, Total SHU (bebas, misal `5000000`), % Jasa Modal `30`, % Jasa Usaha `70`.
-2. Klik **"Ambil dari Laba Rugi"** untuk lihat fitur auto-isi dari laba bersih tahun berjalan.
-3. Klik **Hitung (pratinjau)** — lihat rincian per anggota: Simpanan, Transaksi, JMA, JUA, Total SHU Bruto, **PPh**, **Total SHU Neto**. Budi & Siti seharusnya dapat bagian lebih besar (mereka punya riwayat pinjaman/belanja).
-4. Klik **Finalisasi & kirim ke aplikasi anggota** — setelah ini, coba login sebagai Budi di aplikasi anggota, buka Beranda → klik kartu "Estimasi SHU" → halaman **SHU Saya** akan menampilkan rincian lengkap tahun 2026 miliknya.
-5. Cek **Riwayat SHU** & tombol **Ekspor CSV**.
+1. Tab **Jurnal Umum** — termasuk 1 jurnal manual: "Pembayaran listrik kantor bulan berjalan" (Rp 250.000).
+2. Tab **Bagan Akun** — 20 akun standar (termasuk 2 akun baru untuk SHU: Utang Jasa Pengurus & Cadangan Koperasi).
+3. Tab **Neraca** — cek Aset vs Liabilitas+Ekuitas, harus balance.
+4. Tab **Laba Rugi** — cek Pendapatan Jasa Pinjaman & Penjualan Produk vs Beban.
+5. Tab **Arus Kas** — mutasi kas masuk/keluar.
+6. Tab **SHU** — lihat langkah 8 di bawah.
 
 ---
 
-## 9. Audit Trail — cara kerjanya
+## 8. Menu Akuntansi → tab SHU (kebijakan RAT, 2 lapis)
 
-Ada **dua lapisan** yang saling melengkapi, ditampilkan sebagai 2 tab di menu **Audit Trail** (khusus Admin):
+**Sengaja belum difinalisasi** supaya Anda bisa coba seluruh alurnya dari awal, dengan skema **dua lapis**
+sesuai dokumen RAT:
+- **Lapis 1** (dari Total SHU, wajib 100%): **Anggota 40% / Pengurus 20% / Cadangan 40%** (ditahan permanen).
+- **Lapis 2** (dari pool Anggota di Lapis 1, wajib 100%): **Jasa Modal (JMA) 30% / Jasa Usaha (JUA) 70%**.
+
+**Yang bisa Anda test:**
+1. Isi form: Tahun berjalan, Total SHU (bebas, misal `2000000`). Persentase sudah default sesuai di atas, ditampilkan dalam 2 kotak terpisah (Lapis 1 dan Lapis 2) dengan sekat visual.
+2. Klik **"Ambil dari Hasil Usaha"** untuk auto-isi dari laba bersih tahun berjalan.
+3. Klik **Hitung (pratinjau)** — lihat 4 kartu: Cadangan, Jasa Pengurus, Total ke anggota (neto), PPh anggota — plus rincian per anggota (Budi & Siti dapat bagian lebih besar karena riwayat pinjaman/belanja).
+4. Klik **Finalisasi** — jurnal apropriasi otomatis dibuat, memecah SHU ke 4 akun (Cadangan Koperasi, Utang Jasa Pengurus, Utang SHU Anggota, Utang PPh).
+5. Login sebagai Budi di aplikasi anggota → Beranda → "Estimasi SHU" → halaman **SHU Saya**.
+6. Cek **Riwayat SHU** (kolom baru: Cadangan, Jasa Pengurus) & ekspor CSV.
+
+---
+
+## 9. Menu E-RAT & Dokumen (tab "Laporan RAT Otomatis")
+
+Fitur baru: laporan RAT bisa **ditayangkan langsung ke aplikasi anggota** dari data sistem, tanpa upload PDF manual.
+
+1. Buka tab **Laporan RAT (Otomatis)**, pilih tahun buku berjalan, mode "Edit konten & RAB" — isi Kegiatan Bisnis/Sosial, Rencana tahun depan, Realisasi Pajak SHU.
+2. Selesaikan SHU tahun ini dulu (langkah 8 di atas) — laporan butuh SHU terfinalisasi supaya lengkap.
+3. Balik ke mode "Lihat laporan" — kalau semua sudah lengkap, tombol **"Tayangkan ke Anggota"** aktif. Kalau belum, pesan merah menyebutkan persis apa yang kurang.
+4. Klik tayangkan → login sebagai anggota di aplikasi Flutter → menu E-RAT → kartu **"Laporan RAT Resmi"** muncul, bisa dibuka jadi halaman detail (Visi/Misi, Keanggotaan, ringkasan Neraca/Laba-Rugi, pembagian SHU dengan bar visual).
+5. Coba **"Batalkan penayangan"** untuk lihat kartu itu hilang lagi dari aplikasi anggota.
+6. Coba **Cetak / Simpan PDF** — sekarang fokus ke isi laporan saja (portrait, tabel dirapikan, tanpa navigasi ikut ter-print).
+
+---
+
+## 10. Audit Trail — cara kerjanya
+
+Ada **dua lapisan**, ditampilkan sebagai 2 tab di menu **Audit Trail** (khusus Admin):
 
 ### Tab "Aktivitas aplikasi"
-Dicatat otomatis oleh kode aplikasi setiap ada **persetujuan/perubahan data sensitif lewat admin console**
-(persetujuan pinjaman, simpanan, katalog, ubah peran, reset akses, dll). Menjawab pertanyaan
-**"siapa pengguna aplikasi yang melakukan aksi ini, lewat menu apa"**. Sudah ada 14 baris dari proses
-seeding di atas — coba filter per modul (Pinjaman, Simpanan, Katalog, dst.) dan cari kata kunci nama anggota.
+Dicatat otomatis setiap ada persetujuan/perubahan data sensitif lewat admin console. Sudah ada banyak
+baris baru dari proses seeding di atas — coba filter per modul dan cari nama anggota.
 
 ### Tab "Log database (mentah)"
-Dicatat langsung oleh **trigger SQL Server** pada tabel-tabel finansial — ini jalan **di level database**,
-jadi mencatat perubahan **apa pun jalurnya**, termasuk kalau seseorang mengedit data langsung lewat
-dBeaver/SSMS tanpa lewat aplikasi sama sekali. Ini yang menjawab kekhawatiran Anda soal audit yang bisa
-dilewati kalau orang akses database langsung.
+Dicatat langsung oleh trigger SQL Server — mencatat perubahan apa pun jalurnya, termasuk edit langsung
+lewat SSMS/dBeaver. Contoh nyata: waktu menyiapkan ulang data dummy kali ini, saya sengaja mempercepat
+simulasi "jatuh tempo" deposito Agus dengan **mengedit langsung lewat SQL** (bukan lewat API).
 
-**Contoh nyata yang sudah ada di data Anda** (biar tidak abstrak): waktu menyiapkan data dummy, saya sengaja
-mempercepat simulasi "sudah jatuh tempo" untuk deposito Agus dengan **mengedit langsung lewat SQL**
-(bukan lewat API). Coba begini:
-1. Buka tab **Log database (mentah)**.
-2. Filter tabel `SimpananBerjangka`, cari 3 baris untuk kunci `10` (deposito Agus).
-3. Anda akan lihat baris pertama & kedua tercatat dengan **Aplikasi = `EFCore/...`** (lewat API, saat pengajuan & persetujuan), tapi baris ketiga (perubahan status ke `JatuhTempo`) tercatat dengan **Aplikasi = `SQLCMD`** — bukti langsung bahwa perubahan lewat SQL manual pun tetap tertangkap, lengkap dengan siapa (`DbLogin`) yang melakukannya.
-4. Klik baris mana pun untuk lihat data sebelum/sesudah dalam format JSON, dan hash rantainya.
-5. Klik tombol **"Verifikasi integritas"** — sistem menghitung ulang seluruh rantai hash dan melaporkan kalau ada baris yang diubah/dihapus diam-diam setelah tercatat. Sekarang harusnya melaporkan **"Rantai hash audit database utuh"**.
+1. Buka tab **Log database (mentah)**, filter tabel `SimpananBerjangka`, cari baris untuk deposito Agus.
+2. Baris pengajuan & persetujuan tercatat **Aplikasi = `EFCore/...`** (lewat API), tapi baris perubahan status ke `JatuhTempo` tercatat **Aplikasi = `SQLCMD`** — bukti perubahan manual tetap tertangkap.
+3. Klik tombol **"Verifikasi integritas"** — harus melaporkan **"Rantai hash audit database utuh"**.
 
-> Catatan penting yang perlu Anda tindak lanjuti (dijelaskan detail di `backend/db-hardening.sql`):
-> di lingkungan development ini, koneksi aplikasi dan koneksi SQL manual saya sama-sama pakai akun
-> Windows yang sama, jadi `DbLogin` keduanya sama. Di produksi nanti, aplikasi **harus** pakai login
-> SQL khusus yang berbeda dari kredensial siapa pun yang mengakses database secara manual, supaya
-> kolom `DbLogin` benar-benar bisa membedakan "aplikasi" dari "orang tertentu yang login manual".
+> Catatan produksi: di lingkungan development ini, koneksi aplikasi dan koneksi SQL manual pakai akun
+> Windows yang sama, jadi `DbLogin` keduanya sama. Di produksi, aplikasi harus pakai login SQL khusus
+> yang berbeda dari kredensial siapa pun yang mengakses database manual (detail di `backend/db-hardening.sql`).
 
 ---
 
-## 10. Membersihkan data dummy (opsional, kapan pun Anda mau)
+## 11. Membersihkan & membuat ulang data dummy
 
-Kalau nanti ingin mulai dari nol lagi, jalankan skrip berikut lewat SQL (sqlcmd/SSMS/dBeaver) —
-ini menghapus SEMUA data anggota `ANG001`–`ANG005` beserta transaksinya, tanpa menyentuh akun Anda (ASD):
+Kalau nanti ingin mulai dari nol lagi, minta saya (Claude) jalankan lagi — prosesnya:
+1. Hapus semua akun `ANG%` beserta transaksinya + reset seluruh jurnal & SHU run lewat SQL (dengan konfirmasi Anda dulu, karena ini operasi hapus massal).
+2. Buat ulang data lewat API asli (register → approve → simpanan → pinjaman → katalog → jurnal manual) memakai token admin sementara yang Anda berikan, supaya jurnal & audit trail tetap konsisten.
 
-```sql
-DECLARE @ids TABLE (Id INT);
-INSERT INTO @ids SELECT Id FROM Pengguna WHERE NomorIndukKaryawan LIKE 'ANG%';
-
-DELETE FROM MutasiSimpanan WHERE SimpananId IN (SELECT Id FROM Simpanan WHERE PenggunaId IN (SELECT Id FROM @ids));
-DELETE FROM AngsuranPinjaman WHERE PinjamanId IN (SELECT Id FROM Pinjaman WHERE PenggunaId IN (SELECT Id FROM @ids));
-DELETE FROM PembayaranPinjaman WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM Pinjaman WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM PengajuanPinjaman WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM TagihanKredit WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM PembelianProduk WHERE PembeliId IN (SELECT Id FROM @ids);
-DELETE FROM Produk WHERE DiajukanOlehId IN (SELECT Id FROM @ids);
-DELETE FROM SimpananBerjangka WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM TransaksiSukarela WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM TagihanWajib WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM ShuAnggota WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM Simpanan WHERE PenggunaId IN (SELECT Id FROM @ids);
-DELETE FROM Pengguna WHERE Id IN (SELECT Id FROM @ids);
-```
-
-Jurnal akuntansi & baris audit trail yang sudah tercatat akan tetap ada (memang begitu sifatnya — audit
-trail tidak dihapus otomatis); kalau mau bersih total, hapus juga baris `JurnalEntri`/`JurnalBaris` dengan
-`ReferensiId` yang menyebut id-id akun di atas, serta baris `AuditLog`/`DbAuditLog` terkait.
+Profil koperasi, konten RAT (Visi/Misi/narasi), bagan akun, dan konfigurasi koperasi TIDAK ikut
+dihapus dalam proses reset — hanya data transaksi anggota dummy.

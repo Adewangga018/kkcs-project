@@ -33,6 +33,8 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 	// Tabel & trigger dikelola manual lewat migrasi TambahDbAuditTrail (raw SQL) — dikecualikan dari
 	// migrasi EF (ExcludeFromMigrations) supaya `dotnet ef migrations add` tidak mencoba membuat/mengubahnya.
 	public DbSet<DbAuditLogEntry> DbAuditLog => Set<DbAuditLogEntry>();
+	public DbSet<ProfilKoperasi> ProfilKoperasi => Set<ProfilKoperasi>();
+	public DbSet<RatTahunan> RatTahunan => Set<RatTahunan>();
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -253,6 +255,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.BungaSukarelaTahunan).HasPrecision(5, 4);
 			entity.Property(item => item.BungaDepositoTahunan).HasPrecision(5, 4);
 			entity.Property(item => item.TarifPph).HasPrecision(5, 4);
+			entity.Property(item => item.TarifPphShu).HasPrecision(5, 4);
 			entity.HasData(new KonfigurasiKoperasi
 			{
 				Id = 1,
@@ -262,6 +265,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 				BungaSukarelaTahunan = 0.025m,
 				BungaDepositoTahunan = 0.045m,
 				TarifPph = 0.20m,
+				TarifPphShu = 0.15m,
 				DiperbaruiPada = new DateTime(2026, 1, 1)
 			});
 		});
@@ -351,7 +355,9 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 				new AkunAkuntansi { Id = 15, Kode = KodeAkun.BebanBungaSukarela, Nama = "Beban Bunga Simpanan Sukarela", Tipe = "Beban", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
 				new AkunAkuntansi { Id = 16, Kode = KodeAkun.BebanBungaBerjangka, Nama = "Beban Bunga Simpanan Berjangka", Tipe = "Beban", SaldoNormal = "Debit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
 				new AkunAkuntansi { Id = 17, Kode = "5-5300", Nama = "Beban Pokok Penjualan", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
-				new AkunAkuntansi { Id = 18, Kode = "5-5900", Nama = "Beban Operasional Lain (Gaji, Sewa, dll)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
+				new AkunAkuntansi { Id = 18, Kode = "5-5900", Nama = "Beban Operasional Lain (Gaji, Sewa, dll)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 19, Kode = KodeAkun.UtangJasaPengurus, Nama = "Utang Jasa Pengurus, Pengawas & Admin (SHU)", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 20, Kode = KodeAkun.CadanganKoperasi, Nama = "Cadangan Koperasi", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) });
 		});
 
 		modelBuilder.Entity<JurnalEntri>(entity =>
@@ -387,8 +393,13 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.TotalShu).HasPrecision(18, 2);
 			entity.Property(item => item.TotalPajak).HasPrecision(18, 2);
 			entity.Property(item => item.TotalShuNeto).HasPrecision(18, 2);
+			entity.Property(item => item.PersenAnggota).HasPrecision(5, 4);
 			entity.Property(item => item.PersenJasaModal).HasPrecision(5, 4);
 			entity.Property(item => item.PersenJasaUsaha).HasPrecision(5, 4);
+			entity.Property(item => item.PersenPengurus).HasPrecision(5, 4);
+			entity.Property(item => item.PersenCadangan).HasPrecision(5, 4);
+			entity.Property(item => item.JasaPengurusPool).HasPrecision(18, 2);
+			entity.Property(item => item.CadanganAmount).HasPrecision(18, 2);
 			entity.Property(item => item.TotalSimpananSemuaAnggota).HasPrecision(18, 2);
 			entity.Property(item => item.TotalTransaksiSemuaAnggota).HasPrecision(18, 2);
 			entity.HasOne(item => item.DifinalisasiOleh).WithMany().HasForeignKey(item => item.DifinalisasiOlehId).OnDelete(DeleteBehavior.SetNull);
@@ -436,6 +447,43 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.HostName).HasMaxLength(128);
 			entity.Property(item => item.PrevHash).HasMaxLength(64);
 			entity.Property(item => item.Hash).HasMaxLength(64);
+		});
+
+		modelBuilder.Entity<ProfilKoperasi>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.Property(item => item.Visi).HasMaxLength(1000).IsRequired();
+			entity.Property(item => item.Misi).HasMaxLength(2000).IsRequired();
+			entity.Property(item => item.AlamatKantor).HasMaxLength(300);
+			entity.Property(item => item.NomorAktaPendirian).HasMaxLength(100);
+			entity.HasData(new ProfilKoperasi
+			{
+				Id = 1,
+				Visi = "Mendorong ekspansi usaha koperasi sehingga menjadi koperasi yang mandiri dan tangguh berlandaskan amanah dalam membangun ekonomi bersama dan berkeadilan demi kesejahteraan Anggota.",
+				Misi = "A. Melaksanakan amanat AD/ART untuk melayani Anggota sebagai prioritas utama.\nB. Mengembangkan unit usaha yang sudah berjalan dan mengembangkan usaha baru.\nC. Bekerjasama dengan mitra usaha dan atau Lembaga Keuangan untuk memperkuat permodalan.\nD. Bersama dengan pihak-pihak berkepentingan mewujudkan kesejahteraan Anggota.",
+				AlamatKantor = "JL KIG RAYA SELATAN A-5, GRESIK 61121",
+				TanggalDidirikan = new DateTime(2009, 7, 24),
+				NomorAktaPendirian = "160/BN/XVI.6/VI/2010",
+				TanggalAkta = new DateTime(2010, 6, 4),
+				DiperbaruiPada = new DateTime(2026, 1, 1)
+			});
+		});
+
+		modelBuilder.Entity<RatTahunan>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => item.Tahun).IsUnique();
+			entity.Property(item => item.KegiatanBisnis).HasMaxLength(4000);
+			entity.Property(item => item.KegiatanSosial).HasMaxLength(4000);
+			entity.Property(item => item.RencanaBisnisTahunDepan).HasMaxLength(4000);
+			entity.Property(item => item.RencanaSosialTahunDepan).HasMaxLength(4000);
+			entity.Property(item => item.CatatanTambahan).HasMaxLength(2000);
+			entity.Property(item => item.RabPendapatanPinjaman).HasPrecision(18, 2);
+			entity.Property(item => item.RabPendapatanLain).HasPrecision(18, 2);
+			entity.Property(item => item.RabBebanOperasional).HasPrecision(18, 2);
+			entity.Property(item => item.RabBebanUmum).HasPrecision(18, 2);
+			entity.Property(item => item.RabCadanganPiutang).HasPrecision(18, 2);
+			entity.Property(item => item.RealisasiPajakShu).HasPrecision(18, 2);
 		});
 	}
 }

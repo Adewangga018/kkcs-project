@@ -206,6 +206,18 @@ class AuthService {
         .toList();
   }
 
+  /// Laporan RAT otomatis yang sudah ditayangkan pengurus. Null jika belum ada yang ditayangkan.
+  Future<LaporanRatTahunan?> fetchLaporanRatTerbaru() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/erat/laporan-rat-tahunan'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    if (response.statusCode == 404) return null;
+    _ensureSuccess(response);
+    return LaporanRatTahunan.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<List<CatalogProduct>> fetchCatalog() => _getProductList('/api/produk');
   Future<List<CatalogProduct>> fetchMyListings() => _getProductList('/api/produk/pengajuan/saya');
 
@@ -1479,12 +1491,111 @@ class RatDocument {
       );
 }
 
+class LaporanRatShu {
+  const LaporanRatShu({
+    required this.totalShu, required this.totalPajak, required this.totalShuNeto,
+    required this.persenAnggota, required this.persenJasaModal, required this.persenJasaUsaha, required this.persenPengurus, required this.persenCadangan,
+    required this.jasaPengurusPool, required this.cadanganAmount, required this.jumlahAnggota,
+  });
+  final double totalShu;
+  final double totalPajak;
+  final double totalShuNeto;
+  final double persenAnggota;
+  final double persenJasaModal;
+  final double persenJasaUsaha;
+  final double persenPengurus;
+  final double persenCadangan;
+  final double jasaPengurusPool;
+  final double cadanganAmount;
+  final int jumlahAnggota;
+  factory LaporanRatShu.fromJson(Map<String, dynamic> json) => LaporanRatShu(
+        totalShu: (json['totalShu'] as num).toDouble(),
+        totalPajak: (json['totalPajak'] as num).toDouble(),
+        totalShuNeto: (json['totalShuNeto'] as num).toDouble(),
+        persenAnggota: (json['persenAnggota'] as num).toDouble(),
+        persenJasaModal: (json['persenJasaModal'] as num).toDouble(),
+        persenJasaUsaha: (json['persenJasaUsaha'] as num).toDouble(),
+        persenPengurus: (json['persenPengurus'] as num).toDouble(),
+        persenCadangan: (json['persenCadangan'] as num).toDouble(),
+        jasaPengurusPool: (json['jasaPengurusPool'] as num).toDouble(),
+        cadanganAmount: (json['cadanganAmount'] as num).toDouble(),
+        jumlahAnggota: json['jumlahAnggota'] as int,
+      );
+}
+
+class LaporanRatTahunan {
+  const LaporanRatTahunan({
+    required this.tahun,
+    required this.visi, required this.misi, required this.alamatKantor,
+    required this.kegiatanBisnis, required this.kegiatanSosial,
+    required this.rencanaBisnisTahunDepan, required this.rencanaSosialTahunDepan, required this.catatanTambahan,
+    required this.totalAnggotaAktifSaatIni, required this.anggotaBaruTahunIni, required this.totalAnggotaNonaktifSaatIni,
+    required this.totalAset, required this.totalLiabilitas, required this.totalEkuitas,
+    required this.totalPendapatan, required this.totalBeban, required this.labaBersih,
+    required this.shu,
+    required this.rabTotalPendapatan, required this.rabTotalBeban,
+  });
+  final int tahun;
+  final String visi;
+  final String misi;
+  final String? alamatKantor;
+  final String? kegiatanBisnis;
+  final String? kegiatanSosial;
+  final String? rencanaBisnisTahunDepan;
+  final String? rencanaSosialTahunDepan;
+  final String? catatanTambahan;
+  final int totalAnggotaAktifSaatIni;
+  final int anggotaBaruTahunIni;
+  final int totalAnggotaNonaktifSaatIni;
+  final double totalAset;
+  final double totalLiabilitas;
+  final double totalEkuitas;
+  final double totalPendapatan;
+  final double totalBeban;
+  final double labaBersih;
+  final LaporanRatShu? shu;
+  final double? rabTotalPendapatan;
+  final double? rabTotalBeban;
+
+  factory LaporanRatTahunan.fromJson(Map<String, dynamic> json) {
+    final profil = json['profil'] as Map<String, dynamic>;
+    final konten = json['konten'] as Map<String, dynamic>;
+    final neraca = json['neracaAkhirTahun'] as Map<String, dynamic>;
+    final labaRugi = json['labaRugi'] as Map<String, dynamic>;
+    final shuJson = json['shu'] as Map<String, dynamic>?;
+    return LaporanRatTahunan(
+      tahun: json['tahun'] as int,
+      visi: profil['visi'] as String,
+      misi: profil['misi'] as String,
+      alamatKantor: profil['alamatKantor'] as String?,
+      kegiatanBisnis: konten['kegiatanBisnis'] as String?,
+      kegiatanSosial: konten['kegiatanSosial'] as String?,
+      rencanaBisnisTahunDepan: konten['rencanaBisnisTahunDepan'] as String?,
+      rencanaSosialTahunDepan: konten['rencanaSosialTahunDepan'] as String?,
+      catatanTambahan: konten['catatanTambahan'] as String?,
+      totalAnggotaAktifSaatIni: json['totalAnggotaAktifSaatIni'] as int,
+      anggotaBaruTahunIni: json['anggotaBaruTahunIni'] as int,
+      totalAnggotaNonaktifSaatIni: json['totalAnggotaNonaktifSaatIni'] as int,
+      totalAset: (neraca['totalAset'] as num).toDouble(),
+      totalLiabilitas: (neraca['totalLiabilitas'] as num).toDouble(),
+      totalEkuitas: (neraca['totalEkuitas'] as num).toDouble(),
+      totalPendapatan: (labaRugi['totalPendapatan'] as num).toDouble(),
+      totalBeban: (labaRugi['totalBeban'] as num).toDouble(),
+      labaBersih: (labaRugi['labaBersih'] as num).toDouble(),
+      shu: shuJson == null ? null : LaporanRatShu.fromJson(shuJson),
+      rabTotalPendapatan: (json['rabTotalPendapatan'] as num?)?.toDouble(),
+      rabTotalBeban: (json['rabTotalBeban'] as num?)?.toDouble(),
+    );
+  }
+}
+
 class _EratPageState extends State<EratPage> {
   bool _loading = true;
   String? _error;
   int? _busyAgenda;
   List<EratAgendaItem> _agenda = const [];
   List<RatDocument> _dokumen = const [];
+  LaporanRatTahunan? _laporanRat;
   final Map<int, int> _pilihan = {};
 
   @override
@@ -1499,14 +1610,19 @@ class _EratPageState extends State<EratPage> {
       _error = null;
     });
     try {
-      final results = await Future.wait([
-        AuthService().fetchEratAgenda(),
-        AuthService().fetchRatDocuments(),
-      ]);
+      final agenda = await AuthService().fetchEratAgenda();
+      final dokumen = await AuthService().fetchRatDocuments();
+      LaporanRatTahunan? laporanRat;
+      try {
+        laporanRat = await AuthService().fetchLaporanRatTerbaru();
+      } catch (_) {
+        // Laporan otomatis opsional — jangan gagalkan seluruh halaman jika endpoint ini bermasalah.
+      }
       if (!mounted) return;
       setState(() {
-        _agenda = results[0] as List<EratAgendaItem>;
-        _dokumen = results[1] as List<RatDocument>;
+        _agenda = agenda;
+        _dokumen = dokumen;
+        _laporanRat = laporanRat;
       });
     } catch (error) {
       if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
@@ -1601,6 +1717,12 @@ class _EratPageState extends State<EratPage> {
                 Text('Belum ada agenda voting yang ditayangkan.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
               ..._agenda.map(_buildAgendaCard),
               const SizedBox(height: 16),
+              if (_laporanRat != null) ...[
+                Text('Laporan RAT Resmi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                _buildLaporanRatCard(_laporanRat!),
+                const SizedBox(height: 16),
+              ],
               Text('Dokumen RAT terkini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               if (!_loading && _dokumen.isEmpty)
@@ -1709,6 +1831,248 @@ class _EratPageState extends State<EratPage> {
       ),
     );
   }
+
+  Widget _buildLaporanRatCard(LaporanRatTahunan laporan) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 4),
+      color: colors.primaryContainer,
+      child: ListTile(
+        leading: Icon(Icons.fact_check_outlined, color: colors.onPrimaryContainer),
+        title: Text('Laporan RAT Tahun Buku ${laporan.tahun}', style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text('Neraca, Hasil Usaha & SHU otomatis dari sistem${laporan.shu != null ? ' · SHU neto ${formatRupiah(laporan.shu!.totalShuNeto)}' : ''}'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => LaporanRatDetailPage(laporan: laporan))),
+      ),
+    );
+  }
+}
+
+class LaporanRatDetailPage extends StatelessWidget {
+  const LaporanRatDetailPage({required this.laporan, super.key});
+
+  final LaporanRatTahunan laporan;
+
+  @override
+  Widget build(BuildContext context) {
+    final shu = laporan.shu;
+    // Finalisasi lama (sebelum kebijakan 2 lapis) tidak punya persenAnggota tersendiri — dulu
+    // persenJasaModal/persenJasaUsaha adalah fraksi LANGSUNG dari Total SHU, jadi jumlah keduanya =
+    // porsi Anggota sebenarnya. Rekonstruksi di sini supaya tetap tampil benar (bukan 0%), lalu
+    // normalisasi JMA/JUA jadi sub-split di dalam pool Anggota itu (persis makna Lapis 2 sekarang).
+    final persenAnggotaEfektif = shu == null
+        ? 0.0
+        : (shu.persenAnggota > 0 ? shu.persenAnggota : (shu.persenJasaModal + shu.persenJasaUsaha));
+    final persenModalEfektif = shu == null || shu.persenAnggota > 0 || persenAnggotaEfektif == 0
+        ? (shu?.persenJasaModal ?? 0.0)
+        : shu.persenJasaModal / persenAnggotaEfektif;
+    final persenUsahaEfektif = shu == null || shu.persenAnggota > 0 || persenAnggotaEfektif == 0
+        ? (shu?.persenJasaUsaha ?? 0.0)
+        : shu.persenJasaUsaha / persenAnggotaEfektif;
+    final anggotaPool = shu == null ? 0.0 : shu.totalShu * persenAnggotaEfektif;
+    return Scaffold(
+      appBar: AppBar(title: Text('Laporan RAT ${laporan.tahun}')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            Text('Laporan Rapat Anggota Tahunan', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text('Tahun buku ${laporan.tahun}${laporan.alamatKantor != null ? ' · ${laporan.alamatKantor}' : ''}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+            const SizedBox(height: 20),
+
+            _RatSectionTitle('Visi & Misi'),
+            _RatCard(children: [
+              Text(laporan.visi, style: const TextStyle(fontStyle: FontStyle.italic)),
+              const SizedBox(height: 10),
+              Text(laporan.misi),
+            ]),
+            const SizedBox(height: 18),
+
+            _RatSectionTitle('Keanggotaan'),
+            Row(children: [
+              Expanded(child: _RatStatBox(label: 'Anggota aktif', value: '${laporan.totalAnggotaAktifSaatIni}')),
+              const SizedBox(width: 10),
+              Expanded(child: _RatStatBox(label: 'Anggota baru', value: '${laporan.anggotaBaruTahunIni}')),
+              const SizedBox(width: 10),
+              Expanded(child: _RatStatBox(label: 'Nonaktif', value: '${laporan.totalAnggotaNonaktifSaatIni}')),
+            ]),
+            const SizedBox(height: 18),
+
+            if ((laporan.kegiatanBisnis ?? '').isNotEmpty || (laporan.kegiatanSosial ?? '').isNotEmpty) ...[
+              _RatSectionTitle('Laporan Kegiatan Usaha'),
+              _RatCard(children: [
+                if ((laporan.kegiatanBisnis ?? '').isNotEmpty) _RatLabeled('Kegiatan Bisnis', laporan.kegiatanBisnis!),
+                if ((laporan.kegiatanSosial ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _RatLabeled('Kegiatan Sosial', laporan.kegiatanSosial!),
+                ],
+              ]),
+              const SizedBox(height: 18),
+            ],
+
+            _RatSectionTitle('Ringkasan Keuangan Tahun ${laporan.tahun}'),
+            _RatCard(children: [
+              _RatRow('Total Aset', formatRupiah(laporan.totalAset), bold: true),
+              _RatRow('Total Liabilitas (kewajiban)', formatRupiah(laporan.totalLiabilitas)),
+              _RatRow('Total Ekuitas (kekayaan bersih)', formatRupiah(laporan.totalEkuitas)),
+              const Divider(height: 22),
+              _RatRow('Total Pendapatan', formatRupiah(laporan.totalPendapatan)),
+              _RatRow('Total Beban', formatRupiah(laporan.totalBeban)),
+              _RatRow('Sisa Hasil Usaha (SHU)', formatRupiah(laporan.labaBersih), bold: true),
+              if (laporan.rabTotalPendapatan != null || laporan.rabTotalBeban != null) ...[
+                const Divider(height: 22),
+                Text('Rencana Anggaran Belanja (RAB) tahun ini', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                if (laporan.rabTotalPendapatan != null) _RatRow('Rencana Pendapatan', formatRupiah(laporan.rabTotalPendapatan!)),
+                if (laporan.rabTotalBeban != null) _RatRow('Rencana Beban', formatRupiah(laporan.rabTotalBeban!)),
+              ],
+            ]),
+            const SizedBox(height: 18),
+
+            if (shu != null) ...[
+              _RatSectionTitle('Pembagian SHU Tahun ${laporan.tahun}'),
+              _RatCard(children: [
+                _RatRow('Total SHU', formatRupiah(shu.totalShu), bold: true),
+                const SizedBox(height: 12),
+                Text('Lapis 1 — Pembagian Total SHU', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0B6E69))),
+                const SizedBox(height: 6),
+                _shuAllocationBarLapis1(context, shu, persenAnggotaEfektif),
+                const SizedBox(height: 8),
+                _RatRow('Anggota (dipecah di Lapis 2) · ${(persenAnggotaEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool)),
+                _RatRow('Pengurus · ${(shu.persenPengurus * 100).toStringAsFixed(0)}%', formatRupiah(shu.jasaPengurusPool)),
+                _RatRow('Cadangan (ditahan permanen) · ${(shu.persenCadangan * 100).toStringAsFixed(0)}%', formatRupiah(shu.cadanganAmount)),
+                const Divider(height: 26),
+                Text('Lapis 2 — Pembagian Pool Anggota', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF8A5A12))),
+                const SizedBox(height: 6),
+                _shuAllocationBarLapis2(context, persenModalEfektif, persenUsahaEfektif),
+                const SizedBox(height: 8),
+                _RatRow('Jasa Modal Anggota (JMA) · ${(persenModalEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool * persenModalEfektif)),
+                _RatRow('Jasa Usaha Anggota (JUA) · ${(persenUsahaEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool * persenUsahaEfektif)),
+                const Divider(height: 26),
+                _RatRow('PPh atas bagian anggota', formatRupiah(shu.totalPajak)),
+                _RatRow('Neto diterima ${shu.jumlahAnggota} anggota', formatRupiah(shu.totalShuNeto), bold: true),
+              ]),
+              const SizedBox(height: 18),
+            ],
+
+            if ((laporan.rencanaBisnisTahunDepan ?? '').isNotEmpty || (laporan.rencanaSosialTahunDepan ?? '').isNotEmpty) ...[
+              _RatSectionTitle('Rencana Kegiatan Tahun Depan'),
+              _RatCard(children: [
+                if ((laporan.rencanaBisnisTahunDepan ?? '').isNotEmpty) _RatLabeled('Rencana Bisnis', laporan.rencanaBisnisTahunDepan!),
+                if ((laporan.rencanaSosialTahunDepan ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _RatLabeled('Rencana Sosial', laporan.rencanaSosialTahunDepan!),
+                ],
+              ]),
+              const SizedBox(height: 18),
+            ],
+
+            if ((laporan.catatanTambahan ?? '').isNotEmpty) ...[
+              _RatSectionTitle('Catatan Tambahan'),
+              _RatCard(children: [Text(laporan.catatanTambahan!)]),
+            ],
+
+            const SizedBox(height: 8),
+            Text('Laporan ini dihasilkan otomatis oleh sistem dari data pembukuan koperasi.',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black45)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shuAllocationBarLapis1(BuildContext context, LaporanRatShu shu, double persenAnggotaEfektif) {
+    final colors = Theme.of(context).colorScheme;
+    Widget seg(double flex, Color color) => flex <= 0 ? const SizedBox.shrink() : Expanded(flex: (flex * 100).round().clamp(1, 1000), child: Container(height: 10, color: color));
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Row(children: [
+        seg(persenAnggotaEfektif, colors.primary),
+        seg(shu.persenPengurus, colors.secondary),
+        seg(shu.persenCadangan, colors.tertiary),
+      ]),
+    );
+  }
+
+  Widget _shuAllocationBarLapis2(BuildContext context, double persenModalEfektif, double persenUsahaEfektif) {
+    final colors = Theme.of(context).colorScheme;
+    Widget seg(double flex, Color color) => flex <= 0 ? const SizedBox.shrink() : Expanded(flex: (flex * 100).round().clamp(1, 1000), child: Container(height: 10, color: color));
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Row(children: [
+        seg(persenModalEfektif, colors.primary),
+        seg(persenUsahaEfektif, colors.primary.withValues(alpha: 0.55)),
+      ]),
+    );
+  }
+}
+
+class _RatSectionTitle extends StatelessWidget {
+  const _RatSectionTitle(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0B6E69))),
+      );
+}
+
+class _RatCard extends StatelessWidget {
+  const _RatCard({required this.children});
+  final List<Widget> children;
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        ),
+      );
+}
+
+class _RatStatBox extends StatelessWidget {
+  const _RatStatBox({required this.label, required this.value});
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          child: Column(children: [
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
+            const SizedBox(height: 4),
+            Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
+          ]),
+        ),
+      );
+}
+
+class _RatLabeled extends StatelessWidget {
+  const _RatLabeled(this.label, this.value);
+  final String label;
+  final String value;
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(value),
+      ]);
+}
+
+class _RatRow extends StatelessWidget {
+  const _RatRow(this.label, this.value, {this.bold = false});
+  final String label;
+  final String value;
+  final bool bold;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Expanded(child: Text(label, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w500))),
+          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+        ]),
+      );
 }
 
 class DigitalSavingsLoanPage extends StatelessWidget {

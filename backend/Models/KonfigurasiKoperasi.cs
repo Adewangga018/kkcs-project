@@ -17,8 +17,12 @@ public class KonfigurasiKoperasi
     public decimal BungaDepositoTahunan { get; set; } = 0.045m;
 
     // PPh (final) yang dipotong dari nilai bruto sebelum dikreditkan/dibagikan ke anggota — berlaku
-    // seragam untuk bunga simpanan sukarela, bunga simpanan berjangka (deposito), dan SHU.
+    // untuk bunga simpanan sukarela dan bunga simpanan berjangka (deposito).
     public decimal TarifPph { get; set; } = 0.20m;
+
+    // PPh atas SHU yang diterima anggota (Jasa Modal + Jasa Usaha) — tarif tersendiri, terpisah dari
+    // TarifPph di atas karena kebijakan RAT menetapkan SHU dipotong 15% dari penerimaan.
+    public decimal TarifPphShu { get; set; } = 0.15m;
 
     public DateTime DiperbaruiPada { get; set; } = DateTime.UtcNow;
 }

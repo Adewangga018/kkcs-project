@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
-import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, KeyRound, LayoutDashboard, Lightbulb, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, ShieldCheck, Store, TrendingUp, Upload, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
+import { Activity, BadgeCheck, Banknote, BookOpen, Calculator, Database, Download, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, KeyRound, LayoutDashboard, Lightbulb, LogOut, Menu, PiggyBank, Receipt, RefreshCw, Scale, Search, Send, ShieldCheck, Store, TrendingUp, Upload, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
 
 type AdminUser = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string }
@@ -34,7 +34,7 @@ type DashboardRingkasan = {
   auditHariIni: number; aktivitasTerbaru: DashboardAktivitas[]
   totalMenunggu: number
 }
-type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPph: number; diperbaruiPada: string }
+type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPph: number; tarifPphShu: number; diperbaruiPada: string }
 type TagihanWajib = { id: number; namaAnggota: string; nomorIndukKaryawan: string; periode: string; nominal: number; jatuhTempo: string; status: string; catatanReview: string | null; dibuatPada: string; diprosesPada: string | null }
 type BungaSukarelaTerakhir = { periode: string; bruto: number; pajak: number; neto: number }
 type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number; bungaTerakhir: BungaSukarelaTerakhir | null }
@@ -42,23 +42,46 @@ type ProdukBerjangka = { id: number; nama: string; nominal: number; tenorBulan: 
 type SimpananBerjangka = { id: number; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; nomorSertifikat: string; nominal: number; tenorBulan: number; status: string; catatanReview: string | null; diajukanPada: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null; dicairkanPada: string | null; estimasiBunga: number; estimasiPajak: number; estimasiBungaNeto: number; sudahDicairkan: boolean; pencairanDiajukan: boolean; pencairanDiajukanPada: string | null; alasanPencairan: string | null }
 type Produk = { id: number; kode: string; nama: string; deskripsi: string | null; jenis: string; harga: number; stok: number; satuan: string; fotoUrl: string | null; sumber: string; diajukanOleh: string | null; status: string; aktif: boolean; catatanReview: string | null }
 type PembelianProduk = { id: number; nomorTransaksi: string; namaPembeli: string; nomorIndukKaryawan: string; produkNama: string; jenis: string; jumlah: number; hargaSatuan: number; total: number; metodePembayaran: string; status: string; catatan: string | null; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null }
-type TagihanKredit = { id: number; pembelianProdukId: number; penggunaId: number; nomorTransaksi: string; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; total: number; status: string; dibuatPada: string; dikirimPada: string | null; lunasPada: string | null }
+type TagihanKredit = { id: number; pembelianProdukId: number; penggunaId: number; nomorTransaksi: string; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; total: number; status: string; dibuatPada: string; lunasPada: string | null }
 type EratOpsi = { id: number; label: string; jumlah: number }
 type EratAgenda = { id: number; judul: string; deskripsi: string | null; status: string; mulaiPada: string | null; selesaiPada: string | null; dibuatPada: string; totalSuara: number; opsi: EratOpsi[] }
 type RatDoc = { id: number; tahun: number; judul: string; deskripsi: string | null; fileUrl: string; diterbitkanPada: string; aktif: boolean }
-type PayrollBaris = { penggunaId: number; nama: string; nik: string; simpananWajib: number; tagihanKredit: number; totalPotongan: number }
-type PayrollRekap = { periode: string; baris: PayrollBaris[]; totalWajib: number; totalKredit: number; totalPotongan: number }
+type PayrollItem = { jenis: 'Wajib' | 'Kredit' | 'Cicilan'; id: number; keterangan: string; nominal: number }
+type PayrollBaris = { penggunaId: number; nama: string; nik: string; simpananWajib: number; tagihanKredit: number; cicilanPinjaman: number; totalPotongan: number; items: PayrollItem[] }
+type PayrollRekap = { periode: string; baris: PayrollBaris[]; totalWajib: number; totalKredit: number; totalCicilanPinjaman: number; totalPotongan: number }
 type Akun = { id: number; kode: string; nama: string; tipe: string; saldoNormal: string; sistem: boolean; aktif: boolean }
 type JurnalBarisT = { akunId: number; kodeAkun: string; namaAkun: string; debit: number; kredit: number }
 type Jurnal = { id: number; nomorJurnal: string; tanggal: string; keterangan: string; sumber: string; referensiModul: string | null; referensiId: string | null; dicatatOleh: string | null; baris: JurnalBarisT[] }
 type SaldoAkunItem = { kode: string; nama: string; saldo: number }
 type LabaRugi = { dari: string; sampai: string; pendapatan: SaldoAkunItem[]; totalPendapatan: number; beban: SaldoAkunItem[]; totalBeban: number; labaBersih: number }
 type Neraca = { tanggal: string; aset: SaldoAkunItem[]; totalAset: number; liabilitas: SaldoAkunItem[]; totalLiabilitas: number; ekuitas: SaldoAkunItem[]; shuBerjalan: number; totalEkuitas: number; selisih: number }
+type ProfilKoperasi = { visi: string; misi: string; alamatKantor: string | null; tanggalDidirikan: string | null; nomorAktaPendirian: string | null; tanggalAkta: string | null }
+type RatKonten = {
+  tahun: number; kegiatanBisnis: string | null; kegiatanSosial: string | null
+  rencanaBisnisTahunDepan: string | null; rencanaSosialTahunDepan: string | null
+  rabPendapatanPinjaman: number | null; rabPendapatanLain: number | null
+  rabBebanOperasional: number | null; rabBebanUmum: number | null; rabCadanganPiutang: number | null
+  realisasiPajakShu: number | null; catatanTambahan: string | null
+  dipublikasikan: boolean; dipublikasikanPada: string | null
+}
+type RatShu = { totalShu: number; totalPajak: number; totalShuNeto: number; persenAnggota: number; persenJasaModal: number; persenJasaUsaha: number; persenPengurus: number; persenCadangan: number; jasaPengurusPool: number; cadanganAmount: number; jumlahAnggota: number; difinalisasiPada: string }
+type BukuBesarAkun = { kode: string; nama: string; tipe: string; saldoAwal: number; debit: number; kredit: number; saldoAkhir: number }
+type LaporanRat = {
+  tahun: number
+  profil: ProfilKoperasi
+  konten: RatKonten
+  totalAnggotaAktifSaatIni: number; anggotaBaruTahunIni: number; totalAnggotaNonaktifSaatIni: number
+  neracaAkhirTahun: Neraca; neracaTahunLalu: Neraca | null
+  labaRugi: LabaRugi; bukuBesar: BukuBesarAkun[]; shu: RatShu | null
+  shuSebelumPajak: number; pajakShu: number | null; shuSetelahPajak: number | null
+  rabTotalPendapatan: number | null; rabTotalBeban: number | null
+  itemBelumLengkap: string[]
+}
 type ArusKasBaris = { tanggal: string; nomorJurnal: string; keterangan: string; modul: string | null; masuk: number; keluar: number }
 type ArusKas = { dari: string; sampai: string; saldoAwal: number; totalMasuk: number; totalKeluar: number; saldoAkhir: number; baris: ArusKasBaris[] }
-type ShuRiwayat = { tahun: number; totalShu: number; totalPajak: number; totalShuNeto: number; persenJasaModal: number; persenJasaUsaha: number; jumlahAnggota: number; difinalisasiPada: string }
+type ShuRiwayat = { tahun: number; totalShu: number; totalPajak: number; totalShuNeto: number; persenAnggota: number; persenJasaModal: number; persenJasaUsaha: number; persenPengurus: number; persenCadangan: number; jasaPengurusPool: number; cadanganAmount: number; jumlahAnggota: number; difinalisasiPada: string }
 type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number; pajak: number; totalShuNeto: number }
-type ShuHitung = { tahun: number; totalShu: number; persenJasaModal: number; persenJasaUsaha: number; tarifPph: number; totalPajak: number; totalShuNeto: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
+type ShuHitung = { tahun: number; totalShu: number; persenAnggota: number; persenJasaModal: number; persenJasaUsaha: number; persenPengurus: number; persenCadangan: number; tarifPph: number; totalPajak: number; totalShuNeto: number; anggotaPool: number; jasaPengurusPool: number; cadanganAmount: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
 type LoanApplication = {
   id: number; nomorPengajuan: string; namaAnggota: string; nomorIndukKaryawan: string
   nominal: number; tenorBulan: number; bungaTahunan: number; estimasiCicilanBulanan: number; estimasiTotalJasa: number
@@ -160,8 +183,8 @@ function App() {
         <button className={`nav-item ${view === 'anggota' ? 'active' : ''}`} onClick={() => goto('anggota')}><Users size={18} /> Manajemen Anggota</button>
         <button className={`nav-item ${view === 'simpanpinjam' ? 'active' : ''}`} onClick={() => goto('simpanpinjam')}><PiggyBank size={18} /> Simpan Pinjam</button>
         <button className={`nav-item ${view === 'katalog' ? 'active' : ''}`} onClick={() => goto('katalog')}><Store size={18} /> Katalog</button>
-        <button className={`nav-item ${view === 'erat' ? 'active' : ''}`} onClick={() => goto('erat')}><Vote size={18} /> E-RAT</button>
         <button className={`nav-item ${view === 'akuntansi' ? 'active' : ''}`} onClick={() => goto('akuntansi')}><BookOpen size={18} /> Akuntansi</button>
+        <button className={`nav-item ${view === 'erat' ? 'active' : ''}`} onClick={() => goto('erat')}><Vote size={18} /> E-RAT</button>
         {isAdmin && <>
           <div style={{ margin: '10px 13px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#7fa39c', textTransform: 'uppercase' }}>Khusus Admin</div>
           <button className={`nav-item ${view === 'akun' ? 'active' : ''}`} onClick={() => goto('akun')}><UserCog size={18} /> Akun & Peran</button>
@@ -350,14 +373,14 @@ function DashboardView({ token, onExpired, nama, isAdmin, goto }: { token: strin
           </div>
         </section>
 
-        {/* Payroll & tagihan kredit */}
+        {/* Tagihan Anggota (payroll) */}
         <section className="table-panel">
-          <div className="panel-heading"><div><h2>Payroll periode ini</h2><p>Potongan gaji siap dikirim ke SDM.</p></div></div>
+          <div className="panel-heading"><div><h2>Tagihan Anggota periode ini</h2><p>Potongan gaji periode berjalan, siap diekspor.</p></div></div>
           <div style={{ padding: '4px 25px 24px' }}>
             <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{rupiah(data.payrollTotalPeriodeIni)}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>{data.payrollJumlahAnggota} anggota terpotong bulan ini</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><span>Tagihan kredit belum lunas</span><strong style={{ color: data.tagihanKreditBelumLunas > 0 ? '#ad6a16' : 'inherit' }}>{rupiah(data.tagihanKreditBelumLunas)}</strong></div>
-            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('anggota', { anggotaTab: 'payroll' })}>Buka Payroll</button>
+            <button className="toggle-button" style={{ marginTop: 14, width: '100%' }} onClick={() => goto('anggota', { anggotaTab: 'payroll' })}>Buka Tagihan Anggota</button>
           </div>
         </section>
       </div>
@@ -433,7 +456,7 @@ function AnggotaMenuView({ token, onExpired, tab, setTab }: { token: string; onE
     <MenuTabBar tabs={[
       { key: 'pendaftaran', label: 'Pendaftaran' },
       { key: 'direktori', label: 'Direktori Anggota' },
-      { key: 'payroll', label: 'Payroll' },
+      { key: 'payroll', label: 'Tagihan Anggota' },
     ]} active={tab} onChange={setTab} />
     {tab === 'pendaftaran' && <PendaftaranView token={token} onExpired={onExpired} />}
     {tab === 'direktori' && <AnggotaDirektoriView token={token} onExpired={onExpired} />}
@@ -1115,15 +1138,13 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pengajuan pinjaman</h2><p>Menyetujui akan otomatis membuat pinjaman aktif beserta jadwal angsuran pokok + jasa.</p></div><span className="record-count">{pending.length} menunggu</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Tenor</th><th>Jasa/th</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {applications.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
-          <td>{rupiah(item.nominal)}</td>
-          <td>{item.tenorBulan} bln</td>
-          <td>{(item.bungaTahunan * 100).toFixed(2)}%</td>
-          <td>{rupiah(item.estimasiCicilanBulanan)}</td>
+          <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
+          <td>{rupiah(item.estimasiCicilanBulanan)}<br /><small style={{ color: 'var(--muted)' }}>jasa {(item.bungaTahunan * 100).toFixed(2)}%/th</small></td>
           <td>{rupiah(item.estimasiTotalJasa)}</td>
-          <td style={{ whiteSpace: 'normal', maxWidth: 220 }}>{item.tujuan}</td>
+          <td style={{ whiteSpace: 'normal', maxWidth: 180 }}>{item.tujuan}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'inactive' : ''}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
             ? <span style={{ display: 'inline-flex', gap: 6 }}>
@@ -1137,13 +1158,12 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pengajuan pembayaran</h2><p>Menyetujui pembayaran angsuran menandai 1 angsuran lunas; menyetujui pelunasan dipercepat menagih sisa pokok saja dan membebaskan jasa.</p></div><span className="record-count">{pendingPayments.length} menunggu</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Jasa dibebaskan</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {payments.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td className="mono">{item.nomorPinjaman}</td>
           <td>{item.jenis === 'Pelunasan' ? <span className="role-pill admin"><Zap size={11} /> Pelunasan</span> : <span className="role-pill">Angsuran {item.angsuranKe ? `ke-${item.angsuranKe}` : ''}</span>}</td>
-          <td>{rupiah(item.jumlahDiajukan)}</td>
-          <td>{item.jenis === 'Pelunasan' ? rupiah(item.jasaDibebaskan ?? 0) : '—'}</td>
+          <td>{rupiah(item.jumlahDiajukan)}{item.jenis === 'Pelunasan' && <><br /><small style={{ color: 'var(--muted)' }}>jasa {rupiah(item.jasaDibebaskan ?? 0)} dibebaskan</small></>}</td>
           <td>{tanggal(item.diajukanPada)}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'inactive' : ''}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
@@ -1158,7 +1178,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
 
     <section className="table-panel">
       <div className="panel-heading"><div><h2>Pinjaman aktif & lunas</h2><p>Pantau progres angsuran. Pembayaran diproses lewat panel "Pengajuan pembayaran" di atas.</p></div><span className="record-count">{loans.length} pinjaman</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Nomor</th><th>Pokok</th><th>Cicilan/bln</th><th>Progres</th><th>Sisa pokok</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nomor</th><th>Pokok</th><th>Cicilan/bln</th><th>Progres</th><th>Sisa pokok</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {loans.map((loan) => [
           <tr key={loan.id}>
             <td><div className="user-cell"><span className="avatar">{loan.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{loan.namaAnggota}</strong><small className="mono">{loan.nomorIndukKaryawan}</small></div></div></td>
@@ -1177,7 +1197,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
               {loan.status === 'Aktif' && <p style={{ marginBottom: 10, fontSize: 12, color: 'var(--teal-dark)' }}>
                 <strong>Pelunasan dipercepat sekarang:</strong> anggota cukup bayar sisa pokok {rupiah(loan.nilaiPelunasanDipercepat)} — jasa {rupiah(loan.jasaDibebaskan)} dibebaskan.
               </p>}
-              <table style={{ minWidth: 620 }}><thead><tr><th>#</th><th>Jatuh tempo</th><th>Pokok</th><th>Jasa</th><th>Total</th><th>Status</th><th>Dibayar</th></tr></thead><tbody>
+              <table className="table-compact" style={{ minWidth: 0 }}><thead><tr><th>#</th><th>Jatuh tempo</th><th>Pokok</th><th>Jasa</th><th>Total</th><th>Status</th><th>Dibayar</th></tr></thead><tbody>
                 {loan.angsuran.map((row) => <tr key={row.angsuranKe}>
                   <td>{row.jenis === 'Pelunasan' ? '⚡ Pelunasan' : row.angsuranKe}</td>
                   <td>{tanggal(row.jatuhTempo)}</td>
@@ -1211,6 +1231,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
   const [bungaSukarelaInput, setBungaSukarelaInput] = useState('')
   const [bungaDepositoInput, setBungaDepositoInput] = useState('')
   const [pphInput, setPphInput] = useState('')
+  const [pphShuInput, setPphShuInput] = useState('')
   const [produkNama, setProdukNama] = useState('')
   const [produkNominal, setProdukNominal] = useState('')
   const [produkTenor, setProdukTenor] = useState('12')
@@ -1234,6 +1255,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
       setKonfigurasi(k); setPokokInput(String(k.simpananPokokNominal)); setWajibInput(String(k.simpananWajibNominal))
       setBungaSukarelaInput((k.bungaSukarelaTahunan * 100).toString()); setBungaDepositoInput((k.bungaDepositoTahunan * 100).toString())
       setPphInput((k.tarifPph * 100).toString())
+      setPphShuInput((k.tarifPphShu * 100).toString())
       setWajib(w); setSukarela(s); setBerjangka(b); setProduk(p)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
@@ -1266,6 +1288,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
     bungaSukarelaTahunan: (Number(bungaSukarelaInput) || 0) / 100,
     bungaDepositoTahunan: (Number(bungaDepositoInput) || 0) / 100,
     tarifPph: (Number(pphInput) || 0) / 100,
+    tarifPphShu: (Number(pphShuInput) || 0) / 100,
   })
   const createProduk = () => {
     if (!produkNama.trim() || !(Number(produkNominal) > 0) || !(Number(produkTenor) > 0)) { setError('Nama, nominal, dan tenor produk wajib diisi.'); return }
@@ -1292,21 +1315,24 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Konfigurasi simpanan</h2><p>Nominal Simpanan Pokok (saldo awal keanggotaan) dan Simpanan Wajib (tagihan bulanan tanggal {konfigurasi?.tanggalTagihWajib ?? 25}).{!isAdmin && ' Hanya Admin yang bisa mengubah nilai ini.'}</p></div></div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, padding: '18px 25px 24px' }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Simpanan Pokok
-          <input type="number" disabled={!isAdmin} value={pokokInput} onChange={(e) => setPokokInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 18px', padding: '18px 25px 24px' }}>
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150 }}>Simpanan Pokok
+          <input type="number" disabled={!isAdmin} value={pokokInput} onChange={(e) => setPokokInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Simpanan Wajib / bulan
-          <input type="number" disabled={!isAdmin} value={wajibInput} onChange={(e) => setWajibInput(e.target.value)} style={{ height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150 }}>Simpanan Wajib / bulan
+          <input type="number" disabled={!isAdmin} value={wajibInput} onChange={(e) => setWajibInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Bunga Sukarela (%/th)
-          <input type="number" step="0.1" disabled={!isAdmin} value={bungaSukarelaInput} onChange={(e) => setBungaSukarelaInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150 }}>Bunga Sukarela (%/th)
+          <input type="number" step="0.1" disabled={!isAdmin} value={bungaSukarelaInput} onChange={(e) => setBungaSukarelaInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Bunga Deposito (%/th)
-          <input type="number" step="0.1" disabled={!isAdmin} value={bungaDepositoInput} onChange={(e) => setBungaDepositoInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150 }}>Bunga Deposito (%/th)
+          <input type="number" step="0.1" disabled={!isAdmin} value={bungaDepositoInput} onChange={(e) => setBungaDepositoInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>Tarif PPh (%) — Bunga Sukarela, Deposito & SHU
-          <input type="number" step="0.1" disabled={!isAdmin} value={pphInput} onChange={(e) => setPphInput(e.target.value)} style={{ width: 130, height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150, lineHeight: 1.4 }}>Tarif PPh (%) — Bunga Sukarela & Deposito
+          <input type="number" step="0.1" disabled={!isAdmin} value={pphInput} onChange={(e) => setPphInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
+        </label>
+        <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', width: 150, lineHeight: 1.4 }}>Tarif PPh SHU (%) — dari penerimaan anggota
+          <input type="number" step="0.1" disabled={!isAdmin} value={pphShuInput} onChange={(e) => setPphShuInput(e.target.value)} style={{ width: '100%', height: 40, padding: '0 12px', border: '1px solid var(--line)', borderRadius: 8 }} />
         </label>
         {isAdmin && <button className="submit-button" style={{ alignSelf: 'end', height: 40, padding: '0 18px' }} disabled={busyId === 'konfig'} onClick={saveKonfigurasi}>Simpan</button>}
       </div>
@@ -1390,15 +1416,14 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
 
     <section className="table-panel">
       <div className="panel-heading"><div><h2>Pengajuan Simpanan Berjangka</h2><p>Setujui untuk mengunci dana; cairkan saat jatuh tempo. Pencairan dipercepat (diajukan anggota) → hanya pokok, bunga hangus.</p></div><span className="record-count">{berjangkaMenunggu} menunggu · {pencairanMenunggu} minta cair</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Paket</th><th>Nominal</th><th>Tenor</th><th>Est. bunga</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Paket</th><th>Nominal</th><th>Est. bunga</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {berjangka.map((item) => <tr key={item.id} style={item.pencairanDiajukan ? { background: '#fff7ed' } : undefined}>
           <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorSertifikat}</small></td>
-          <td>{rupiah(item.nominal)}</td>
-          <td>{item.tenorBulan} bln</td>
+          <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
           <td>
             {rupiah(item.estimasiBunga)}
-            <div style={{ marginTop: 2, fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+            <div style={{ marginTop: 2, fontSize: 10.5, color: 'var(--muted)', lineHeight: 1.5 }}>
               <div>{item.sudahDicairkan ? 'PPh' : 'Est. PPh'}: <span style={{ color: '#ad6a16', fontWeight: 600 }}>−{rupiah(item.estimasiPajak)}</span></div>
               <div>{item.sudahDicairkan ? 'Neto' : 'Est. neto'}: <span style={{ color: '#2d8155', fontWeight: 600 }}>{rupiah(item.estimasiBungaNeto)}</span></div>
             </div>
@@ -1513,19 +1538,18 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
   const pembelianMenunggu = pembelian.filter((p) => p.status === 'Diajukan')
   const tagihanBelum = tagihan.filter((t) => t.status !== 'Lunas')
   const rekap = useMemo(() => {
-    const map = new Map<number, { penggunaId: number; nama: string; nik: string; rincian: TagihanKredit[]; totalBelum: number; totalDikirim: number; totalLunas: number }>()
+    const map = new Map<number, { penggunaId: number; nama: string; nik: string; rincian: TagihanKredit[]; totalBelum: number; totalLunas: number }>()
     for (const t of tagihan) {
-      const g = map.get(t.penggunaId) ?? { penggunaId: t.penggunaId, nama: t.namaAnggota, nik: t.nomorIndukKaryawan, rincian: [], totalBelum: 0, totalDikirim: 0, totalLunas: 0 }
+      const g = map.get(t.penggunaId) ?? { penggunaId: t.penggunaId, nama: t.namaAnggota, nik: t.nomorIndukKaryawan, rincian: [], totalBelum: 0, totalLunas: 0 }
       g.rincian.push(t)
       if (t.status === 'Belum') g.totalBelum += t.total
-      else if (t.status === 'DikirimKeSDM') g.totalDikirim += t.total
       else g.totalLunas += t.total
       map.set(t.penggunaId, g)
     }
-    return [...map.values()].sort((a, b) => (b.totalBelum + b.totalDikirim) - (a.totalBelum + a.totalDikirim))
+    return [...map.values()].sort((a, b) => b.totalBelum - a.totalBelum)
   }, [tagihan])
   const rekapTampil = rekapAnggota === 'semua' ? rekap : rekap.filter((g) => String(g.penggunaId) === rekapAnggota)
-  const totalOutstanding = rekapTampil.reduce((s, g) => s + g.totalBelum + g.totalDikirim, 0)
+  const totalOutstanding = rekapTampil.reduce((s, g) => s + g.totalBelum, 0)
 
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Katalog produk koperasi</h2><p>Input produk jual/sewa, setujui titipan anggota, proses pembelian & tagihan kredit.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
@@ -1556,7 +1580,7 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
         </label>
         <button className="submit-button" style={{ height: 38, padding: '0 18px' }} disabled={busyId === 'save-produk'} onClick={saveProduk}>{editId ? 'Simpan' : 'Tambah'}</button>
       </div>
-      <div className="table-scroll"><table><thead><tr><th>Produk</th><th>Jenis</th><th>Harga</th><th>Stok</th><th>Sumber</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Produk</th><th>Jenis</th><th>Harga</th><th>Stok</th><th>Sumber</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {produkKoperasi.map((p) => <tr key={p.id}>
           <td><div className="user-cell">
             {p.fotoUrl
@@ -1603,12 +1627,11 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pembelian & penyewaan anggota</h2><p>Tunai → langsung selesai. Kredit → membuat tagihan hutang.</p></div><span className="record-count">{pembelianMenunggu.length} menunggu</span></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Produk</th><th>Jenis</th><th>Jumlah</th><th>Total</th><th>Metode</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Produk</th><th>Jenis</th><th>Total</th><th>Metode</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {pembelian.map((p) => <tr key={p.id}>
           <td><div className="user-cell"><span className="avatar">{p.namaPembeli.charAt(0).toUpperCase()}</span><div><strong>{p.namaPembeli}</strong><small className="mono">{p.nomorIndukKaryawan}</small></div></div></td>
           <td>{p.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{p.nomorTransaksi}</small></td>
-          <td>{p.jenis}</td>
-          <td>{p.jumlah}</td>
+          <td>{p.jenis}<br /><small style={{ color: 'var(--muted)' }}>{p.jumlah}x</small></td>
           <td>{rupiah(p.total)}</td>
           <td><span className={`role-pill ${p.metodePembayaran === 'Kredit' ? 'admin' : ''}`}>{p.metodePembayaran}</span></td>
           <td><span className={`status-pill ${p.status === 'Selesai' || p.status === 'Disetujui' ? 'active' : p.status === 'Ditolak' ? 'inactive' : ''}`}><i />{p.status}</span></td>
@@ -1624,36 +1647,33 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
 
     <section className="table-panel">
       <div className="panel-heading">
-        <div><h2>Rekap tagihan kredit</h2><p>Rekap hutang kredit produk per anggota untuk dikirim ke SDM (potong gaji). Tagihan harus berstatus "Dikirim ke SDM" dulu sebelum bisa ditandai Lunas. Total outstanding ditampilkan: <strong>{rupiah(totalOutstanding)}</strong>.</p></div>
+        <div><h2>Rekap tagihan kredit</h2><p>Rekap hutang kredit produk per anggota, dipotong lewat gaji. Setelah pengurus mengonfirmasi potongan sudah dieksekusi, tandai lunas di sini. Total outstanding ditampilkan: <strong>{rupiah(totalOutstanding)}</strong>.</p></div>
         <select value={rekapAnggota} onChange={(e) => setRekapAnggota(e.target.value)} style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8, background: '#fff' }}>
           <option value="semua">Semua anggota</option>
           {rekap.map((g) => <option key={g.penggunaId} value={String(g.penggunaId)}>{g.nama}</option>)}
         </select>
       </div>
-      {rekapAnggota === 'semua' && (rekap.some((g) => g.totalBelum > 0) || rekap.some((g) => g.totalDikirim > 0)) && (
+      {rekapAnggota === 'semua' && rekap.some((g) => g.totalBelum > 0) && (
         <div style={{ padding: '12px 25px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 8 }}>
-          {rekap.some((g) => g.totalBelum > 0) && <button className="toggle-button activate" disabled={busyId === 'rekap-kirim'} onClick={() => void call('rekap-kirim', '/api/admin/produk/tagihan-kredit/kirim', 'POST', {}, 'Tandai SEMUA tagihan "Belum" dikirim ke SDM?')}>Kirim semua ke SDM</button>}
-          {rekap.some((g) => g.totalDikirim > 0) && <button className="toggle-button activate" disabled={busyId === 'rekap-lunas'} onClick={() => void call('rekap-lunas', '/api/admin/produk/tagihan-kredit/lunas', 'POST', {}, 'Tandai SEMUA tagihan yang SUDAH DIKIRIM ke SDM menjadi LUNAS? (Tagihan yang belum dikirim tidak akan disentuh.)')}>Tandai semua lunas</button>}
+          <button className="toggle-button activate" disabled={busyId === 'rekap-lunas'} onClick={() => void call('rekap-lunas', '/api/admin/produk/tagihan-kredit/lunas', 'POST', {}, 'Tandai SEMUA tagihan kredit yang belum lunas menjadi LUNAS?')}>Tandai semua lunas</button>
         </div>
       )}
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Belum ditagih</th><th>Dikirim ke SDM</th><th>Lunas</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Belum lunas</th><th>Sudah lunas</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {rekapTampil.flatMap((g) => [
           <tr key={g.penggunaId}>
             <td><div className="user-cell"><span className="avatar">{g.nama.charAt(0).toUpperCase()}</span><div><strong>{g.nama}</strong><small className="mono">{g.nik}</small></div></div></td>
             <td style={{ color: g.totalBelum > 0 ? '#bd6d1d' : 'var(--muted)', fontWeight: g.totalBelum > 0 ? 700 : 400 }}>{rupiah(g.totalBelum)}</td>
-            <td>{rupiah(g.totalDikirim)}</td>
             <td style={{ color: 'var(--muted)' }}>{rupiah(g.totalLunas)}</td>
             <td className="align-right"><span style={{ display: 'inline-flex', gap: 6 }}>
               <button className="toggle-button" onClick={() => setRekapExpanded(rekapExpanded === g.penggunaId ? null : g.penggunaId)}>{rekapExpanded === g.penggunaId ? 'Tutup' : 'Rincian'}</button>
-              {g.totalBelum > 0 && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/kirim', 'POST', { penggunaId: g.penggunaId }, `Tandai tagihan "Belum" milik ${g.nama} (${rupiah(g.totalBelum)}) dikirim ke SDM?`)}>Kirim ke SDM</button>}
-              {g.totalDikirim > 0 && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/lunas', 'POST', { penggunaId: g.penggunaId }, `Tandai tagihan ${g.nama} yang sudah dikirim ke SDM (${rupiah(g.totalDikirim)}) LUNAS?`)}>Tandai lunas</button>}
+              {g.totalBelum > 0 && <button className="toggle-button activate" disabled={busyId === `rk-${g.penggunaId}`} onClick={() => void call(`rk-${g.penggunaId}`, '/api/admin/produk/tagihan-kredit/lunas', 'POST', { penggunaId: g.penggunaId }, `Tandai tagihan kredit ${g.nama} (${rupiah(g.totalBelum)}) LUNAS?`)}>Tandai lunas</button>}
             </span></td>
           </tr>,
-          rekapExpanded === g.penggunaId && <tr key={`${g.penggunaId}-d`}><td colSpan={5} style={{ background: '#f7faf9' }}>
+          rekapExpanded === g.penggunaId && <tr key={`${g.penggunaId}-d`}><td colSpan={4} style={{ background: '#f7faf9' }}>
             <table style={{ minWidth: 520 }}><thead><tr><th>Transaksi</th><th>Produk</th><th>Total</th><th>Status</th><th>Tanggal</th></tr></thead><tbody>
               {g.rincian.map((t) => <tr key={t.id}>
                 <td className="mono">{t.nomorTransaksi}</td><td>{t.produkNama}</td><td>{rupiah(t.total)}</td>
-                <td style={{ color: t.status === 'Lunas' ? '#2d8155' : t.status === 'DikirimKeSDM' ? '#436a97' : '#bd6d1d' }}>{t.status === 'DikirimKeSDM' ? 'Dikirim ke SDM' : t.status}</td>
+                <td style={{ color: t.status === 'Lunas' ? '#2d8155' : '#bd6d1d' }}>{t.status}</td>
                 <td>{tanggal(t.dibuatPada)}</td>
               </tr>)}
             </tbody></table>
@@ -1665,6 +1685,7 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
 }
 
 function EratView({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [tab, setTab] = useState<'voting' | 'dokumen' | 'laporan'>('voting')
   const [agenda, setAgenda] = useState<EratAgenda[]>([])
   const [dokumen, setDokumen] = useState<RatDoc[]>([])
   const [loading, setLoading] = useState(false)
@@ -1741,9 +1762,17 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
   const aktifCount = agenda.filter((a) => a.status === 'Aktif').length
 
   return <div className="content-wrap">
-    <section className="welcome-row"><div><h2>E-RAT & dokumen</h2><p>Buat konten voting lalu tayangkan agar muncul di aplikasi anggota. Unggah dokumen RAT — yang terbaru ditandai otomatis.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
-    {error && <div className="alert error"><X size={17} />{error}</div>}
-    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
+    <section className="welcome-row no-print"><div><h2>E-RAT & dokumen</h2><p>Buat konten voting lalu tayangkan agar muncul di aplikasi anggota. Unggah dokumen RAT — yang terbaru ditandai otomatis.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
+    {error && <div className="alert error no-print"><X size={17} />{error}</div>}
+    {notice && <div className="alert success no-print"><BadgeCheck size={17} />{notice}</div>}
+
+    <div className="no-print" style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+      <button className={`toggle-button ${tab === 'voting' ? 'activate' : ''}`} onClick={() => setTab('voting')}>Voting Agenda</button>
+      <button className={`toggle-button ${tab === 'dokumen' ? 'activate' : ''}`} onClick={() => setTab('dokumen')}>Dokumen RAT</button>
+      <button className={`toggle-button ${tab === 'laporan' ? 'activate' : ''}`} onClick={() => setTab('laporan')}>Laporan RAT (Otomatis)</button>
+    </div>
+
+    {tab === 'voting' && <>
     <section className="stat-grid">
       <StatCard label="Agenda tayang" value={aktifCount} icon={<Vote size={20} />} tone="teal" />
       <StatCard label="Total agenda" value={agenda.length} icon={<Vote size={20} />} tone="blue" />
@@ -1790,8 +1819,9 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
         })}
       </tbody></table>{!loading && agenda.length === 0 && <div className="empty-state">Belum ada agenda voting.</div>}</div>
     </section>
+    </>}
 
-    <section className="table-panel">
+    {tab === 'dokumen' && <section className="table-panel">
       <div className="panel-heading"><div><h2>Dokumen RAT (arsip pengurus)</h2><p>Unggah PDF. Anggota hanya melihat dokumen tahun <strong>terbaru</strong>; arsip tahun-tahun sebelumnya hanya tampil di sini untuk pengurus.</p></div></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '16px 25px 22px', alignItems: 'end' }}>
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763', flex: 1, minWidth: 200 }}>Judul
@@ -1822,7 +1852,347 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
           </span></td>
         </tr>)}
       </tbody></table>{!loading && dokumen.length === 0 && <div className="empty-state">Belum ada dokumen RAT.</div>}</div>
-    </section>
+    </section>}
+
+    {tab === 'laporan' && <LaporanRatPanel token={token} onExpired={onExpired} />}
+  </div>
+}
+
+function LaporanRatPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [tahun, setTahun] = useState(new Date().getFullYear())
+  const [data, setData] = useState<LaporanRat | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [mode, setMode] = useState<'lihat' | 'edit'>('lihat')
+  const [busyId, setBusyId] = useState('')
+
+  const [visi, setVisi] = useState(''); const [misi, setMisi] = useState('')
+  const [alamat, setAlamat] = useState(''); const [tglDidirikan, setTglDidirikan] = useState('')
+  const [noAkta, setNoAkta] = useState(''); const [tglAkta, setTglAkta] = useState('')
+  const [kegiatanBisnis, setKegiatanBisnis] = useState(''); const [kegiatanSosial, setKegiatanSosial] = useState('')
+  const [rencanaBisnis, setRencanaBisnis] = useState(''); const [rencanaSosial, setRencanaSosial] = useState('')
+  const [rabPendapatanPinjaman, setRabPendapatanPinjaman] = useState(''); const [rabPendapatanLain, setRabPendapatanLain] = useState('')
+  const [rabBebanOperasional, setRabBebanOperasional] = useState(''); const [rabBebanUmum, setRabBebanUmum] = useState('')
+  const [rabCadanganPiutang, setRabCadanganPiutang] = useState(''); const [realisasiPajakShu, setRealisasiPajakShu] = useState('')
+  const [catatanTambahan, setCatatanTambahan] = useState('')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+  const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
+  const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
+
+  const isiForm = (d: LaporanRat) => {
+    setVisi(d.profil.visi); setMisi(d.profil.misi); setAlamat(d.profil.alamatKantor ?? '')
+    setTglDidirikan(d.profil.tanggalDidirikan?.slice(0, 10) ?? ''); setNoAkta(d.profil.nomorAktaPendirian ?? '')
+    setTglAkta(d.profil.tanggalAkta?.slice(0, 10) ?? '')
+    setKegiatanBisnis(d.konten.kegiatanBisnis ?? ''); setKegiatanSosial(d.konten.kegiatanSosial ?? '')
+    setRencanaBisnis(d.konten.rencanaBisnisTahunDepan ?? ''); setRencanaSosial(d.konten.rencanaSosialTahunDepan ?? '')
+    setRabPendapatanPinjaman(d.konten.rabPendapatanPinjaman != null ? String(d.konten.rabPendapatanPinjaman) : '')
+    setRabPendapatanLain(d.konten.rabPendapatanLain != null ? String(d.konten.rabPendapatanLain) : '')
+    setRabBebanOperasional(d.konten.rabBebanOperasional != null ? String(d.konten.rabBebanOperasional) : '')
+    setRabBebanUmum(d.konten.rabBebanUmum != null ? String(d.konten.rabBebanUmum) : '')
+    setRabCadanganPiutang(d.konten.rabCadanganPiutang != null ? String(d.konten.rabCadanganPiutang) : '')
+    setRealisasiPajakShu(d.konten.realisasiPajakShu != null ? String(d.konten.realisasiPajakShu) : '')
+    setCatatanTambahan(d.konten.catatanTambahan ?? '')
+  }
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/rat/${tahun}/laporan`, { headers })
+      if (response.status === 401) { onExpired(); return }
+      if (!response.ok) throw new Error(response.status === 403 ? 'Akun ini belum memiliki akses.' : 'Gagal memuat laporan RAT.')
+      const d: LaporanRat = await response.json()
+      setData(d); isiForm(d)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
+    finally { setLoading(false) }
+  }, [headers, onExpired, tahun])
+  useEffect(() => { void load() }, [load])
+
+  const simpanProfil = async () => {
+    setBusyId('profil'); setError('')
+    try {
+      const body = { visi, misi, alamatKantor: alamat || null, tanggalDidirikan: tglDidirikan || null, nomorAktaPendirian: noAkta || null, tanggalAkta: tglAkta || null }
+      const response = await fetch(`${API_BASE}/api/admin/profil-koperasi`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(body) })
+      const hasil = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(hasil.message ?? 'Gagal menyimpan profil.')
+      flash('Profil koperasi disimpan.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menyimpan profil.') }
+    finally { setBusyId('') }
+  }
+
+  const simpanKonten = async () => {
+    setBusyId('konten'); setError('')
+    try {
+      const num = (s: string) => s.trim() === '' ? null : Number(s)
+      const body = {
+        kegiatanBisnis: kegiatanBisnis || null, kegiatanSosial: kegiatanSosial || null,
+        rencanaBisnisTahunDepan: rencanaBisnis || null, rencanaSosialTahunDepan: rencanaSosial || null,
+        rabPendapatanPinjaman: num(rabPendapatanPinjaman), rabPendapatanLain: num(rabPendapatanLain),
+        rabBebanOperasional: num(rabBebanOperasional), rabBebanUmum: num(rabBebanUmum), rabCadanganPiutang: num(rabCadanganPiutang),
+        realisasiPajakShu: num(realisasiPajakShu), catatanTambahan: catatanTambahan || null,
+      }
+      const response = await fetch(`${API_BASE}/api/admin/rat/${tahun}/konten`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(body) })
+      const hasil = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(hasil.message ?? 'Gagal menyimpan konten.')
+      flash('Konten RAT disimpan.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menyimpan konten.') }
+    finally { setBusyId('') }
+  }
+
+  const publikasikan = async (publish: boolean) => {
+    if (publish && !window.confirm(`Tayangkan laporan RAT tahun ${tahun} ke aplikasi anggota? Semua anggota aktif akan bisa membacanya.`)) return
+    if (!publish && !window.confirm(`Batalkan penayangan laporan RAT tahun ${tahun}? Laporan akan hilang dari aplikasi anggota.`)) return
+    setBusyId('publikasi'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/rat/${tahun}/publikasikan`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ publikasikan: publish }) })
+      const hasil = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(hasil.message ?? 'Gagal memproses penayangan.')
+      flash(hasil.message ?? 'Berhasil.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal memproses penayangan.') }
+    finally { setBusyId('') }
+  }
+
+  const capaian = (realisasi: number, rencana: number | null) => rencana && rencana !== 0 ? `${((realisasi / rencana) * 100).toFixed(0)}%` : '—'
+  const jasaPinjaman = data?.labaRugi.pendapatan.find((p) => p.kode === '4-4100')?.saldo ?? 0
+  const pendapatanLain = data ? data.labaRugi.totalPendapatan - jasaPinjaman : 0
+
+  return <div>
+    <div className="no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: '#526763' }}>Tahun buku
+        <input type="number" value={tahun} onChange={(e) => setTahun(Number(e.target.value))} style={{ width: 100, height: 38, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+      </label>
+      <button className={`toggle-button ${mode === 'lihat' ? 'activate' : ''}`} onClick={() => setMode('lihat')}>Lihat laporan</button>
+      <button className={`toggle-button ${mode === 'edit' ? 'activate' : ''}`} onClick={() => setMode('edit')}>Edit konten & RAB</button>
+      {mode === 'lihat' && <button className="submit-button" style={{ width: 'auto', height: 38, padding: '0 18px' }} onClick={() => window.print()}><Download size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Cetak / Simpan PDF</button>}
+      {mode === 'lihat' && data && (data.konten.dipublikasikan
+        ? <button className="toggle-button deactivate" disabled={busyId === 'publikasi'} onClick={() => void publikasikan(false)}><X size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Batalkan penayangan</button>
+        : <button className="submit-button" style={{ width: 'auto', height: 38, padding: '0 18px', background: data.itemBelumLengkap.length > 0 ? '#a9bab5' : undefined }}
+            disabled={busyId === 'publikasi' || data.itemBelumLengkap.length > 0} title={data.itemBelumLengkap.length > 0 ? 'Lengkapi item yang kurang terlebih dahulu' : undefined}
+            onClick={() => void publikasikan(true)}><Send size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Tayangkan ke Anggota</button>)}
+      <span className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></span>
+    </div>
+    {error && <div className="alert error no-print"><X size={17} />{error}</div>}
+    {notice && <div className="alert success no-print"><BadgeCheck size={17} />{notice}</div>}
+    {mode === 'lihat' && data && data.konten.dipublikasikan && <div className="alert success no-print"><BadgeCheck size={17} />Laporan tahun {tahun} sedang tayang di aplikasi anggota{data.konten.dipublikasikanPada ? ` sejak ${tanggal(data.konten.dipublikasikanPada)}` : ''}.</div>}
+    {mode === 'lihat' && data && !data.konten.dipublikasikan && data.itemBelumLengkap.length > 0 && <div className="alert error no-print" style={{ alignItems: 'start' }}>
+      <X size={17} style={{ marginTop: 2, flex: '0 0 auto' }} />
+      <div>Belum bisa ditayangkan ke anggota, lengkapi dulu: <strong>{data.itemBelumLengkap.join('; ')}</strong>.</div>
+    </div>}
+
+    {mode === 'edit' && <div style={{ display: 'grid', gap: 18 }}>
+      <section className="table-panel">
+        <div className="panel-heading"><div><h2>Profil koperasi</h2><p>Konten statis (jarang berubah) — dipakai di kop setiap laporan RAT, tidak berulang per tahun.</p></div></div>
+        <div style={{ display: 'grid', gap: 12, padding: '16px 25px 22px' }}>
+          <label style={labelStyle}>Visi<textarea value={visi} onChange={(e) => setVisi(e.target.value)} rows={2} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <label style={labelStyle}>Misi (satu poin per baris)<textarea value={misi} onChange={(e) => setMisi(e.target.value)} rows={4} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <label style={{ ...labelStyle, flex: 1, minWidth: 220 }}>Alamat kantor<input value={alamat} onChange={(e) => setAlamat(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Tanggal didirikan<input type="date" value={tglDidirikan} onChange={(e) => setTglDidirikan(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>No. Akta Pendirian<input value={noAkta} onChange={(e) => setNoAkta(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Tanggal Akta<input type="date" value={tglAkta} onChange={(e) => setTglAkta(e.target.value)} style={inputStyle} /></label>
+          </div>
+          <button className="submit-button" style={{ width: 'auto', height: 40, padding: '0 20px', justifySelf: 'start' }} disabled={busyId === 'profil'} onClick={simpanProfil}>Simpan profil</button>
+        </div>
+      </section>
+
+      <section className="table-panel">
+        <div className="panel-heading"><div><h2>Konten & RAB tahun {tahun}</h2><p>Narasi kegiatan, rencana tahun depan, dan target RAB untuk kolom "Rencana" pembanding realisasi — khusus tahun buku ini.</p></div></div>
+        <div style={{ display: 'grid', gap: 12, padding: '16px 25px 22px' }}>
+          <label style={labelStyle}>Kegiatan Bisnis tahun {tahun} (satu poin per baris)<textarea value={kegiatanBisnis} onChange={(e) => setKegiatanBisnis(e.target.value)} rows={4} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <label style={labelStyle}>Kegiatan Sosial tahun {tahun} (satu poin per baris)<textarea value={kegiatanSosial} onChange={(e) => setKegiatanSosial(e.target.value)} rows={4} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <label style={labelStyle}>Rencana Kegiatan Bisnis tahun {tahun + 1}<textarea value={rencanaBisnis} onChange={(e) => setRencanaBisnis(e.target.value)} rows={4} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <label style={labelStyle}>Rencana Kegiatan Sosial tahun {tahun + 1}<textarea value={rencanaSosial} onChange={(e) => setRencanaSosial(e.target.value)} rows={4} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <label style={labelStyle}>RAB Pendapatan Pinjaman<input type="number" value={rabPendapatanPinjaman} onChange={(e) => setRabPendapatanPinjaman(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>RAB Pendapatan Lain<input type="number" value={rabPendapatanLain} onChange={(e) => setRabPendapatanLain(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>RAB Beban Operasional<input type="number" value={rabBebanOperasional} onChange={(e) => setRabBebanOperasional(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>RAB Beban Umum<input type="number" value={rabBebanUmum} onChange={(e) => setRabBebanUmum(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>RAB Cadangan Piutang<input type="number" value={rabCadanganPiutang} onChange={(e) => setRabCadanganPiutang(e.target.value)} style={inputStyle} /></label>
+            <label style={labelStyle}>Realisasi Pajak SHU (badan)<input type="number" value={realisasiPajakShu} onChange={(e) => setRealisasiPajakShu(e.target.value)} style={inputStyle} /></label>
+          </div>
+          <label style={labelStyle}>Catatan tambahan<textarea value={catatanTambahan} onChange={(e) => setCatatanTambahan(e.target.value)} rows={2} style={{ padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 8, fontFamily: 'inherit' }} /></label>
+          <button className="submit-button" style={{ width: 'auto', height: 40, padding: '0 20px', justifySelf: 'start' }} disabled={busyId === 'konten'} onClick={simpanKonten}>Simpan konten & RAB tahun {tahun}</button>
+        </div>
+      </section>
+    </div>}
+
+    {mode === 'lihat' && data && <div className="rat-print-area" style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 13, boxShadow: 'var(--shadow)', padding: '36px 42px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <h1 style={{ margin: 0, fontSize: 22 }}>LAPORAN RAPAT ANGGOTA TAHUNAN</h1>
+        <h2 style={{ margin: '4px 0 10px', fontSize: 17, color: 'var(--teal-dark)' }}>KOPERASI KONSUMEN KARYAWAN CIPTA SEJAHTERA (KKCS)</h2>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>{data.profil.alamatKantor}</p>
+        <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 700 }}>Tahun Buku {data.tahun}</p>
+      </div>
+
+      <RatSection judul="Visi & Misi">
+        <p style={{ fontSize: 13, lineHeight: 1.6 }}><strong>Visi:</strong> {data.profil.visi}</p>
+        <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-line', margin: 0 }}><strong>Misi:</strong>{'\n'}{data.profil.misi}</p>
+      </RatSection>
+
+      <RatSection judul="Keanggotaan">
+        <div className="stat-grid" style={{ marginBottom: 0 }}>
+          <StatCard label="Anggota aktif saat ini" value={data.totalAnggotaAktifSaatIni} icon={<Users size={20} />} tone="teal" />
+          <StatCard label={`Anggota baru disetujui ${data.tahun}`} value={data.anggotaBaruTahunIni} icon={<UserPlus size={20} />} tone="green" />
+          <StatCard label="Anggota nonaktif saat ini" value={data.totalAnggotaNonaktifSaatIni} icon={<Users size={20} />} tone="amber" />
+        </div>
+      </RatSection>
+
+      <RatSection judul="Laporan Kegiatan Usaha">
+        {data.konten.kegiatanBisnis && <RatContentBlock label="Kegiatan Bisnis" text={data.konten.kegiatanBisnis} tone="teal" />}
+        {data.konten.kegiatanSosial && <RatContentBlock label="Kegiatan Sosial" text={data.konten.kegiatanSosial} tone="amber" />}
+        {!data.konten.kegiatanBisnis && !data.konten.kegiatanSosial && <p style={{ fontSize: 12, color: 'var(--muted)' }}>Belum diisi — lengkapi lewat mode "Edit konten & RAB".</p>}
+      </RatSection>
+
+      <RatSection judul="Laporan Perhitungan Sisa Hasil Usaha (SHU)">
+        <div className="table-scroll"><table><thead><tr><th>Uraian</th><th className="align-right">Realisasi</th><th className="align-right">Rencana</th><th className="align-right">%</th></tr></thead><tbody>
+          <tr><td>Pendapatan Jasa Pinjaman</td><td className="align-right">{rupiah(jasaPinjaman)}</td><td className="align-right">{data.konten.rabPendapatanPinjaman != null ? rupiah(data.konten.rabPendapatanPinjaman) : '—'}</td><td className="align-right">{capaian(jasaPinjaman, data.konten.rabPendapatanPinjaman)}</td></tr>
+          <tr><td>Pendapatan Lain-lain</td><td className="align-right">{rupiah(pendapatanLain)}</td><td className="align-right">{data.konten.rabPendapatanLain != null ? rupiah(data.konten.rabPendapatanLain) : '—'}</td><td className="align-right">{capaian(pendapatanLain, data.konten.rabPendapatanLain)}</td></tr>
+          <tr style={{ fontWeight: 700 }}><td>Total Pendapatan</td><td className="align-right">{rupiah(data.labaRugi.totalPendapatan)}</td><td className="align-right">{data.rabTotalPendapatan != null ? rupiah(data.rabTotalPendapatan) : '—'}</td><td className="align-right">{capaian(data.labaRugi.totalPendapatan, data.rabTotalPendapatan)}</td></tr>
+          {data.labaRugi.beban.map((b) => <tr key={b.kode}>
+            <td><span className="mono" style={{ marginRight: 6 }}>{b.kode}</span>{b.nama}</td>
+            <td className="align-right">{rupiah(b.saldo)}</td><td className="align-right">—</td><td className="align-right">—</td>
+          </tr>)}
+          {data.labaRugi.beban.length === 0 && <tr><td colSpan={4} style={{ color: 'var(--muted)' }}>Belum ada beban tercatat tahun ini.</td></tr>}
+          <tr style={{ fontWeight: 700 }}><td>Total Beban</td><td className="align-right">{rupiah(data.labaRugi.totalBeban)}</td><td className="align-right">{data.rabTotalBeban != null ? rupiah(data.rabTotalBeban) : '—'}</td><td className="align-right">{capaian(data.labaRugi.totalBeban, data.rabTotalBeban)}</td></tr>
+          <tr style={{ fontWeight: 700, background: '#f7faf9' }}><td>SHU Sebelum Pajak</td><td className="align-right">{rupiah(data.shuSebelumPajak)}</td><td className="align-right" colSpan={2}>{data.rabTotalPendapatan != null && data.rabTotalBeban != null ? rupiah(data.rabTotalPendapatan - data.rabTotalBeban) : '—'}</td></tr>
+          <tr><td>Pajak</td><td className="align-right">{data.pajakShu != null ? `−${rupiah(data.pajakShu)}` : 'Belum diisi'}</td><td colSpan={2}></td></tr>
+          <tr style={{ fontWeight: 800, background: '#e5f4ef' }}><td>SHU Setelah Pajak</td><td className="align-right">{rupiah(data.shuSetelahPajak ?? data.shuSebelumPajak)}</td><td colSpan={2}></td></tr>
+        </tbody></table></div>
+        {data.shu && (() => {
+          const shu = data.shu
+          // Finalisasi lama (sebelum kebijakan 2 lapis) tidak punya persenAnggota tersendiri — dulu
+          // persenJasaModal/persenJasaUsaha adalah fraksi LANGSUNG dari Total SHU, jadi jumlah keduanya
+          // = porsi Anggota sebenarnya. Rekonstruksi di sini supaya tetap tampil benar (bukan 0%), lalu
+          // normalisasi JMA/JUA jadi sub-split di dalam pool Anggota itu (persis makna Lapis 2 sekarang).
+          const persenAnggota = shu.persenAnggota > 0 ? shu.persenAnggota : (shu.persenJasaModal + shu.persenJasaUsaha)
+          const persenModal = shu.persenAnggota > 0 || persenAnggota === 0 ? shu.persenJasaModal : shu.persenJasaModal / persenAnggota
+          const persenUsaha = shu.persenAnggota > 0 || persenAnggota === 0 ? shu.persenJasaUsaha : shu.persenJasaUsaha / persenAnggota
+          const anggotaPool = shu.totalShu * persenAnggota
+          return <div style={{ marginTop: 20 }}>
+          <h4 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: 'var(--teal-dark)' }}>Kebijakan Pembagian SHU {data.tahun}</h4>
+          <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--muted)' }}>Difinalisasi {tanggal(shu.difinalisasiPada)} · dibagikan ke {shu.jumlahAnggota} anggota aktif sesuai Keputusan RAT.</p>
+
+          <div style={{ padding: '12px 16px', border: '1px solid var(--line)', borderRadius: 10, background: '#f7faf9', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--teal-dark)', marginBottom: 10 }}>Lapis 1 — Pembagian Total SHU ({rupiah(shu.totalShu)})</div>
+            <AllocationBar segments={[
+              { value: persenAnggota, color: '#2d8155', label: 'Anggota' },
+              { value: shu.persenPengurus ?? 0, color: '#ad6a16', label: 'Pengurus' },
+              { value: shu.persenCadangan ?? 0, color: '#436a97', label: 'Cadangan' },
+            ]} />
+            <div className="stat-grid">
+              <StatCard label={`Anggota (${(persenAnggota * 100).toFixed(0)}%, dipecah di Lapis 2)`} value={anggotaPool} icon={<Users size={18} />} tone="green" money />
+              <StatCard label={`Pengurus (${((shu.persenPengurus ?? 0) * 100).toFixed(0)}%)`} value={shu.jasaPengurusPool ?? 0} icon={<Wallet size={18} />} tone="amber" money />
+              <StatCard label={`Cadangan (${((shu.persenCadangan ?? 0) * 100).toFixed(0)}%, ditahan permanen)`} value={shu.cadanganAmount ?? 0} icon={<Scale size={18} />} tone="blue" money />
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 16px', border: '1px solid var(--line)', borderRadius: 10, background: '#fbf9f3' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: '#8a5a12', marginBottom: 10 }}>Lapis 2 — Pembagian Pool Anggota ({rupiah(anggotaPool)})</div>
+            <AllocationBar segments={[
+              { value: persenModal, color: '#087f78', label: 'Jasa Modal' },
+              { value: persenUsaha, color: '#0b9488', label: 'Jasa Usaha' },
+            ]} />
+            <div className="stat-grid">
+              <StatCard label={`Jasa Modal Anggota — JMA (${(persenModal * 100).toFixed(0)}%)`} value={anggotaPool * persenModal} icon={<PiggyBank size={18} />} tone="teal" money />
+              <StatCard label={`Jasa Usaha Anggota — JUA (${(persenUsaha * 100).toFixed(0)}%)`} value={anggotaPool * persenUsaha} icon={<TrendingUp size={18} />} tone="green" money />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: '10px 0 0' }}>Total neto diterima anggota (JMA+JUA setelah PPh {rupiah(shu.totalPajak)}): <strong style={{ color: 'var(--ink)' }}>{rupiah(shu.totalShuNeto)}</strong></p>
+          </div>
+        </div>
+        })()}
+        {!data.shu && <div style={{ marginTop: 16, fontSize: 12.5, color: '#ad6a16' }}>SHU tahun buku {data.tahun} belum difinalisasi di menu Akuntansi → tab SHU.</div>}
+      </RatSection>
+
+      <RatSection judul={`Neraca per 31 Desember ${data.tahun}`}>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ flex: '1 1 320px', minWidth: 280 }}><AkunTable items={data.neracaAkhirTahun.aset} title={`ASET — ${rupiah(data.neracaAkhirTahun.totalAset)}`} /></div>
+          <div style={{ flex: '1 1 320px', minWidth: 280 }}>
+            <AkunTable items={data.neracaAkhirTahun.liabilitas} title={`LIABILITAS — ${rupiah(data.neracaAkhirTahun.totalLiabilitas)}`} />
+            <div style={{ height: 16 }} />
+            <AkunTable items={[...data.neracaAkhirTahun.ekuitas, { kode: '3-3900', nama: 'SHU Tahun Berjalan', saldo: data.neracaAkhirTahun.shuBerjalan }]} title={`EKUITAS — ${rupiah(data.neracaAkhirTahun.totalEkuitas)}`} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 12, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+          <div style={{ flex: '1 1 320px', minWidth: 280, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#526763' }}>Total Aset</span>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>{rupiah(data.neracaAkhirTahun.totalAset)}</span>
+          </div>
+          <div style={{ flex: '1 1 320px', minWidth: 280, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#526763' }}>Total Liabilitas + Ekuitas</span>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>{rupiah(data.neracaAkhirTahun.totalLiabilitas + data.neracaAkhirTahun.totalEkuitas)}</span>
+          </div>
+        </div>
+        <div className={`alert ${Math.abs(data.neracaAkhirTahun.selisih) < 1 ? 'success' : 'error'}`} style={{ marginTop: 4 }}>
+          {Math.abs(data.neracaAkhirTahun.selisih) < 1 ? <BadgeCheck size={16} /> : <X size={16} />} Selisih: {rupiah(data.neracaAkhirTahun.selisih)}
+        </div>
+      </RatSection>
+
+      {data.neracaTahunLalu && <RatSection judul={`Pembanding Neraca per 31 Desember ${data.tahun - 1}`}>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 320px', minWidth: 280 }}><AkunTable items={data.neracaTahunLalu.aset} title={`ASET — ${rupiah(data.neracaTahunLalu.totalAset)}`} /></div>
+          <div style={{ flex: '1 1 320px', minWidth: 280 }}>
+            <AkunTable items={data.neracaTahunLalu.liabilitas} title={`LIABILITAS — ${rupiah(data.neracaTahunLalu.totalLiabilitas)}`} />
+            <div style={{ height: 16 }} />
+            <AkunTable items={[...data.neracaTahunLalu.ekuitas, { kode: '3-3900', nama: 'SHU Tahun Berjalan', saldo: data.neracaTahunLalu.shuBerjalan }]} title={`EKUITAS — ${rupiah(data.neracaTahunLalu.totalEkuitas)}`} />
+          </div>
+        </div>
+      </RatSection>}
+
+      {(data.konten.rencanaBisnisTahunDepan || data.konten.rencanaSosialTahunDepan) && <RatSection judul={`Rencana Kegiatan Tahun ${data.tahun + 1}`}>
+        {data.konten.rencanaBisnisTahunDepan && <RatContentBlock label="Rencana Kegiatan Bisnis" text={data.konten.rencanaBisnisTahunDepan} tone="teal" />}
+        {data.konten.rencanaSosialTahunDepan && <RatContentBlock label="Rencana Kegiatan Sosial" text={data.konten.rencanaSosialTahunDepan} tone="amber" />}
+      </RatSection>}
+
+      {data.konten.catatanTambahan && <RatSection judul="Catatan Tambahan">
+        <p style={{ fontSize: 13, whiteSpace: 'pre-line', lineHeight: 1.6, margin: 0 }}>{data.konten.catatanTambahan}</p>
+      </RatSection>}
+
+      <RatSection judul="Lampiran — Buku Besar per Akun (Saldo Awal, Mutasi, Saldo Akhir)">
+        <div className="table-scroll"><table><thead><tr><th>Akun</th><th className="align-right">Saldo Awal</th><th className="align-right">Debit</th><th className="align-right">Kredit</th><th className="align-right">Saldo Akhir</th></tr></thead><tbody>
+          {data.bukuBesar.map((b) => <tr key={b.kode}>
+            <td><span className="mono" style={{ marginRight: 6 }}>{b.kode}</span>{b.nama} <span style={{ color: 'var(--muted)' }}>({b.tipe})</span></td>
+            <td className="align-right">{rupiah(b.saldoAwal)}</td>
+            <td className="align-right">{rupiah(b.debit)}</td>
+            <td className="align-right">{rupiah(b.kredit)}</td>
+            <td className="align-right" style={{ fontWeight: 700 }}>{rupiah(b.saldoAkhir)}</td>
+          </tr>)}
+        </tbody></table>{data.bukuBesar.length === 0 && <div className="empty-state">Belum ada mutasi jurnal untuk tahun ini.</div>}</div>
+      </RatSection>
+
+      <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', marginTop: 30 }}>
+        Laporan ini disusun otomatis dari data sistem KKCS pada {waktu(new Date().toISOString())}.
+      </p>
+    </div>}
+  </div>
+}
+
+function RatSection({ judul, children }: { judul: string; children: ReactNode }) {
+  return <div style={{ marginBottom: 26 }}>
+    <h3 style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--teal-dark)', borderBottom: '2px solid var(--mint)', paddingBottom: 8, marginBottom: 14 }}>{judul}</h3>
+    {children}
+  </div>
+}
+
+function RatContentBlock({ label, text, tone }: { label: string; text: string; tone: 'teal' | 'amber' }) {
+  const bg = tone === 'teal' ? '#eef8f5' : '#fdf3e4'
+  const border = tone === 'teal' ? '#bfe3d6' : '#f0d9ab'
+  const labelColor = tone === 'teal' ? 'var(--teal-dark)' : '#8a5a12'
+  return <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 18px', marginBottom: 12 }}>
+    <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: labelColor, marginBottom: 7 }}>{label}</div>
+    <p style={{ fontSize: 14, lineHeight: 1.75, whiteSpace: 'pre-line', margin: 0 }}>{text}</p>
+  </div>
+}
+
+// Bar proporsi yang menormalisasi lebar tiap segmen terhadap jumlah segmen yang tampil (bukan flex-grow
+// mentah) — selalu memenuhi lebar penuh 100% walau totalnya bukan 100% persis (mis. data lama sebelum
+// model 2-lapis berlaku, atau pembulatan), jadi tidak pernah "tidak sampai kanan".
+function AllocationBar({ segments }: { segments: { value: number; color: string; label: string }[] }) {
+  const total = segments.reduce((s, seg) => s + Math.max(0, seg.value), 0)
+  return <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 12, marginBottom: 12, background: '#e7ece9' }}>
+    {total > 0 && segments.filter((seg) => seg.value > 0).map((seg) => (
+      <div key={seg.label} style={{ width: `${(seg.value / total) * 100}%`, background: seg.color }} title={`${seg.label} ${(seg.value * 100).toFixed(0)}%`} />
+    ))}
   </div>
 }
 
@@ -1832,13 +2202,13 @@ function currentPeriode() {
 }
 
 function PayrollView({ token, onExpired }: { token: string; onExpired: () => void }) {
-  const [tab, setTab] = useState<'rekap' | 'terkirim'>('rekap')
   const [periode, setPeriode] = useState(currentPeriode())
   const [rekap, setRekap] = useState<PayrollRekap | null>(null)
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [detailId, setDetailId] = useState<number | null>(null)
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
   const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
@@ -1881,149 +2251,207 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
     finally { setBusyId('') }
   }
 
-  const kirimKredit = async () => {
-    if (!window.confirm(`Tandai SEMUA tagihan kredit produk yang belum dikirim (total ${rupiah(rekap?.totalKredit ?? 0)}) sebagai "Dikirim ke SDM"?`)) return
+  const setujuiKredit = async () => {
+    if (!window.confirm(`Tandai SEMUA Tagihan Kredit yang belum lunas (total ${rupiah(rekap?.totalKredit ?? 0)}) LUNAS?`)) return
     setBusyId('kredit'); setError('')
     try {
-      const response = await fetch(`${API_BASE}/api/admin/produk/tagihan-kredit/kirim`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+      const response = await fetch(`${API_BASE}/api/admin/produk/tagihan-kredit/lunas`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.message ?? 'Gagal mengirim tagihan kredit.')
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menandai tagihan kredit lunas.')
       flash(data.message ?? 'Berhasil.'); await load()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengirim tagihan kredit.') }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menandai tagihan kredit lunas.') }
+    finally { setBusyId('') }
+  }
+
+  const setujuiCicilan = async () => {
+    const items = (rekap?.baris ?? []).flatMap((b) => b.items.filter((i) => i.jenis === 'Cicilan'))
+    if (items.length === 0) return
+    if (!window.confirm(`Tandai SEMUA Cicilan Pinjaman jatuh tempo bulan ini (total ${rupiah(rekap?.totalCicilanPinjaman ?? 0)}) LUNAS?`)) return
+    setBusyId('cicilan'); setError('')
+    try {
+      for (const item of items) {
+        const response = await fetch(`${API_BASE}/api/admin/pinjaman/angsuran/${item.id}/bayar`, { method: 'POST', headers })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.message ?? 'Gagal menandai cicilan lunas.')
+      }
+      flash(`${items.length} cicilan pinjaman ditandai lunas.`); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Sebagian cicilan gagal diproses — cek kembali daftar di bawah.') }
     finally { setBusyId('') }
   }
 
   return <div className="content-wrap">
     <section className="welcome-row">
-      <div><h2>Laporan potong gaji (payroll)</h2><p>Rekap otomatis Simpanan Wajib + Tagihan Kredit produk per anggota untuk periode terpilih, siap dikirim ke bagian SDM.</p></div>
+      <div><h2>Tagihan Anggota (potong gaji)</h2><p>Rekap otomatis Simpanan Wajib + Tagihan Kredit produk + Cicilan Pinjaman per anggota untuk periode terpilih. Setujui, lalu ekspor CSV.</p></div>
       <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div>
     </section>
-    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-      <button className={`toggle-button ${tab === 'rekap' ? 'activate' : ''}`} onClick={() => setTab('rekap')}>Rekap periode ini</button>
-      <button className={`toggle-button ${tab === 'terkirim' ? 'activate' : ''}`} onClick={() => setTab('terkirim')}>Sudah dikirim ke SDM</button>
-    </div>
 
-    {tab === 'terkirim' ? <TerkirimSdmPanel token={token} onExpired={onExpired} /> : <>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
     <section className="stat-grid">
       <StatCard label="Anggota terpotong" value={rekap?.baris.length ?? 0} icon={<Users size={20} />} tone="teal" />
       <StatCard label="Simpanan Wajib" value={rekap?.totalWajib ?? 0} icon={<PiggyBank size={20} />} tone="blue" money />
       <StatCard label="Tagihan Kredit" value={rekap?.totalKredit ?? 0} icon={<HandCoins size={20} />} tone="amber" money />
+      <StatCard label="Cicilan Pinjaman" value={rekap?.totalCicilanPinjaman ?? 0} icon={<Banknote size={20} />} tone="blue" money />
       <StatCard label="Total potongan" value={rekap?.totalPotongan ?? 0} icon={<Receipt size={20} />} tone="green" money />
     </section>
 
     <section className="table-panel">
-      <div className="panel-heading">
-        <div><h2>Rekap periode {periode}</h2><p>Belum ditagih (Simpanan Wajib) + belum dikirim (Tagihan Kredit) untuk periode ini.</p></div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="panel-heading" style={{ flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ flex: '1 1 320px' }}><h2>Rekap periode {periode}</h2><p>Belum ditagih (Simpanan Wajib) + belum lunas (Tagihan Kredit) + cicilan pinjaman jatuh tempo bulan ini untuk periode ini.</p></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <input type="month" value={periode} onChange={(e) => setPeriode(e.target.value)} style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
           <button className="toggle-button activate" onClick={() => void exportCsv()}><FileSpreadsheet size={14} style={{ verticalAlign: -2, marginRight: 5 }} />Ekspor CSV</button>
         </div>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 25px 16px' }}>
-        <button className="toggle-button activate" disabled={busyId === 'wajib' || !(rekap && rekap.totalWajib > 0)} onClick={() => void setujuiWajib()}>Setujui semua Simpanan Wajib periode ini</button>
-        <button className="toggle-button activate" disabled={busyId === 'kredit' || !(rekap && rekap.totalKredit > 0)} onClick={() => void kirimKredit()}>Kirim semua Tagihan Kredit ke SDM</button>
+        <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalWajib > 0)} onClick={() => void setujuiWajib()}>Setujui semua Simpanan Wajib periode ini</button>
+        <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalKredit > 0)} onClick={() => void setujuiKredit()}>Setujui semua Tagihan Kredit</button>
+        <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalCicilanPinjaman > 0)} onClick={() => void setujuiCicilan()}>Setujui semua Angsuran Cicilan</button>
       </div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Total Potongan</th></tr></thead><tbody>
-        {rekap?.baris.map((b) => <tr key={b.penggunaId}>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Cicilan Pinjaman</th><th>Total Potongan</th></tr></thead><tbody>
+        {rekap?.baris.map((b) => <tr key={b.penggunaId} onClick={() => setDetailId(b.penggunaId)} style={{ cursor: 'pointer' }}>
           <td><div className="user-cell"><span className="avatar">{b.nama.charAt(0).toUpperCase()}</span><strong>{b.nama}</strong></div></td>
           <td className="mono">{b.nik || '—'}</td>
           <td>{b.simpananWajib > 0 ? rupiah(b.simpananWajib) : '—'}</td>
           <td>{b.tagihanKredit > 0 ? rupiah(b.tagihanKredit) : '—'}</td>
+          <td>{b.cicilanPinjaman > 0 ? rupiah(b.cicilanPinjaman) : '—'}</td>
           <td style={{ fontWeight: 700 }}>{rupiah(b.totalPotongan)}</td>
         </tr>)}
       </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}</div>
     </section>
-    </>}
+
+    {detailId !== null && <PayrollDetailModal
+      baris={rekap?.baris.find((b) => b.penggunaId === detailId) ?? null}
+      token={token} onExpired={onExpired}
+      onClose={() => setDetailId(null)}
+      onChanged={() => void load()}
+    />}
   </div>
 }
 
-function TerkirimSdmPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
-  const [wajib, setWajib] = useState<TagihanWajib[]>([])
-  const [kredit, setKredit] = useState<TagihanKredit[]>([])
-  const [periodeFilter, setPeriodeFilter] = useState('')
-  const [loading, setLoading] = useState(false)
+function PayrollDetailModal({ baris, token, onExpired, onClose, onChanged }: {
+  baris: PayrollBaris | null; token: string; onExpired: () => void; onClose: () => void; onChanged: () => void
+}) {
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-
-  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
-  const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
   const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
 
-  const load = useCallback(async () => {
-    setLoading(true); setError('')
-    try {
-      const [wajibResponse, kreditResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/admin/simpanan/wajib`, { headers }),
-        fetch(`${API_BASE}/api/admin/produk/tagihan-kredit`, { headers }),
-      ])
-      if (wajibResponse.status === 401 || kreditResponse.status === 401) { onExpired(); return }
-      if (!wajibResponse.ok || !kreditResponse.ok) throw new Error('Gagal memuat riwayat terkirim ke SDM.')
-      const wajibData: TagihanWajib[] = await wajibResponse.json()
-      const kreditData: TagihanKredit[] = await kreditResponse.json()
-      setWajib(wajibData.filter((item) => item.status === 'Dibayar'))
-      setKredit(kreditData.filter((item) => item.status === 'DikirimKeSDM' || item.status === 'Lunas'))
-    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
-    finally { setLoading(false) }
-  }, [headers, onExpired])
-  useEffect(() => { void load() }, [load])
+  const post = async (url: string, body?: unknown) => {
+    const response = await fetch(`${API_BASE}${url}`, { method: 'POST', headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    if (response.status === 401) { onExpired(); throw new Error('Sesi berakhir.') }
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.message ?? 'Permintaan gagal.')
+    return data
+  }
 
-  const tandaiLunas = async (penggunaId: number, nama: string) => {
-    if (!window.confirm(`Tandai semua tagihan kredit ${nama} yang sudah dikirim ke SDM sebagai LUNAS?`)) return
-    setBusyId(`k-${penggunaId}`); setError('')
+  const wajibItems = baris?.items.filter((i) => i.jenis === 'Wajib') ?? []
+  const kreditItems = baris?.items.filter((i) => i.jenis === 'Kredit') ?? []
+  const cicilanItems = baris?.items.filter((i) => i.jenis === 'Cicilan') ?? []
+  const semuaItems = [...wajibItems, ...kreditItems, ...cicilanItems]
+
+  // Setuju = tandai potongan ini diproses (dikreditkan / dilunasi). Tolak untuk Simpanan Wajib benar-benar
+  // menolak tagihannya; untuk Tagihan Kredit & Cicilan Pinjaman (utang yang sudah pasti ada), "Tolak" berarti
+  // dilewati dulu periode ini — tidak ada perubahan status, akan muncul lagi di rekap periode berikutnya.
+  const setuju = async (item: PayrollItem) => {
+    if (!window.confirm(`Setujui "${item.keterangan}" (${rupiah(item.nominal)})?`)) return
+    setBusyId(`s-${item.id}`); setError('')
     try {
-      const response = await fetch(`${API_BASE}/api/admin/produk/tagihan-kredit/lunas`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ penggunaId }) })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.message ?? 'Gagal menandai lunas.')
-      flash(data.message ?? 'Berhasil.'); await load()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menandai lunas.') }
+      if (item.jenis === 'Wajib') await post(`/api/admin/simpanan/wajib/${item.id}/putusan`, { setuju: true })
+      else if (item.jenis === 'Kredit') await post('/api/admin/produk/tagihan-kredit/lunas', { tagihanKreditId: item.id })
+      else await post(`/api/admin/pinjaman/angsuran/${item.id}/bayar`)
+      onChanged()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal memproses.') }
     finally { setBusyId('') }
   }
 
-  const wajibTampil = periodeFilter ? wajib.filter((item) => item.periode === periodeFilter) : wajib
-  const totalWajib = wajibTampil.reduce((sum, item) => sum + item.nominal, 0)
-  const totalKredit = kredit.reduce((sum, item) => sum + item.total, 0)
+  const tolak = async (item: PayrollItem) => {
+    if (item.jenis !== 'Wajib') { flash(`"${item.keterangan}" dilewati — akan muncul lagi periode berikutnya.`); return }
+    const catatan = window.prompt(`Alasan menolak "${item.keterangan}" (opsional):`)
+    if (catatan === null) return
+    setBusyId(`t-${item.id}`); setError('')
+    try { await post(`/api/admin/simpanan/wajib/${item.id}/putusan`, { setuju: false, catatan: catatan || null }); onChanged() }
+    catch (e) { setError(e instanceof Error ? e.message : 'Gagal memproses.') }
+    finally { setBusyId('') }
+  }
 
-  return <div>
-    {error && <div className="alert error"><X size={17} />{error}</div>}
-    {notice && <div className="alert success"><BadgeCheck size={17} />{notice}</div>}
-    <section className="stat-grid">
-      <StatCard label="Simpanan Wajib sudah dibayar" value={totalWajib} icon={<PiggyBank size={20} />} tone="blue" money />
-      <StatCard label="Tagihan Kredit terkirim/lunas" value={totalKredit} icon={<HandCoins size={20} />} tone="amber" money />
-    </section>
+  const setujuiSemua = async () => {
+    if (!baris || !window.confirm(`Setujui SEMUA potongan ${baris.nama} periode ini (total ${rupiah(baris.totalPotongan)})?`)) return
+    setBusyId('semua'); setError('')
+    try {
+      for (const item of wajibItems) await post(`/api/admin/simpanan/wajib/${item.id}/putusan`, { setuju: true })
+      for (const item of kreditItems) await post('/api/admin/produk/tagihan-kredit/lunas', { tagihanKreditId: item.id })
+      for (const item of cicilanItems) await post(`/api/admin/pinjaman/angsuran/${item.id}/bayar`)
+      onChanged()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Sebagian potongan gagal diproses — cek kembali daftar di bawah.') }
+    finally { setBusyId('') }
+  }
 
-    <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading">
-        <div><h2>Simpanan Wajib — sudah dibayar</h2><p>Tagihan wajib yang sudah disetujui pengurus (saldo sudah dikreditkan) — riwayat seluruh periode.</p></div>
-        <input type="month" value={periodeFilter} onChange={(e) => setPeriodeFilter(e.target.value)} placeholder="Semua periode" style={{ height: 36, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }} />
+  const tolakSemua = async () => {
+    if (!baris) return
+    const catatan = wajibItems.length > 0 ? window.prompt(`Alasan menolak Simpanan Wajib ${baris.nama} (opsional):`) : ''
+    if (catatan === null) return
+    setBusyId('tolak-semua'); setError('')
+    try {
+      for (const item of wajibItems) await post(`/api/admin/simpanan/wajib/${item.id}/putusan`, { setuju: false, catatan: catatan || null })
+      if (kreditItems.length > 0 || cicilanItems.length > 0) flash('Tagihan Kredit & Cicilan Pinjaman dilewati — akan muncul lagi periode berikutnya.')
+      onChanged()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menolak Simpanan Wajib.') }
+    finally { setBusyId('') }
+  }
+
+  return <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 35, 30, 0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+    <div style={{ background: '#fff', borderRadius: 14, width: 'min(640px, 100%)', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.25)' }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', padding: '20px 24px', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', gap: 14 }}>
+          <span className="avatar" style={{ width: 44, height: 44, fontSize: 17 }}>{(baris?.nama ?? '?').charAt(0).toUpperCase()}</span>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17 }}>{baris?.nama ?? 'Anggota'}</h2>
+            <small style={{ color: 'var(--muted)' }}>NIK {baris?.nik || '—'} · Total potongan {rupiah(baris?.totalPotongan ?? 0)}</small>
+          </div>
+        </div>
+        <button className="icon-button" onClick={onClose} title="Tutup"><X size={20} /></button>
       </div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Periode</th><th>Nominal</th><th>Diproses</th></tr></thead><tbody>
-        {wajibTampil.map((item) => <tr key={item.id}>
-          <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><strong>{item.namaAnggota}</strong></div></td>
-          <td className="mono">{item.nomorIndukKaryawan}</td>
-          <td>{item.periode}</td>
-          <td>{rupiah(item.nominal)}</td>
-          <td>{item.diprosesPada ? tanggal(item.diprosesPada) : '—'}</td>
-        </tr>)}
-      </tbody></table>{!loading && wajibTampil.length === 0 && <div className="empty-state">Belum ada Simpanan Wajib yang sudah dibayar.</div>}</div>
-    </section>
 
-    <section className="table-panel">
-      <div className="panel-heading"><div><h2>Tagihan Kredit — sudah dikirim ke SDM</h2><p>Termasuk yang masih menunggu potongan gaji (Dikirim) maupun yang sudah lunas.</p></div></div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Transaksi</th><th>Total</th><th>Dikirim</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {kredit.map((item) => <tr key={item.id}>
-          <td><div className="user-cell"><span className="avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><strong>{item.namaAnggota}</strong></div></td>
-          <td className="mono">{item.nomorIndukKaryawan}</td>
-          <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorTransaksi}</small></td>
-          <td>{rupiah(item.total)}</td>
-          <td>{item.dikirimPada ? tanggal(item.dikirimPada) : '—'}</td>
-          <td><span className={`status-pill ${item.status === 'Lunas' ? 'active' : ''}`}><i />{item.status === 'Lunas' ? `Lunas${item.lunasPada ? ` (${tanggal(item.lunasPada)})` : ''}` : 'Dikirim, menunggu potong gaji'}</span></td>
-          <td className="align-right">{item.status === 'DikirimKeSDM' && <button className="toggle-button activate" disabled={busyId === `k-${item.penggunaId}`} onClick={() => void tandaiLunas(item.penggunaId, item.namaAnggota)}>Tandai lunas</button>}</td>
-        </tr>)}
-      </tbody></table>{!loading && kredit.length === 0 && <div className="empty-state">Belum ada Tagihan Kredit yang dikirim ke SDM.</div>}</div>
-    </section>
+      <div style={{ padding: '18px 24px' }}>
+        {error && <div className="alert error" style={{ marginBottom: 14 }}><X size={17} />{error}</div>}
+        {notice && <div className="alert success" style={{ marginBottom: 14 }}><BadgeCheck size={17} />{notice}</div>}
+        {!baris && <div className="empty-state">Semua potongan anggota ini sudah diproses.</div>}
+
+        {baris && <>
+          {wajibItems.length > 0 && <div style={{ marginBottom: 18 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Simpanan Wajib</h3>
+            {wajibItems.map((item) => <PayrollItemRow key={item.id} item={item} busy={busyId !== ''} onSetuju={() => void setuju(item)} onTolak={() => void tolak(item)} />)}
+          </div>}
+
+          {kreditItems.length > 0 && <div style={{ marginBottom: 18 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Tagihan Kredit</h3>
+            {kreditItems.map((item) => <PayrollItemRow key={item.id} item={item} busy={busyId !== ''} onSetuju={() => void setuju(item)} onTolak={() => void tolak(item)} />)}
+          </div>}
+
+          {cicilanItems.length > 0 && <div style={{ marginBottom: 6 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.04em', color: '#526763' }}>Cicilan Pinjaman</h3>
+            {cicilanItems.map((item) => <PayrollItemRow key={item.id} item={item} busy={busyId !== ''} onSetuju={() => void setuju(item)} onTolak={() => void tolak(item)} />)}
+          </div>}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--line)', flexWrap: 'wrap' }}>
+            <button className="submit-button" style={{ width: 'auto', height: 38, padding: '0 18px' }} disabled={busyId !== '' || semuaItems.length === 0} onClick={() => void setujuiSemua()}>Setujui semua</button>
+            <button className="toggle-button deactivate" disabled={busyId !== '' || semuaItems.length === 0} onClick={() => void tolakSemua()}>Tolak semua</button>
+          </div>
+        </>}
+      </div>
+    </div>
+  </div>
+}
+
+function PayrollItemRow({ item, busy, onSetuju, onTolak }: { item: PayrollItem; busy: boolean; onSetuju: () => void; onTolak: () => void }) {
+  return <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+    <div><div style={{ fontSize: 13 }}>{item.keterangan}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{rupiah(item.nominal)}</div></div>
+    <span style={{ display: 'inline-flex', gap: 6, flexShrink: 0 }}>
+      <button className="toggle-button activate" disabled={busy} onClick={onSetuju}>Setuju</button>
+      <button className="toggle-button deactivate" disabled={busy} onClick={onTolak}>Tolak</button>
+    </span>
   </div>
 }
 
@@ -2039,10 +2467,10 @@ function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) 
   return <div style={{ flex: 1, minWidth: 260, maxWidth: '100%' }}>
     <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 8px' }}>{title}</h3>
     <div>
-      {items.map((a) => <div key={a.kode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, padding: '6px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
-        <span style={{ display: 'flex', gap: 8, minWidth: 0, alignItems: 'baseline' }}>
+      {items.map((a) => <div key={a.kode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+        <span style={{ display: 'flex', gap: 8, minWidth: 0 }}>
           <span className="mono" style={{ color: 'var(--muted)', fontSize: 11, flexShrink: 0 }}>{a.kode}</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nama}</span>
+          <span style={{ wordBreak: 'break-word' }}>{a.nama}</span>
         </span>
         <span style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>{rupiah(a.saldo)}</span>
       </div>)}
@@ -2185,7 +2613,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
   const TABS: { key: AkuntansiTab; label: string; icon: ReactNode }[] = [
     { key: 'jurnal', label: 'Jurnal Umum', icon: <BookOpen size={15} /> },
     { key: 'neraca', label: 'Neraca', icon: <Scale size={15} /> },
-    { key: 'laba-rugi', label: 'Laba Rugi', icon: <TrendingUp size={15} /> },
+    { key: 'laba-rugi', label: 'Hasil Usaha', icon: <TrendingUp size={15} /> },
     { key: 'shu', label: 'SHU', icon: <Calculator size={15} /> },
     { key: 'arus-kas', label: 'Arus Kas', icon: <Banknote size={15} /> },
     { key: 'akun', label: 'Bagan Akun', icon: <Database size={15} /> },
@@ -2260,6 +2688,16 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
             <AkunTable items={[...neraca.ekuitas, { kode: '3-3999', nama: 'SHU Tahun Berjalan', saldo: neraca.shuBerjalan }]} title={`EKUITAS — ${rupiah(neraca.totalEkuitas)}`} />
           </div>
         </div>
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <div style={{ flex: 1, minWidth: 260, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#526763' }}>Total Aset</span>
+            <span style={{ fontSize: 17, fontWeight: 800 }}>{rupiah(neraca.totalAset)}</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 260, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#526763' }}>Total Liabilitas + Ekuitas</span>
+            <span style={{ fontSize: 17, fontWeight: 800 }}>{rupiah(neraca.totalLiabilitas + neraca.totalEkuitas)}</span>
+          </div>
+        </div>
         <div className={`alert ${Math.abs(neraca.selisih) < 1 ? 'success' : 'error'}`}>
           {Math.abs(neraca.selisih) < 1 ? <BadgeCheck size={17} /> : <X size={17} />}
           Selisih: {rupiah(neraca.selisih)} {Math.abs(neraca.selisih) < 1 ? '(Neraca balance)' : '(Tidak balance — periksa jurnal)'}
@@ -2269,7 +2707,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
 
     {tab === 'laba-rugi' && labaRugi && <section className="table-panel">
       <div className="panel-heading">
-        <div><h2>Laba Rugi (Income Statement)</h2><p>Pendapatan dikurangi beban pada rentang tanggal terpilih.</p></div>
+        <div><h2>Hasil Usaha (Income Statement)</h2><p>Pendapatan dikurangi beban pada rentang tanggal terpilih.</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input type="date" value={dariRugi} onChange={(e) => setDariRugi(e.target.value)} style={inputStyle} />
           <input type="date" value={sampaiRugi} onChange={(e) => setSampaiRugi(e.target.value)} style={inputStyle} />
@@ -2355,6 +2793,12 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
 
   const [tahun, setTahun] = useState(new Date().getFullYear())
   const [totalShu, setTotalShu] = useState('')
+  // Default sesuai kebijakan pembagian SHU dari RAT — DUA LAPIS:
+  // Lapis 1 (dari Total SHU, wajib 100%): Anggota 40% + Pengurus 20% + Cadangan (permanen) 40%.
+  // Lapis 2 (dari pool Anggota di atas, wajib 100%): Jasa Modal (JMA) 30% + Jasa Usaha (JUA) 70%.
+  const [persenAnggota, setPersenAnggota] = useState('40')
+  const [persenPengurus, setPersenPengurus] = useState('20')
+  const [persenCadangan, setPersenCadangan] = useState('40')
   const [persenModal, setPersenModal] = useState('30')
   const [persenUsaha, setPersenUsaha] = useState('70')
 
@@ -2379,10 +2823,10 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
     try {
       const response = await fetch(`${API_BASE}/api/admin/akuntansi/laba-rugi?dari=${tahun}-01-01&sampai=${tahun}-12-31`, { headers })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error('Gagal mengambil Laba Rugi.')
+      if (!response.ok) throw new Error('Gagal mengambil Hasil Usaha.')
       setTotalShu(String(Math.max(0, Math.round(data.labaBersih ?? 0))))
       flash(`Laba bersih tahun ${tahun}: ${rupiah(data.labaBersih ?? 0)} diusulkan sebagai Total SHU.`)
-    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengambil Laba Rugi.') }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal mengambil Hasil Usaha.') }
     finally { setBusyId('') }
   }
 
@@ -2390,7 +2834,7 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
     if (!(Number(totalShu) > 0)) { setError('Total SHU wajib lebih dari 0.'); return }
     setBusyId('hitung'); setError(''); setHasil(null)
     try {
-      const body = { tahun, totalShu: Number(totalShu), persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100 }
+      const body = { tahun, totalShu: Number(totalShu), persenAnggota: Number(persenAnggota) / 100, persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100, persenPengurus: Number(persenPengurus) / 100, persenCadangan: Number(persenCadangan) / 100 }
       const response = await fetch(`${API_BASE}/api/admin/shu/hitung`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.message ?? 'Gagal menghitung SHU.')
@@ -2401,10 +2845,10 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
 
   const finalisasi = async () => {
     if (!hasil) return
-    if (!window.confirm(`Finalisasi SHU tahun ${tahun} untuk ${hasil.rincian.length} anggota (total ${rupiah(hasil.totalShu)})?\n\nSetelah ini estimasi SHU akan tampil di aplikasi anggota dan tidak bisa diubah kecuali dihitung ulang.`)) return
+    if (!window.confirm(`Finalisasi SHU tahun ${tahun}?\n\nCadangan: ${rupiah(hasil.cadanganAmount)} (ditahan permanen)\nJasa Pengurus: ${rupiah(hasil.jasaPengurusPool)} (dibagikan sendiri di luar sistem)\nAnggota (${hasil.rincian.length} orang, neto setelah PPh): ${rupiah(hasil.totalShuNeto)}\n\nSetelah ini estimasi SHU akan tampil di aplikasi anggota dan tidak bisa diubah kecuali dihitung ulang.`)) return
     setBusyId('finalisasi'); setError('')
     try {
-      const body = { tahun, totalShu: Number(totalShu), persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100 }
+      const body = { tahun, totalShu: Number(totalShu), persenAnggota: Number(persenAnggota) / 100, persenJasaModal: Number(persenModal) / 100, persenJasaUsaha: Number(persenUsaha) / 100, persenPengurus: Number(persenPengurus) / 100, persenCadangan: Number(persenCadangan) / 100 }
       const response = await fetch(`${API_BASE}/api/admin/shu/finalisasi`, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.message ?? 'Gagal finalisasi SHU.')
@@ -2441,25 +2885,50 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading">
-        <div><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div>
+        <div style={{ flex: '1 1 320px' }}><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div>
         <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div>
       </div>
-      <div className="panel-heading" style={{ paddingTop: 0 }}><div><h2 style={{ fontSize: 15 }}>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota.</p></div></div>
+      <div className="panel-heading" style={{ paddingTop: 0 }}><div><h2 style={{ fontSize: 15 }}>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota. Pembagian dua lapis sesuai kebijakan RAT.</p></div></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '18px 25px 8px', alignItems: 'end' }}>
         <label style={labelStyle}>Tahun buku<input type="number" value={tahun} onChange={(e) => setTahun(Number(e.target.value))} style={{ ...inputStyle, width: 100 }} /></label>
         <label style={labelStyle}>Total SHU (Rp)<input type="number" value={totalShu} onChange={(e) => setTotalShu(e.target.value)} style={{ ...inputStyle, width: 160 }} /></label>
-        <button className="toggle-button" disabled={busyId === 'ambil-lr'} onClick={() => void ambilDariLabaRugi()}>Ambil dari Laba Rugi</button>
-        <label style={labelStyle}>% Jasa Modal (JMA)<input type="number" value={persenModal} onChange={(e) => setPersenModal(e.target.value)} style={{ ...inputStyle, width: 110 }} /></label>
-        <label style={labelStyle}>% Jasa Usaha (JUA)<input type="number" value={persenUsaha} onChange={(e) => setPersenUsaha(e.target.value)} style={{ ...inputStyle, width: 110 }} /></label>
+        <button className="toggle-button" disabled={busyId === 'ambil-lr'} onClick={() => void ambilDariLabaRugi()}>Ambil dari Hasil Usaha</button>
+      </div>
+
+      <div style={{ margin: '10px 25px 0', padding: '12px 16px', border: '1px solid var(--line)', borderRadius: 10, background: '#f7faf9' }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--teal-dark)', marginBottom: 10 }}>Lapis 1 — Pembagian Total SHU (wajib 100%)</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
+          <label style={labelStyle}>% Anggota<input type="number" value={persenAnggota} onChange={(e) => setPersenAnggota(e.target.value)} style={{ ...inputStyle, width: 100 }} /></label>
+          <label style={labelStyle}>% Pengurus<input type="number" value={persenPengurus} onChange={(e) => setPersenPengurus(e.target.value)} style={{ ...inputStyle, width: 100 }} /></label>
+          <label style={labelStyle}>% Cadangan (tidak dibagikan)<input type="number" value={persenCadangan} onChange={(e) => setPersenCadangan(e.target.value)} style={{ ...inputStyle, width: 100 }} /></label>
+        </div>
+        {(Number(persenAnggota) + Number(persenPengurus) + Number(persenCadangan)) !== 100 && <div style={{ marginTop: 8, fontSize: 12, color: '#bd6d1d' }}>Catatan: total Lapis 1 saat ini {Number(persenAnggota) + Number(persenPengurus) + Number(persenCadangan)}% (seharusnya 100%).</div>}
+      </div>
+
+      <div style={{ margin: '12px 25px 0', padding: '12px 16px', border: '1px solid var(--line)', borderRadius: 10, background: '#fbf9f3' }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: '#8a5a12', marginBottom: 10 }}>Lapis 2 — Pembagian Pool Anggota (wajib 100%)</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
+          <label style={labelStyle}>% Jasa Modal (JMA)<input type="number" value={persenModal} onChange={(e) => setPersenModal(e.target.value)} style={{ ...inputStyle, width: 100 }} /></label>
+          <label style={labelStyle}>% Jasa Usaha (JUA)<input type="number" value={persenUsaha} onChange={(e) => setPersenUsaha(e.target.value)} style={{ ...inputStyle, width: 100 }} /></label>
+        </div>
+        {(Number(persenModal) + Number(persenUsaha)) !== 100 && <div style={{ marginTop: 8, fontSize: 12, color: '#bd6d1d' }}>Catatan: total Lapis 2 saat ini {Number(persenModal) + Number(persenUsaha)}% (seharusnya 100%).</div>}
+      </div>
+
+      <div style={{ padding: '16px 25px 8px' }}>
         <button className="submit-button" style={{ height: 38, padding: '0 18px', width: 'auto' }} disabled={busyId === 'hitung'} onClick={() => void hitung()}>Hitung (pratinjau)</button>
       </div>
-      {(Number(persenModal) + Number(persenUsaha)) !== 100 && <div style={{ padding: '0 25px 12px', fontSize: 12, color: '#bd6d1d' }}>Catatan: % Jasa Modal + % Jasa Usaha saat ini {Number(persenModal) + Number(persenUsaha)}% (biasanya dibuat 100%).</div>}
 
       {hasil && <div style={{ padding: '0 25px 22px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
           <button className="toggle-button activate" disabled={busyId === 'finalisasi'} onClick={() => void finalisasi()}>Finalisasi & kirim ke aplikasi anggota</button>
-          <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)} · PPh {(hasil.tarifPph * 100).toFixed(0)}%: {rupiah(hasil.totalPajak)} · Neto seluruh anggota: {rupiah(hasil.totalShuNeto)}</span>
         </div>
+        <div className="stat-grid">
+          <StatCard label="Cadangan (ditahan permanen)" value={hasil.cadanganAmount} icon={<PiggyBank size={18} />} tone="blue" money />
+          <StatCard label="Jasa Pengurus" value={hasil.jasaPengurusPool} icon={<Users size={18} />} tone="amber" money />
+          <StatCard label="Total ke anggota (neto)" value={hasil.totalShuNeto} icon={<BadgeCheck size={18} />} tone="green" money />
+          <StatCard label="PPh anggota" value={hasil.totalPajak} icon={<Receipt size={18} />} tone="teal" money />
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 14px' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)} · Tarif PPh {(hasil.tarifPph * 100).toFixed(0)}%</p>
         <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan</th><th>Transaksi</th><th>JMA</th><th>JUA</th><th>Total SHU (Bruto)</th><th>PPh</th><th>Total SHU (Neto)</th></tr></thead><tbody>
           {hasil.rincian.map((r) => <tr key={r.penggunaId}>
             <td><div className="user-cell"><span className="avatar">{r.nama.charAt(0).toUpperCase()}</span><strong>{r.nama}</strong></div></td>
@@ -2477,24 +2946,22 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
     </section>
 
     <section className="table-panel">
-      <div className="panel-heading"><div><h2>Riwayat SHU terfinalisasi</h2><p>Estimasi neto (setelah PPh) yang sudah tampil di aplikasi anggota.</p></div></div>
-      <div className="table-scroll"><table><thead><tr><th>Tahun</th><th>Total SHU (Bruto)</th><th>PPh</th><th>Total SHU (Neto)</th><th>% Modal / Usaha</th><th>Jumlah Anggota</th><th>Difinalisasi</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="panel-heading"><div><h2>Riwayat SHU terfinalisasi</h2><p>Estimasi neto (setelah PPh) yang sudah tampil di aplikasi anggota. Cadangan & Jasa Pengurus tidak masuk aplikasi anggota — dikelola pengurus sendiri.</p></div></div>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Tahun</th><th>Total SHU</th><th>Cadangan</th><th>Pengurus</th><th>Anggota (Neto)</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {riwayat.map((r) => [
           <tr key={r.tahun}>
-            <td style={{ fontWeight: 800 }}>{r.tahun}</td>
+            <td style={{ fontWeight: 800 }}>{r.tahun}<br /><small style={{ fontWeight: 400, color: 'var(--muted)' }}>{tanggal(r.difinalisasiPada)}</small></td>
             <td>{rupiah(r.totalShu)}</td>
-            <td style={{ color: '#ad6a16' }}>−{rupiah(r.totalPajak)}</td>
-            <td style={{ fontWeight: 700 }}>{rupiah(r.totalShuNeto)}</td>
-            <td>{(r.persenJasaModal * 100).toFixed(0)}% / {(r.persenJasaUsaha * 100).toFixed(0)}%</td>
-            <td>{r.jumlahAnggota}</td>
-            <td>{tanggal(r.difinalisasiPada)}</td>
+            <td>{rupiah(r.cadanganAmount)}<br /><small style={{ color: 'var(--muted)' }}>{(r.persenCadangan * 100).toFixed(0)}%</small></td>
+            <td>{rupiah(r.jasaPengurusPool)}<br /><small style={{ color: 'var(--muted)' }}>{(r.persenPengurus * 100).toFixed(0)}%</small></td>
+            <td style={{ fontWeight: 700 }}>{rupiah(r.totalShuNeto)}<br /><small style={{ fontWeight: 400, color: 'var(--muted)' }}>{r.jumlahAnggota} anggota · JMA {(r.persenJasaModal * 100).toFixed(0)}%/JUA {(r.persenJasaUsaha * 100).toFixed(0)}%</small></td>
             <td className="align-right"><span style={{ display: 'inline-flex', gap: 6 }}>
               <button className="toggle-button" onClick={() => void lihatRincian(r.tahun)}>{expanded?.tahun === r.tahun ? 'Tutup' : 'Rincian'}</button>
               <button className="toggle-button activate" onClick={() => void eksporCsv(r.tahun)}>Ekspor CSV</button>
             </span></td>
           </tr>,
-          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={8} style={{ background: '#f7faf9' }}>
-            <table style={{ minWidth: 560 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Bruto</th><th>PPh</th><th>Neto</th></tr></thead><tbody>
+          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={6} style={{ background: '#f7faf9' }}>
+            <table className="table-compact" style={{ minWidth: 0 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Bruto</th><th>PPh</th><th>Neto</th></tr></thead><tbody>
               {expanded.rincian.map((x) => <tr key={x.penggunaId}><td>{x.nama}</td><td className="mono">{x.nomorIndukKaryawan}</td><td>{rupiah(x.jma)}</td><td>{rupiah(x.jua)}</td><td>{rupiah(x.totalShu)}</td><td style={{ color: '#ad6a16' }}>−{rupiah(x.pajak)}</td><td style={{ fontWeight: 700 }}>{rupiah(x.totalShuNeto)}</td></tr>)}
             </tbody></table>
           </td></tr>,
@@ -2532,7 +2999,7 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
       poin: [
         'Tab "Pendaftaran" — setujui atau tolak calon anggota baru. Setelah disetujui, Simpanan Pokok otomatis dikreditkan.',
         'Tab "Direktori Anggota" — cari anggota, klik namanya untuk pop-up detail lengkap: rincian simpanan, riwayat pinjaman, dan riwayat belanja katalog.',
-        'Tab "Payroll" — rekap otomatis Simpanan Wajib + Tagihan Kredit per anggota untuk periode berjalan, siap dikirim ke bagian SDM, plus riwayat yang sudah dikirim/lunas.',
+        'Tab "Tagihan Anggota" — rekap otomatis Simpanan Wajib + Tagihan Kredit + Cicilan Pinjaman per anggota untuk periode berjalan, tinggal disetujui lalu diekspor sebagai CSV.',
       ],
       tips: 'Anggota baru wajib disetujui dulu di tab Pendaftaran sebelum muncul di Direktori maupun bisa ikut transaksi lain.',
       target: 'anggota',
@@ -2553,9 +3020,23 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
       poin: [
         'Kelola produk milik koperasi (tambah, ubah harga & stok) dan setujui/tolak produk titipan yang diajukan anggota.',
         'Setujui transaksi pembelian — Tunai langsung selesai, sedangkan Kredit (potong gaji) membuat Tagihan Kredit baru.',
-        'Kelola Tagihan Kredit: kirim ke SDM, lalu tandai lunas setelah potongan gaji dikonfirmasi — tagihan wajib berstatus "Dikirim ke SDM" dulu sebelum bisa dilunasi.',
+        'Kelola Tagihan Kredit: tandai lunas setelah potongan gaji dikonfirmasi terlaksana.',
       ],
       target: 'katalog',
+    },
+    {
+      key: 'akuntansi', icon: <BookOpen size={22} />, judul: 'Akuntansi & Keuangan', warna: '#087f78', latar: '#d8f1ec',
+      ringkasan: '"Dapur" koperasi — semua transaksi di menu lain otomatis tercatat di sini sebagai jurnal.',
+      poin: [
+        'Tab "Jurnal Umum" — riwayat semua jurnal (otomatis dari transaksi + manual), dan form untuk mencatat transaksi di luar sistem (gaji staf, listrik, sewa, dll).',
+        'Tab "Neraca" — Aset vs Liabilitas+Ekuitas per tanggal, dengan indikator apakah sudah balance.',
+        'Tab "Hasil Usaha" — pendapatan dikurangi beban pada rentang tanggal, jadi dasar penentuan Total SHU.',
+        'Tab "SHU" — kalkulator Sisa Hasil Usaha: hitung pratinjau per anggota (JMA + JUA, sudah dipotong PPh), lalu finalisasi agar tayang ke aplikasi anggota.',
+        'Tab "Arus Kas" — pergerakan kas masuk/keluar pada rentang tanggal.',
+        'Tab "Bagan Akun" — daftar akun akuntansi standar; boleh menambah akun baru non-sistem.',
+      ],
+      tips: 'Kalau Neraca tidak balance (selisih ≠ Rp 0), biasanya ada jurnal manual yang kurang tepat — cek di tab Jurnal Umum.',
+      target: 'akuntansi',
     },
     {
       key: 'erat', icon: <Vote size={22} />, judul: 'E-RAT & Dokumen', warna: '#2d8155', latar: '#e4f3e7',
@@ -2566,20 +3047,6 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
         'Unggah dan kelola dokumen RAT (laporan tahunan) yang bisa diunduh anggota.',
       ],
       target: 'erat',
-    },
-    {
-      key: 'akuntansi', icon: <BookOpen size={22} />, judul: 'Akuntansi & Keuangan', warna: '#087f78', latar: '#d8f1ec',
-      ringkasan: '"Dapur" koperasi — semua transaksi di menu lain otomatis tercatat di sini sebagai jurnal.',
-      poin: [
-        'Tab "Jurnal Umum" — riwayat semua jurnal (otomatis dari transaksi + manual), dan form untuk mencatat transaksi di luar sistem (gaji staf, listrik, sewa, dll).',
-        'Tab "Neraca" — Aset vs Liabilitas+Ekuitas per tanggal, dengan indikator apakah sudah balance.',
-        'Tab "Laba Rugi" — pendapatan dikurangi beban pada rentang tanggal, jadi dasar penentuan Total SHU.',
-        'Tab "SHU" — kalkulator Sisa Hasil Usaha: hitung pratinjau per anggota (JMA + JUA, sudah dipotong PPh), lalu finalisasi agar tayang ke aplikasi anggota.',
-        'Tab "Arus Kas" — pergerakan kas masuk/keluar pada rentang tanggal.',
-        'Tab "Bagan Akun" — daftar akun akuntansi standar; boleh menambah akun baru non-sistem.',
-      ],
-      tips: 'Kalau Neraca tidak balance (selisih ≠ Rp 0), biasanya ada jurnal manual yang kurang tepat — cek di tab Jurnal Umum.',
-      target: 'akuntansi',
     },
   ]
 

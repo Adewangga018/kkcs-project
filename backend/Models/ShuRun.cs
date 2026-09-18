@@ -16,9 +16,29 @@ public class ShuRun
     // lihat catatan TotalShu di atas).
     public decimal TotalShuNeto { get; set; }
 
+    // Pembagian SHU sesuai kebijakan RAT — DUA LAPIS:
+    //   Lapis 1 (dari Total SHU, idealnya berjumlah 100%): PersenAnggota (pool utk anggota, dipecah lagi
+    //   di Lapis 2) + PersenPengurus (pool utk pengurus/pengawas/admin, tidak dipecah per orang oleh
+    //   sistem) + PersenCadangan (ditahan permanen, TIDAK pernah dibagikan).
+    //   Lapis 2 (dari pool Anggota di atas, idealnya berjumlah 100%): PersenJasaModal (JMA, dibagi ke
+    //   semua anggota berdasar simpanan) + PersenJasaUsaha (JUA, dibagi berdasar aktivitas/transaksi).
+    public decimal PersenAnggota { get; set; }
+
     public decimal PersenJasaModal { get; set; }
 
     public decimal PersenJasaUsaha { get; set; }
+
+    public decimal PersenPengurus { get; set; }
+
+    public decimal PersenCadangan { get; set; }
+
+    // Pool untuk pengurus/pengawas/admin (PersenPengurus × TotalShu) — dicatat sebagai satu utang lump-sum,
+    // pembagian ke masing-masing orang dilakukan pengurus di luar sistem.
+    public decimal JasaPengurusPool { get; set; }
+
+    // Bagian yang ditahan permanen sebagai cadangan koperasi (PersenCadangan × TotalShu) — TIDAK pernah
+    // dibagikan, menambah akun Cadangan Koperasi di ekuitas selamanya.
+    public decimal CadanganAmount { get; set; }
 
     public decimal TotalSimpananSemuaAnggota { get; set; }
 

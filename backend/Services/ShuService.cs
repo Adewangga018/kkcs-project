@@ -1,21 +1,33 @@
 using Microsoft.EntityFrameworkCore;
 
 public record ShuBarisHasil(int PenggunaId, string Nama, string NomorIndukKaryawan, decimal SimpananAnggota, decimal TransaksiAnggota, decimal Jma, decimal Jua, decimal TotalShu, decimal Pajak, decimal TotalShuNeto);
-public record ShuHitungResult(int Tahun, decimal TotalShu, decimal PersenJasaModal, decimal PersenJasaUsaha, decimal TarifPph, decimal TotalPajak, decimal TotalShuNeto, decimal TotalSimpananSemuaAnggota, decimal TotalTransaksiSemuaAnggota, List<ShuBarisHasil> Rincian);
+public record ShuHitungResult(
+    int Tahun, decimal TotalShu, decimal PersenAnggota, decimal PersenJasaModal, decimal PersenJasaUsaha, decimal PersenPengurus, decimal PersenCadangan,
+    decimal TarifPph, decimal TotalPajak, decimal TotalShuNeto, decimal AnggotaPool, decimal JasaPengurusPool, decimal CadanganAmount,
+    decimal TotalSimpananSemuaAnggota, decimal TotalTransaksiSemuaAnggota, List<ShuBarisHasil> Rincian);
 
 /// <summary>
-/// Kalkulator SHU per anggota sesuai rumus koperasi standar:
-///   SHU Anggota (bruto) = JMA + JUA
-///   JMA (Jasa Modal Anggota) = (Simpanan Anggota / Total Simpanan) × % Jasa Modal × Total SHU
-///   JUA (Jasa Usaha Anggota) = (Transaksi Anggota / Total Transaksi) × % Jasa Usaha × Total SHU
-///   SHU Anggota (neto) = SHU bruto − PPh (tarifPph × SHU bruto) — nominal yang benar-benar jadi utang ke anggota.
+/// Kalkulator SHU sesuai kebijakan pembagian dari RAT — DUA LAPIS pembagian:
+///   Lapis 1, dari Total SHU (idealnya berjumlah 100%):
+///     Anggota (% Anggota × Total SHU) → pool gabungan JMA+JUA, dipecah lagi di Lapis 2.
+///     Jasa Pengurus (% Pengurus × Total SHU) → satu pool lump-sum, TIDAK dipecah per
+///       orang oleh sistem (pembina/pengawas belum tentu punya akun) — dibagikan pengurus sendiri di luar sistem.
+///     Cadangan (% Cadangan × Total SHU) → ditahan PERMANEN, tidak pernah dibagikan ke siapa pun.
+///   Lapis 2, dari pool Anggota di atas (idealnya berjumlah 100%):
+///     JMA (Jasa Modal Anggota, % Jasa Modal × Pool Anggota) → dibagi ke semua anggota aktif berdasar simpanan.
+///     JUA (Jasa Usaha Anggota, % Jasa Usaha × Pool Anggota) → dibagi ke anggota aktif berdasar aktivitas/transaksi.
+/// Rumus per anggota:
+///   Pool Anggota = % Anggota × Total SHU
+///   JMA_i = (Simpanan Anggota_i / Total Simpanan) × % Jasa Modal × Pool Anggota
+///   JUA_i = (Transaksi Anggota_i / Total Transaksi) × % Jasa Usaha × Pool Anggota
+///   SHU Anggota (neto)_i = (JMA_i + JUA_i) − PPh
 /// Simpanan Anggota = saldo Simpanan Pokok + Wajib per akhir tahun buku (snapshot dari mutasi).
 /// Transaksi Anggota = pokok pinjaman yang dicairkan + total pembelian/sewa produk sepanjang tahun buku.
 /// Hanya anggota berstatus Aktif yang diikutkan.
 /// </summary>
 public static class ShuService
 {
-    public static async Task<ShuHitungResult> HitungAsync(KkcsDbContext db, int tahun, decimal totalShu, decimal persenJasaModal, decimal persenJasaUsaha, decimal tarifPph)
+    public static async Task<ShuHitungResult> HitungAsync(KkcsDbContext db, int tahun, decimal totalShu, decimal persenAnggota, decimal persenJasaModal, decimal persenJasaUsaha, decimal persenPengurus, decimal persenCadangan, decimal tarifPph)
     {
         var awalTahun = new DateTime(tahun, 1, 1);
         var akhirTahun = new DateTime(tahun, 12, 31, 23, 59, 59);
@@ -69,13 +81,14 @@ public static class ShuService
 
         var totalSimpanan = idAktif.Sum(id => simpananPerAnggota.GetValueOrDefault(id));
         var totalTransaksi = idAktif.Sum(id => transaksiPerAnggota.GetValueOrDefault(id));
+        var anggotaPool = Math.Round(totalShu * persenAnggota, 2, MidpointRounding.AwayFromZero);
 
         var rincian = anggotaAktif.Select(p =>
         {
             var simpanan = simpananPerAnggota.GetValueOrDefault(p.Id);
             var transaksi = transaksiPerAnggota.GetValueOrDefault(p.Id);
-            var jma = totalSimpanan > 0 ? Math.Round(simpanan / totalSimpanan * persenJasaModal * totalShu, 2, MidpointRounding.AwayFromZero) : 0;
-            var jua = totalTransaksi > 0 ? Math.Round(transaksi / totalTransaksi * persenJasaUsaha * totalShu, 2, MidpointRounding.AwayFromZero) : 0;
+            var jma = totalSimpanan > 0 ? Math.Round(simpanan / totalSimpanan * persenJasaModal * anggotaPool, 2, MidpointRounding.AwayFromZero) : 0;
+            var jua = totalTransaksi > 0 ? Math.Round(transaksi / totalTransaksi * persenJasaUsaha * anggotaPool, 2, MidpointRounding.AwayFromZero) : 0;
             var bruto = jma + jua;
             var pajak = bruto > 0 ? Math.Round(bruto * tarifPph, 2, MidpointRounding.AwayFromZero) : 0;
             var neto = bruto - pajak;
@@ -86,7 +99,12 @@ public static class ShuService
 
         var totalPajak = rincian.Sum(r => r.Pajak);
         var totalShuNeto = rincian.Sum(r => r.TotalShuNeto);
+        var jasaPengurusPool = Math.Round(totalShu * persenPengurus, 2, MidpointRounding.AwayFromZero);
+        var cadanganAmount = Math.Round(totalShu * persenCadangan, 2, MidpointRounding.AwayFromZero);
 
-        return new ShuHitungResult(tahun, totalShu, persenJasaModal, persenJasaUsaha, tarifPph, totalPajak, totalShuNeto, totalSimpanan, totalTransaksi, rincian);
+        return new ShuHitungResult(
+            tahun, totalShu, persenAnggota, persenJasaModal, persenJasaUsaha, persenPengurus, persenCadangan,
+            tarifPph, totalPajak, totalShuNeto, anggotaPool, jasaPengurusPool, cadanganAmount,
+            totalSimpanan, totalTransaksi, rincian);
     }
 }

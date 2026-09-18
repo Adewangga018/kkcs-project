@@ -5,6 +5,7 @@ public record LabaRugiResult(DateTime Dari, DateTime Sampai, List<SaldoAkunItem>
 public record NeracaResult(DateTime Tanggal, List<SaldoAkunItem> Aset, decimal TotalAset, List<SaldoAkunItem> Liabilitas, decimal TotalLiabilitas, List<SaldoAkunItem> Ekuitas, decimal ShuBerjalan, decimal TotalEkuitas, decimal Selisih);
 public record ArusKasBaris(DateTime Tanggal, string NomorJurnal, string Keterangan, string? Modul, decimal Masuk, decimal Keluar);
 public record ArusKasResult(DateTime Dari, DateTime Sampai, decimal SaldoAwal, decimal TotalMasuk, decimal TotalKeluar, decimal SaldoAkhir, List<ArusKasBaris> Baris);
+public record BukuBesarAkunItem(string Kode, string Nama, string Tipe, decimal SaldoAwal, decimal Debit, decimal Kredit, decimal SaldoAkhir);
 
 /// <summary>
 /// Laporan keuangan dihitung langsung dari buku besar (JurnalBaris) — bukan tabel saldo terpisah,
@@ -99,5 +100,40 @@ public static class AkuntansiReportService
         var totalMasuk = periode.Sum(b => b.Masuk);
         var totalKeluar = periode.Sum(b => b.Keluar);
         return new ArusKasResult(dari.Date, sampai.Date, saldoAwal, totalMasuk, totalKeluar, saldoAwal + totalMasuk - totalKeluar, periode);
+    }
+
+    /// <summary>
+    /// Buku besar satu tahun buku per akun — Saldo Awal (posisi per 1 Jan), Debit & Kredit selama tahun
+    /// tersebut, dan Saldo Akhir (posisi per 31 Des) — gaya "Penjelasan Pos Neraca/SHU" pada laporan RAT.
+    /// Hanya akun yang punya saldo awal, mutasi, atau saldo akhir tidak nol yang disertakan.
+    /// </summary>
+    public static async Task<List<BukuBesarAkunItem>> HitungBukuBesarTahunanAsync(KkcsDbContext db, int tahun)
+    {
+        var awalTahun = new DateTime(tahun, 1, 1);
+        var akhirTahun = new DateTime(tahun, 12, 31, 23, 59, 59, 999);
+
+        var akun = await db.AkunAkuntansi.AsNoTracking()
+            .Select(a => new
+            {
+                a.Kode,
+                a.Nama,
+                a.Tipe,
+                a.SaldoNormal,
+                DebitSebelum = a.Baris.Where(b => b.JurnalEntri.Tanggal < awalTahun).Sum(b => (decimal?)b.Debit) ?? 0,
+                KreditSebelum = a.Baris.Where(b => b.JurnalEntri.Tanggal < awalTahun).Sum(b => (decimal?)b.Kredit) ?? 0,
+                DebitTahunIni = a.Baris.Where(b => b.JurnalEntri.Tanggal >= awalTahun && b.JurnalEntri.Tanggal <= akhirTahun).Sum(b => (decimal?)b.Debit) ?? 0,
+                KreditTahunIni = a.Baris.Where(b => b.JurnalEntri.Tanggal >= awalTahun && b.JurnalEntri.Tanggal <= akhirTahun).Sum(b => (decimal?)b.Kredit) ?? 0,
+            })
+            .ToListAsync();
+
+        return akun.Select(a =>
+        {
+            var saldoAwal = SaldoNormalDebit(a.SaldoNormal, a.DebitSebelum, a.KreditSebelum);
+            var saldoAkhir = SaldoNormalDebit(a.SaldoNormal, a.DebitSebelum + a.DebitTahunIni, a.KreditSebelum + a.KreditTahunIni);
+            return new BukuBesarAkunItem(a.Kode, a.Nama, a.Tipe, saldoAwal, a.DebitTahunIni, a.KreditTahunIni, saldoAkhir);
+        })
+        .Where(a => a.SaldoAwal != 0 || a.Debit != 0 || a.Kredit != 0 || a.SaldoAkhir != 0)
+        .OrderBy(a => a.Kode)
+        .ToList();
     }
 }

@@ -8,14 +8,12 @@ public class TagihanKredit
 
     public decimal Total { get; set; }
 
-    // Belum | DikirimKeSDM | Lunas
+    // Belum | Lunas
     public string Status { get; set; } = "Belum";
 
     public string? Keterangan { get; set; }
 
     public DateTime DibuatPada { get; set; } = DateTime.UtcNow;
-
-    public DateTime? DikirimPada { get; set; }
 
     public DateTime? LunasPada { get; set; }
 

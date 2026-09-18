@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914071547_TambahAlokasiShuKebijakanRat")]
+    partial class TambahAlokasiShuKebijakanRat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -798,10 +801,6 @@ namespace backend.Migrations
                         .HasPrecision(5, 4)
                         .HasColumnType("decimal(5,4)");
 
-                    b.Property<decimal>("TarifPphShu")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("decimal(5,4)");
-
                     b.HasKey("Id");
 
                     b.ToTable("KonfigurasiKoperasi");
@@ -818,8 +817,7 @@ namespace backend.Migrations
                             SimpananPokokNominal = 100000m,
                             SimpananWajibNominal = 50000m,
                             TanggalTagihWajib = 25,
-                            TarifPph = 0.20m,
-                            TarifPphShu = 0.15m
+                            TarifPph = 0.20m
                         });
                 });
 
@@ -1508,12 +1506,6 @@ namespace backend.Migrations
                     b.Property<DateTime>("DiperbaruiPada")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("Dipublikasikan")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("DipublikasikanPada")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("KegiatanBisnis")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
@@ -1640,10 +1632,6 @@ namespace backend.Migrations
                     b.Property<decimal>("JasaPengurusPool")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("PersenAnggota")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("decimal(5,4)");
 
                     b.Property<decimal>("PersenCadangan")
                         .HasPrecision(5, 4)
@@ -1831,6 +1819,9 @@ namespace backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("DibuatPada")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DikirimPada")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Keterangan")
