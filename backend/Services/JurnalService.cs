@@ -59,7 +59,7 @@ public class JurnalService(KkcsDbContext db)
 
         var entri = new JurnalEntri
         {
-            NomorJurnal = $"JU-{tanggal:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
+            NomorJurnal = $"JU-{tanggal:yyyyMMdd}-{DateTime.UtcNow:HHmmssfff}-{Random.Shared.Next(1000, 9999)}",
             Tanggal = tanggal.Date,
             Keterangan = keterangan,
             Sumber = sumber,

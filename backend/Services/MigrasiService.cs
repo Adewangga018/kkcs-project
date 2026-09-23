@@ -357,4 +357,95 @@ public static class MigrasiService
         }
         return hasil;
     }
+
+    // ═══ Import Jurnal Harian (banyak transaksi bertanggal beda-beda, dikelompokkan per No Bukti) ═══
+    public static byte[] BuatTemplateJurnalHarian(List<AkunAkuntansi> akunAktif)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Jurnal Harian");
+        ws.Cell(1, 1).Value = "No Bukti";
+        ws.Cell(1, 2).Value = "Tanggal";
+        ws.Cell(1, 3).Value = "Kode Akun";
+        ws.Cell(1, 4).Value = "Keterangan";
+        ws.Cell(1, 5).Value = "Debit";
+        ws.Cell(1, 6).Value = "Kredit";
+        var header = ws.Range(1, 1, 1, 6);
+        header.Style.Font.Bold = true;
+        header.Style.Fill.BackgroundColor = XLColor.FromHtml("#0891b2");
+        header.Style.Font.FontColor = XLColor.White;
+        ws.Column(2).Style.DateFormat.Format = "yyyy-mm-dd";
+        ws.Column(5).Style.NumberFormat.Format = "#,##0";
+        ws.Column(6).Style.NumberFormat.Format = "#,##0";
+        ws.SheetView.FreezeRows(1);
+        ws.Columns(1, 6).AdjustToContents();
+
+        var ws2 = wb.Worksheets.Add("Referensi Kode Akun");
+        ws2.Cell(1, 1).Value = "Kode Akun";
+        ws2.Cell(1, 2).Value = "Nama Akun";
+        ws2.Cell(1, 3).Value = "Tipe";
+        ws2.Range(1, 1, 1, 3).Style.Font.Bold = true;
+        var r2 = 2;
+        foreach (var akun in akunAktif.OrderBy(a => a.Kode))
+        {
+            ws2.Cell(r2, 1).Value = akun.Kode;
+            ws2.Cell(r2, 2).Value = akun.Nama;
+            ws2.Cell(r2, 3).Value = akun.Tipe;
+            r2++;
+        }
+        ws2.Columns(1, 3).AdjustToContents();
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public record JurnalHarianBarisParsed(int Baris, string NoBukti, DateTime? Tanggal, string KodeAkun, string? NamaAkun, string? Keterangan, decimal Debit, decimal Kredit, string? Error);
+
+    public static List<JurnalHarianBarisParsed> ParseJurnalHarian(Stream fileStream, Dictionary<string, AkunAkuntansi> akunByKode)
+    {
+        var hasil = new List<JurnalHarianBarisParsed>();
+        using var wb = new XLWorkbook(fileStream);
+        var ws = wb.Worksheet(1);
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+
+        for (var r = 2; r <= lastRow; r++)
+        {
+            var noBukti = ws.Cell(r, 1).GetString().Trim();
+            var kode = ws.Cell(r, 3).GetString().Trim();
+            if (string.IsNullOrWhiteSpace(noBukti) && string.IsNullOrWhiteSpace(kode)) continue;
+
+            string? error = null;
+            if (string.IsNullOrWhiteSpace(noBukti)) error = "No Bukti wajib diisi.";
+
+            DateTime? tanggal = null;
+            var tglCell = ws.Cell(r, 2);
+            if (error is null)
+            {
+                if (tglCell.IsEmpty() || !tglCell.TryGetValue(out DateTime tgl)) error = "Tanggal wajib diisi & valid.";
+                else tanggal = tgl.Date;
+            }
+
+            var keterangan = ws.Cell(r, 4).GetString().Trim();
+
+            var debitCell = ws.Cell(r, 5);
+            var kreditCell = ws.Cell(r, 6);
+            var debit = 0m;
+            var kredit = 0m;
+            if (error is null && !debitCell.IsEmpty() && !debitCell.TryGetValue(out debit)) error = "Nilai Debit tidak valid.";
+            else if (error is null && !kreditCell.IsEmpty() && !kreditCell.TryGetValue(out kredit)) error = "Nilai Kredit tidak valid.";
+            else if (error is null && debit < 0 || kredit < 0) error = "Nominal tidak boleh negatif.";
+            else if (error is null && debit > 0 && kredit > 0) error = "Satu baris tidak boleh diisi Debit dan Kredit sekaligus.";
+            else if (error is null && debit == 0 && kredit == 0) error = "Baris ini tidak berisi nominal Debit/Kredit.";
+
+            AkunAkuntansi? akun = null;
+            if (error is null)
+            {
+                akun = akunByKode.GetValueOrDefault(kode);
+                if (akun is null) error = $"Kode akun \"{kode}\" tidak ditemukan di bagan akun.";
+            }
+
+            hasil.Add(new JurnalHarianBarisParsed(r, noBukti, tanggal, kode, akun?.Nama, keterangan, debit, kredit, error));
+        }
+        return hasil;
+    }
 }

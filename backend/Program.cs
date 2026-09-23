@@ -1306,8 +1306,10 @@ app.MapPost("/api/admin/migrasi/pinjaman/komit", async (PinjamanMigrasiKomitRequ
     var penggunaMap = await db.Pengguna.Where(p => penggunaIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
 
     decimal totalSisaPokok = 0;
+    var urutan = 0;
     foreach (var b in request.Baris)
     {
+        urutan++;
         if (!penggunaMap.TryGetValue(b.PenggunaId, out var pengguna)) continue;
         if (!PinjamanKalkulator.TenorValid.Contains(b.TenorBulan)) continue;
 
@@ -1315,7 +1317,7 @@ app.MapPost("/api/admin/migrasi/pinjaman/komit", async (PinjamanMigrasiKomitRequ
         var pengajuan = new PengajuanPinjaman
         {
             PenggunaId = pengguna.Id,
-            NomorPengajuan = $"PLJ-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            NomorPengajuan = $"PLJ-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{urutan:D4}-{Random.Shared.Next(100, 999)}",
             Nominal = b.Nominal,
             TenorBulan = b.TenorBulan,
             BungaTahunan = ringkasan.BungaTahunan,
@@ -1333,7 +1335,7 @@ app.MapPost("/api/admin/migrasi/pinjaman/komit", async (PinjamanMigrasiKomitRequ
         {
             PenggunaId = pengguna.Id,
             Pengajuan = pengajuan,
-            NomorPinjaman = $"PJM-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            NomorPinjaman = $"PJM-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{urutan:D4}-{Random.Shared.Next(100, 999)}",
             Pokok = b.Nominal,
             TenorBulan = b.TenorBulan,
             BungaTahunan = ringkasan.BungaTahunan,
@@ -1416,8 +1418,10 @@ app.MapPost("/api/admin/migrasi/tagihan-kredit/komit", async (TagihanKreditMigra
     if (produkPlaceholder is null) return Results.BadRequest(new { message = "Produk placeholder migrasi tidak ditemukan — hubungi pengembang." });
 
     decimal totalSisaTagihan = 0;
+    var urutan = 0;
     foreach (var b in request.Baris)
     {
+        urutan++;
         if (!penggunaMap.TryGetValue(b.PenggunaId, out var pengguna)) continue;
         if (b.TenorBulan < 1) continue;
 
@@ -1425,7 +1429,7 @@ app.MapPost("/api/admin/migrasi/tagihan-kredit/komit", async (TagihanKreditMigra
         {
             ProdukId = produkPlaceholder.Id,
             PembeliId = pengguna.Id,
-            NomorTransaksi = $"TRX-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            NomorTransaksi = $"TRX-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{urutan:D4}-{Random.Shared.Next(100, 999)}",
             Jenis = "Beli",
             Jumlah = 1,
             HargaSatuan = b.Total,
@@ -1486,6 +1490,81 @@ app.MapPost("/api/admin/migrasi/tagihan-kredit/komit", async (TagihanKreditMigra
     await audit.CatatAsync(principal, "Migrasi", "ImportTagihanKredit",
         $"Import Tagihan Kredit: {request.Baris.Count} anggota, total sisa tagihan {totalSisaTagihan:N0}.", entri.Id);
     return Results.Ok(new { message = "Tagihan kredit berhasil diimpor.", jurnalId = entri.Id, nomorJurnal = entri.NomorJurnal, totalSisaTagihan });
+}).RequireAuthorization("Pengurus");
+
+// ═══ Admin: Migrasi Data — Import Jurnal Harian (banyak transaksi, tanggal beda-beda) ═══
+app.MapGet("/api/admin/migrasi/jurnal-harian/template", async (KkcsDbContext db) =>
+{
+    var akun = await db.AkunAkuntansi.AsNoTracking().Where(a => a.Aktif).ToListAsync();
+    var bytes = MigrasiService.BuatTemplateJurnalHarian(akun);
+    return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template Jurnal Harian KKCS.xlsx");
+}).RequireAuthorization("Pengurus");
+
+app.MapPost("/api/admin/migrasi/jurnal-harian/preview", async (IFormFile file, KkcsDbContext db) =>
+{
+    if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
+    var akunList = await db.AkunAkuntansi.AsNoTracking().Where(a => a.Aktif).ToListAsync();
+    var akunByKode = akunList.ToDictionary(a => a.Kode);
+
+    List<MigrasiService.JurnalHarianBarisParsed> baris;
+    try
+    {
+        await using var stream = file.OpenReadStream();
+        baris = MigrasiService.ParseJurnalHarian(stream, akunByKode);
+    }
+    catch (Exception ex) { return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" }); }
+
+    if (baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris transaksi di file ini." });
+
+    var voucher = baris.GroupBy(b => b.NoBukti).Select(g =>
+    {
+        var totalDebit = Math.Round(g.Sum(b => b.Debit), 2, MidpointRounding.AwayFromZero);
+        var totalKredit = Math.Round(g.Sum(b => b.Kredit), 2, MidpointRounding.AwayFromZero);
+        var adaError = g.Any(b => b.Error is not null);
+        var balanced = !adaError && Math.Abs(totalDebit - totalKredit) < 0.01m && g.Count() >= 2;
+        return new
+        {
+            noBukti = g.Key,
+            tanggal = g.Select(b => b.Tanggal).FirstOrDefault(t => t is not null),
+            keterangan = g.Select(b => b.Keterangan).FirstOrDefault(k => !string.IsNullOrWhiteSpace(k)),
+            baris = g.Select(b => new { b.Baris, b.KodeAkun, b.NamaAkun, b.Debit, b.Kredit, b.Error }).ToList(),
+            totalDebit,
+            totalKredit,
+            balanced
+        };
+    }).OrderBy(v => v.tanggal).ToList();
+
+    var jumlahValid = voucher.Count(v => v.balanced);
+    return Results.Ok(new { voucher, jumlahValid, jumlahError = voucher.Count - jumlahValid, totalVoucher = voucher.Count });
+}).RequireAuthorization("Pengurus").DisableAntiforgery();
+
+app.MapPost("/api/admin/migrasi/jurnal-harian/komit", async (JurnalHarianKomitRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
+{
+    if (request.Voucher is null || request.Voucher.Count == 0) return Results.BadRequest(new { message = "Tidak ada voucher untuk diimpor." });
+
+    var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+
+    var berhasil = 0;
+    try
+    {
+        foreach (var v in request.Voucher)
+        {
+            var barisJurnal = v.Baris.Select(b => new BarisJurnal(b.KodeAkun, b.Debit, b.Kredit)).ToArray();
+            await jurnalService.CatatAsync(v.Tanggal, v.Keterangan, "Manual", "Migrasi", v.NoBukti, dicatatOlehId, barisJurnal);
+            berhasil++;
+        }
+        await db.SaveChangesAsync();
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = $"Gagal pada voucher ke-{berhasil + 1}: {ex.Message}" });
+    }
+
+    await audit.CatatAsync(principal, "Migrasi", "ImportJurnalHarian",
+        $"Import Jurnal Harian: {request.Voucher.Count} voucher/transaksi.", null,
+        new { jumlahVoucher = request.Voucher.Count });
+    return Results.Ok(new { message = $"{request.Voucher.Count} voucher transaksi berhasil diimpor sebagai jurnal terpisah.", jumlahVoucher = request.Voucher.Count });
 }).RequireAuthorization("Pengurus");
 
 // ═══ Admin: Kalkulator SHU (Sisa Hasil Usaha) ═══════════════════════════════
@@ -3373,6 +3452,10 @@ record PinjamanMigrasiKomitRequest(DateTime Tanggal, List<PinjamanMigrasiBarisIn
 
 record TagihanKreditMigrasiBarisInput(int PenggunaId, string Keterangan, decimal Total, int TenorBulan, DateTime TanggalMulai, int AngsuranSudahDibayar, decimal? SisaPokokOverride);
 record TagihanKreditMigrasiKomitRequest(DateTime Tanggal, List<TagihanKreditMigrasiBarisInput> Baris);
+
+record JurnalHarianBarisInput(string KodeAkun, decimal Debit, decimal Kredit);
+record JurnalHarianVoucherInput(string NoBukti, DateTime Tanggal, string Keterangan, List<JurnalHarianBarisInput> Baris);
+record JurnalHarianKomitRequest(List<JurnalHarianVoucherInput> Voucher);
 
 record AnggotaRequest(
     string NomorAnggota,

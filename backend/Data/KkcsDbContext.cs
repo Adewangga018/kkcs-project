@@ -387,7 +387,14 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			// Kontra-aset: dicatat di sisi KREDIT supaya mengurangi Total Aset (nilai bersih piutang jadi 0
 			// kalau penyisihannya penuh), TANPA menghapus jejak nilai piutang aslinya dari pembukuan.
 			new AkunAkuntansi { Id = 25, Kode = "1-1510", Nama = "Cadangan Penyisihan Piutang Tak Tertagih", Tipe = "Aset", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
-			new AkunAkuntansi { Id = 26, Kode = "2-2700", Nama = "Utang Non-Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
+			new AkunAkuntansi { Id = 26, Kode = "2-2700", Nama = "Utang Non-Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			// Pinjaman non-rutin/kasbon (campuran anggota & non-anggota) — dicatat agregat, terpisah dari
+			// Piutang Pinjaman Anggota (yang khusus Pinjaman Rutin berjadwal lewat importer Pinjaman Aktif).
+			new AkunAkuntansi { Id = 27, Kode = "1-1250", Nama = "Piutang Lain-lain", Tipe = "Aset", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 28, Kode = "2-2650", Nama = "Utang Lain-lain", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 29, Kode = "2-2660", Nama = "Biaya Yang Masih Harus Dibayar", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 30, Kode = "5-5400", Nama = "Beban Pokok Pinjaman (HPP)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 31, Kode = "5-5930", Nama = "Beban di Luar Usaha", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
 		});
 
 		modelBuilder.Entity<JurnalEntri>(entity =>

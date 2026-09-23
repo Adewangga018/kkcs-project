@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260923082930_TambahAkunPiutangLainLain")]
+    partial class TambahAkunPiutangLainLain
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -362,50 +365,6 @@ namespace backend.Migrations
                             SaldoNormal = "Debit",
                             Sistem = false,
                             Tipe = "Aset"
-                        },
-                        new
-                        {
-                            Id = 28,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2650",
-                            Nama = "Utang Lain-lain",
-                            SaldoNormal = "Kredit",
-                            Sistem = false,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 29,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2660",
-                            Nama = "Biaya Yang Masih Harus Dibayar",
-                            SaldoNormal = "Kredit",
-                            Sistem = false,
-                            Tipe = "Liabilitas"
-                        },
-                        new
-                        {
-                            Id = 30,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5400",
-                            Nama = "Beban Pokok Pinjaman (HPP)",
-                            SaldoNormal = "Debit",
-                            Sistem = false,
-                            Tipe = "Beban"
-                        },
-                        new
-                        {
-                            Id = 31,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "5-5930",
-                            Nama = "Beban di Luar Usaha",
-                            SaldoNormal = "Debit",
-                            Sistem = false,
-                            Tipe = "Beban"
                         });
                 });
 

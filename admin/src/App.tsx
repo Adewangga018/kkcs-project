@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import { Activity, ArrowRight, BadgeCheck, Banknote, BookOpen, Calculator, Calendar, Check, CheckCircle2, ChevronRight, Clock, Copy, Database, Download, Edit, ExternalLink, Eye, EyeOff, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, Info, KeyRound, LayoutDashboard, Lightbulb, LogOut, Mail, MapPin, Menu, Phone, PiggyBank, PlusCircle, Receipt, RefreshCw, Scale, Search, Send, ShieldCheck, Store, Trash2, TrendingUp, Upload, UserCheck, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
@@ -2203,6 +2203,9 @@ type PinjamanMigrasiBaris = { baris: number; nik: string; nama: string | null; p
 type PinjamanMigrasiPreview = { baris: PinjamanMigrasiBaris[]; totalSisaPokok: number; jumlahValid: number; jumlahError: number }
 type TagihanKreditMigrasiBaris = { baris: number; nik: string; nama: string | null; penggunaId: number | null; keterangan: string; total: number; tenorBulan: number; tanggalMulai: string | null; angsuranSudahDibayar: number; sisaTagihan: number; error: string | null }
 type TagihanKreditMigrasiPreview = { baris: TagihanKreditMigrasiBaris[]; totalSisaTagihan: number; jumlahValid: number; jumlahError: number }
+type JurnalHarianBaris = { baris: number; kodeAkun: string; namaAkun: string | null; debit: number; kredit: number; error: string | null }
+type JurnalHarianVoucher = { noBukti: string; tanggal: string | null; keterangan: string | null; baris: JurnalHarianBaris[]; totalDebit: number; totalKredit: number; balanced: boolean }
+type JurnalHarianPreview = { voucher: JurnalHarianVoucher[]; jumlahValid: number; jumlahError: number; totalVoucher: number }
 
 async function unduhTemplate(token: string, url: string, namaFile: string, onExpired: () => void) {
   const response = await fetch(`${API_BASE}${url}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -2216,22 +2219,24 @@ async function unduhTemplate(token: string, url: string, namaFile: string, onExp
 }
 
 function MigrasiView({ token, onExpired }: { token: string; onExpired: () => void }) {
-  const [tab, setTab] = useState<'neraca' | 'simpanan' | 'pinjaman' | 'tagihan'>('neraca')
+  const [tab, setTab] = useState<'neraca' | 'simpanan' | 'pinjaman' | 'tagihan' | 'jurnal'>('neraca')
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Migrasi Data Lama</h2><p>Import saldo awal dari sistem lama lewat template Excel — otomatis tercatat sebagai jurnal & tampil di Neraca Saldo.</p></div></section>
     <div className="alert" style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#92400e', marginBottom: 18 }}>
-      <Lightbulb size={17} /> Urutan yang disarankan: <strong>1) Neraca Awal</strong> (Kas, Bank, Utang, Cadangan, dst) → <strong>2) Simpanan Pokok &amp; Wajib</strong> → <strong>3) Pinjaman Aktif</strong> → <strong>4) Tagihan Kredit</strong>. Semua importer per-anggota posting ke akun kliring <strong>3-3990 "Kliring Migrasi Data Lama"</strong> — cek saldo akun itu di Akuntansi ▸ Neraca Saldo setelah semua selesai; kalau sudah 0, migrasi Anda sudah cocok semua.
+      <Lightbulb size={17} /> Urutan yang disarankan: <strong>1) Neraca Awal</strong> (Kas, Bank, Utang, Cadangan, dst) → <strong>2) Simpanan Pokok &amp; Wajib</strong> → <strong>3) Pinjaman Aktif</strong> → <strong>4) Tagihan Kredit</strong> → <strong>5) Jurnal Harian</strong> (transaksi tanggal berjalan setelah cutover). Importer 1-4 posting ke akun kliring <strong>3-3990 "Kliring Migrasi Data Lama"</strong> — cek saldo akun itu di Akuntansi ▸ Neraca Saldo setelah semua selesai; kalau sudah 0, migrasi Anda sudah cocok semua.
     </div>
     <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
       <button className={`toggle-button ${tab === 'neraca' ? 'activate' : ''}`} onClick={() => setTab('neraca')}>1. Neraca Awal</button>
       <button className={`toggle-button ${tab === 'simpanan' ? 'activate' : ''}`} onClick={() => setTab('simpanan')}>2. Simpanan Pokok &amp; Wajib</button>
       <button className={`toggle-button ${tab === 'pinjaman' ? 'activate' : ''}`} onClick={() => setTab('pinjaman')}>3. Pinjaman Aktif</button>
       <button className={`toggle-button ${tab === 'tagihan' ? 'activate' : ''}`} onClick={() => setTab('tagihan')}>4. Tagihan Kredit</button>
+      <button className={`toggle-button ${tab === 'jurnal' ? 'activate' : ''}`} onClick={() => setTab('jurnal')}>5. Jurnal Harian</button>
     </div>
     {tab === 'neraca' && <NeracaAwalImporter token={token} onExpired={onExpired} />}
     {tab === 'simpanan' && <SimpananMigrasiImporter token={token} onExpired={onExpired} />}
     {tab === 'pinjaman' && <PinjamanMigrasiImporter token={token} onExpired={onExpired} />}
     {tab === 'tagihan' && <TagihanKreditMigrasiImporter token={token} onExpired={onExpired} />}
+    {tab === 'jurnal' && <JurnalHarianMigrasiImporter token={token} onExpired={onExpired} />}
   </div>
 }
 
@@ -2527,6 +2532,89 @@ function TagihanKreditMigrasiImporter({ token, onExpired }: { token: string; onE
           <td className="align-right">{rupiah(b.sisaTagihan)}</td>
           <td>{b.error && <span style={{ color: '#dc2626', fontSize: 12 }}>{b.error}</span>}</td>
         </tr>)}
+      </tbody></table></div>
+    </>}
+  </section>
+}
+
+function JurnalHarianMigrasiImporter({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<JurnalHarianPreview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const doPreview = async () => {
+    if (!file) return
+    setBusy(true); setError(''); setNotice(''); setPreview(null)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const response = await fetch(`${API_BASE}/api/admin/migrasi/jurnal-harian/preview`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd })
+      if (response.status === 401) { onExpired(); return }
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message ?? 'Gagal memuat preview.')
+      setPreview(data)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan.') }
+    finally { setBusy(false) }
+  }
+
+  const doKomit = async () => {
+    if (!preview || preview.jumlahValid === 0) return
+    if (!window.confirm(`Import ${preview.jumlahValid} voucher transaksi sebagai jurnal terpisah (bertanggal masing-masing)? Voucher berisi error akan dilewati.`)) return
+    setBusy(true); setError('')
+    try {
+      const body = {
+        voucher: preview.voucher.filter((v) => v.balanced).map((v) => ({
+          noBukti: v.noBukti, tanggal: v.tanggal, keterangan: v.keterangan ?? v.noBukti,
+          baris: v.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit }))
+        }))
+      }
+      const response = await fetch(`${API_BASE}/api/admin/migrasi/jurnal-harian/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (response.status === 401) { onExpired(); return }
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message ?? 'Gagal mengimpor.')
+      setNotice(data.message); setPreview(null); setFile(null)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan.') }
+    finally { setBusy(false) }
+  }
+
+  return <section className="table-panel">
+    <div className="panel-heading"><div><h2>Import Jurnal Harian</h2><p>Banyak transaksi bertanggal beda-beda, dikelompokkan per No Bukti — tiap voucher jadi 1 jurnal terpisah sesuai tanggal aslinya.</p></div>
+      <button className="toggle-button" onClick={() => void unduhTemplate(token, '/api/admin/migrasi/jurnal-harian/template', 'Template Jurnal Harian KKCS.xlsx', onExpired)}><Download size={14} /> Download Template</button>
+    </div>
+    {error && <div className="alert error" style={{ margin: '0 25px 16px' }}><X size={17} />{error}</div>}
+    {notice && <div className="alert success" style={{ margin: '0 25px 16px' }}><BadgeCheck size={17} />{notice}</div>}
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '16px 25px 22px', alignItems: 'end', borderBottom: '1px solid var(--line)' }}>
+      <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }}>File Excel (hasil isian template)
+        <input type="file" accept=".xlsx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPreview(null) }} />
+      </label>
+      <button className="submit-button" style={{ height: 38, padding: '0 18px' }} disabled={!file || busy} onClick={() => void doPreview()}><Eye size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Preview</button>
+    </div>
+    {preview && <>
+      <div style={{ padding: '14px 25px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', background: preview.jumlahError === 0 ? '#f0fdf4' : '#fffbeb', borderBottom: '1px solid var(--line)' }}>
+        <span><strong>{preview.totalVoucher}</strong> voucher total</span>
+        <span><strong>{preview.jumlahValid}</strong> balance, <strong>{preview.jumlahError}</strong> error</span>
+        <button className="submit-button" style={{ marginLeft: 'auto', height: 34, padding: '0 16px' }} disabled={preview.jumlahValid === 0 || busy} onClick={() => void doKomit()}><CheckCircle2 size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Komit {preview.jumlahValid} Voucher</button>
+      </div>
+      <div className="table-scroll table-compact"><table><thead><tr><th>No Bukti</th><th>Tanggal</th><th>Keterangan</th><th className="align-right">Debit</th><th className="align-right">Kredit</th><th>Status</th></tr></thead><tbody>
+        {preview.voucher.map((v) => <Fragment key={v.noBukti}>
+          <tr style={{ cursor: 'pointer', background: v.balanced ? undefined : '#fef2f2' }} onClick={() => setExpanded(expanded === v.noBukti ? null : v.noBukti)}>
+            <td>{v.noBukti}</td><td>{v.tanggal ? waktu(v.tanggal) : '—'}</td><td>{v.keterangan ?? '—'}</td>
+            <td className="align-right">{rupiah(v.totalDebit)}</td><td className="align-right">{rupiah(v.totalKredit)}</td>
+            <td>{v.balanced ? <span className="status-pill active"><i />Balance</span> : <span className="status-pill inactive"><i />Error</span>}</td>
+          </tr>
+          {expanded === v.noBukti && <tr><td colSpan={6} style={{ background: '#f8fafc', padding: '10px 20px' }}>
+            <table style={{ width: '100%', fontSize: 12 }}><thead><tr><th style={{ textAlign: 'left' }}>Kode Akun</th><th style={{ textAlign: 'left' }}>Nama Akun</th><th className="align-right">Debit</th><th className="align-right">Kredit</th><th style={{ textAlign: 'left' }}>Error</th></tr></thead><tbody>
+              {v.baris.map((b) => <tr key={b.baris}>
+                <td>{b.kodeAkun}</td><td>{b.namaAkun ?? '—'}</td>
+                <td className="align-right">{b.debit > 0 ? rupiah(b.debit) : '—'}</td>
+                <td className="align-right">{b.kredit > 0 ? rupiah(b.kredit) : '—'}</td>
+                <td>{b.error && <span style={{ color: '#dc2626' }}>{b.error}</span>}</td>
+              </tr>)}
+            </tbody></table>
+          </td></tr>}
+        </Fragment>)}
       </tbody></table></div>
     </>}
   </section>
