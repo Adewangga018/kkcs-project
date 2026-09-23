@@ -944,7 +944,7 @@ app.MapGet("/api/admin/produk/tagihan-kredit", async (KkcsDbContext db) =>
         .OrderByDescending(item => item.Status == "Belum").ThenByDescending(item => item.DibuatPada)
         .Select(item => new AdminTagihanKreditResponse(
             item.Id, item.PembelianProdukId, item.PenggunaId, item.Pembelian.NomorTransaksi, item.Pengguna.NamaLengkap, item.Pengguna.NomorIndukKaryawan,
-            item.Pembelian.Produk.Nama, item.Total, item.Status, item.DibuatPada, item.LunasPada))
+            item.Keterangan ?? item.Pembelian.Produk.Nama, item.Total, item.Status, item.DibuatPada, item.LunasPada))
         .ToListAsync()))
     .RequireAuthorization("Pengurus");
 
@@ -1101,6 +1101,391 @@ app.MapGet("/api/admin/akuntansi/arus-kas", async (DateTime? dari, DateTime? sam
     var s = sampai ?? DateTime.UtcNow;
     var d = dari ?? new DateTime(s.Year, 1, 1);
     return Results.Ok(await AkuntansiReportService.HitungArusKasAsync(db, d, s));
+}).RequireAuthorization("Pengurus");
+
+// ═══ Admin: Migrasi Data — Import Neraca Awal (template Excel → jurnal umum) ═══
+app.MapGet("/api/admin/migrasi/neraca-awal/template", async (KkcsDbContext db) =>
+{
+    var akun = await db.AkunAkuntansi.AsNoTracking().Where(a => a.Aktif).ToListAsync();
+    var bytes = MigrasiService.BuatTemplateNeracaAwal(akun);
+    return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template Neraca Awal KKCS.xlsx");
+}).RequireAuthorization("Pengurus");
+
+app.MapPost("/api/admin/migrasi/neraca-awal/preview", async (IFormFile file, KkcsDbContext db) =>
+{
+    if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
+    var akunList = await db.AkunAkuntansi.AsNoTracking().Where(a => a.Aktif).ToListAsync();
+    var akunByKode = akunList.ToDictionary(a => a.Kode);
+
+    List<NeracaAwalBarisParsed> baris;
+    try
+    {
+        await using var stream = file.OpenReadStream();
+        baris = MigrasiService.ParseNeracaAwal(stream, akunByKode);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" });
+    }
+
+    if (baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris berisi nominal Debit/Kredit di file ini." });
+
+    var totalDebit = Math.Round(baris.Sum(b => b.Debit), 2, MidpointRounding.AwayFromZero);
+    var totalKredit = Math.Round(baris.Sum(b => b.Kredit), 2, MidpointRounding.AwayFromZero);
+    var balanced = Math.Abs(totalDebit - totalKredit) < 0.01m && baris.Count >= 2 && baris.All(b => b.Error is null);
+    return Results.Ok(new { baris, totalDebit, totalKredit, balanced });
+}).RequireAuthorization("Pengurus").DisableAntiforgery();
+
+app.MapPost("/api/admin/migrasi/neraca-awal/komit", async (NeracaAwalKomitRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
+{
+    if (request.Baris is null || request.Baris.Count(b => b.Debit != 0 || b.Kredit != 0) < 2)
+        return Results.BadRequest(new { message = "Minimal 2 baris (debit dan kredit) yang berisi nominal." });
+    if (string.IsNullOrWhiteSpace(request.Keterangan))
+        return Results.BadRequest(new { message = "Keterangan wajib diisi." });
+
+    var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+    var barisJurnal = request.Baris.Select(b => new BarisJurnal(b.KodeAkun, b.Debit, b.Kredit)).ToArray();
+
+    try
+    {
+        var entri = await jurnalService.CatatAsync(request.Tanggal, request.Keterangan.Trim(), "Manual", "Migrasi", null, dicatatOlehId, barisJurnal);
+        await db.SaveChangesAsync();
+        await audit.CatatAsync(principal, "Migrasi", "ImportNeracaAwal",
+            $"Import Neraca Awal: {request.Baris.Count} baris, tanggal {request.Tanggal:d}.", entri.Id,
+            new { totalDebit = barisJurnal.Sum(b => b.Debit), totalKredit = barisJurnal.Sum(b => b.Kredit) });
+        return Results.Ok(new { message = "Neraca awal berhasil diimpor sebagai jurnal umum.", jurnalId = entri.Id, nomorJurnal = entri.NomorJurnal });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+}).RequireAuthorization("Pengurus");
+
+// ═══ Admin: Migrasi Data — Import Simpanan Pokok & Wajib (per-anggota) ═══════
+app.MapGet("/api/admin/migrasi/simpanan/template", async (KkcsDbContext db) =>
+{
+    var anggota = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif").ToListAsync();
+    var bytes = MigrasiService.BuatTemplateSimpanan(anggota);
+    return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template Simpanan Pokok Wajib KKCS.xlsx");
+}).RequireAuthorization("Pengurus");
+
+app.MapPost("/api/admin/migrasi/simpanan/preview", async (IFormFile file, KkcsDbContext db) =>
+{
+    if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
+    var anggotaByNik = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif")
+        .ToDictionaryAsync(p => p.NomorIndukKaryawan);
+
+    List<MigrasiService.SimpananBarisParsed> baris;
+    try
+    {
+        await using var stream = file.OpenReadStream();
+        baris = MigrasiService.ParseSimpanan(stream, anggotaByNik);
+    }
+    catch (Exception ex) { return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" }); }
+
+    if (baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris berisi Saldo Pokok/Wajib di file ini." });
+
+    var nikGanda = baris.GroupBy(b => b.Nik).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+    if (nikGanda.Count > 0)
+        baris = baris.Select(b => nikGanda.Contains(b.Nik) ? b with { Error = b.Error ?? "NIK muncul lebih dari sekali di file ini." } : b).ToList();
+
+    // Anggota yang sudah punya saldo Pokok/Wajib tersimpan tidak boleh di-import ulang (cegah dobel).
+    var idTerlibat = baris.Where(b => b.PenggunaId.HasValue).Select(b => b.PenggunaId!.Value).ToHashSet();
+    var sudahAda = await db.Simpanan.AsNoTracking()
+        .Where(s => idTerlibat.Contains(s.PenggunaId) && s.Saldo != 0 && (s.JenisSimpanan.Kode == "POKOK" || s.JenisSimpanan.Kode == "WAJIB"))
+        .Select(s => s.PenggunaId).ToListAsync();
+    var sudahAdaSet = sudahAda.ToHashSet();
+    baris = baris.Select(b => b.PenggunaId.HasValue && sudahAdaSet.Contains(b.PenggunaId.Value)
+        ? b with { Error = b.Error ?? "Anggota ini sudah punya saldo Pokok/Wajib tersimpan — tidak bisa diimpor ulang." }
+        : b).ToList();
+
+    var valid = baris.Where(b => b.Error is null).ToList();
+    return Results.Ok(new
+    {
+        baris,
+        totalPokok = valid.Sum(b => b.SaldoPokok),
+        totalWajib = valid.Sum(b => b.SaldoWajib),
+        jumlahValid = valid.Count,
+        jumlahError = baris.Count - valid.Count
+    });
+}).RequireAuthorization("Pengurus").DisableAntiforgery();
+
+app.MapPost("/api/admin/migrasi/simpanan/komit", async (SimpananMigrasiKomitRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
+{
+    if (request.Baris is null || request.Baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris untuk diimpor." });
+
+    var jenisPokok = await db.JenisSimpanan.FirstOrDefaultAsync(j => j.Kode == "POKOK");
+    var jenisWajib = await db.JenisSimpanan.FirstOrDefaultAsync(j => j.Kode == "WAJIB");
+    if (jenisPokok is null || jenisWajib is null) return Results.BadRequest(new { message = "Jenis Simpanan Pokok/Wajib belum ada di sistem." });
+
+    var penggunaIds = request.Baris.Select(b => b.PenggunaId).ToList();
+    var penggunaMap = await db.Pengguna.Where(p => penggunaIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
+    var sudahAda = await db.Simpanan.Where(s => penggunaIds.Contains(s.PenggunaId) && s.Saldo != 0
+        && (s.JenisSimpananId == jenisPokok.Id || s.JenisSimpananId == jenisWajib.Id))
+        .Select(s => s.PenggunaId).ToListAsync();
+    if (sudahAda.Count > 0) return Results.BadRequest(new { message = $"{sudahAda.Count} anggota di daftar ini sudah punya saldo Pokok/Wajib — batal diimpor untuk mencegah dobel." });
+
+    decimal totalPokok = 0, totalWajib = 0;
+    foreach (var b in request.Baris)
+    {
+        if (!penggunaMap.TryGetValue(b.PenggunaId, out var pengguna)) continue;
+        if (b.SaldoPokok > 0)
+        {
+            var s = new Simpanan { PenggunaId = pengguna.Id, JenisSimpananId = jenisPokok.Id, NomorRekening = $"{pengguna.NomorIndukKaryawan}-POKOK", Saldo = b.SaldoPokok, TanggalBuka = request.Tanggal, Aktif = true };
+            db.Simpanan.Add(s);
+            s.Mutasi.Add(new MutasiSimpanan { Jenis = "Setor", Nominal = b.SaldoPokok, SaldoSetelah = b.SaldoPokok, Keterangan = "Migrasi saldo awal dari sistem lama", TanggalTransaksi = request.Tanggal });
+            totalPokok += b.SaldoPokok;
+        }
+        if (b.SaldoWajib > 0)
+        {
+            var s = new Simpanan { PenggunaId = pengguna.Id, JenisSimpananId = jenisWajib.Id, NomorRekening = $"{pengguna.NomorIndukKaryawan}-WAJIB", Saldo = b.SaldoWajib, TanggalBuka = request.Tanggal, Aktif = true };
+            db.Simpanan.Add(s);
+            s.Mutasi.Add(new MutasiSimpanan { Jenis = "Setor", Nominal = b.SaldoWajib, SaldoSetelah = b.SaldoWajib, Keterangan = "Migrasi saldo awal dari sistem lama", TanggalTransaksi = request.Tanggal });
+            totalWajib += b.SaldoWajib;
+        }
+    }
+
+    if (totalPokok == 0 && totalWajib == 0) return Results.BadRequest(new { message = "Tidak ada nominal yang diimpor." });
+
+    var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+    var barisJurnal = new List<BarisJurnal> { BarisJurnal.D(KodeAkun.KliringMigrasi, totalPokok + totalWajib) };
+    if (totalPokok > 0) barisJurnal.Add(BarisJurnal.K(KodeAkun.SimpananPokok, totalPokok));
+    if (totalWajib > 0) barisJurnal.Add(BarisJurnal.K(KodeAkun.SimpananWajib, totalWajib));
+
+    var entri = await jurnalService.CatatAsync(request.Tanggal, $"Migrasi Simpanan Pokok & Wajib ({request.Baris.Count} anggota)", "Manual", "Migrasi", null, dicatatOlehId, barisJurnal);
+    await db.SaveChangesAsync();
+    await audit.CatatAsync(principal, "Migrasi", "ImportSimpanan",
+        $"Import Simpanan Pokok & Wajib: {request.Baris.Count} anggota, total Pokok {totalPokok:N0}, Wajib {totalWajib:N0}.", entri.Id);
+    return Results.Ok(new { message = "Simpanan Pokok & Wajib berhasil diimpor.", jurnalId = entri.Id, nomorJurnal = entri.NomorJurnal, totalPokok, totalWajib });
+}).RequireAuthorization("Pengurus");
+
+// ═══ Admin: Migrasi Data — Import Pinjaman Aktif (per-anggota) ══════════════
+app.MapGet("/api/admin/migrasi/pinjaman/template", async (KkcsDbContext db) =>
+{
+    var anggota = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif").ToListAsync();
+    var bytes = MigrasiService.BuatTemplatePinjaman(anggota);
+    return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template Pinjaman Aktif KKCS.xlsx");
+}).RequireAuthorization("Pengurus");
+
+app.MapPost("/api/admin/migrasi/pinjaman/preview", async (IFormFile file, KkcsDbContext db) =>
+{
+    if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
+    var anggotaByNik = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif")
+        .ToDictionaryAsync(p => p.NomorIndukKaryawan);
+
+    List<MigrasiService.PinjamanBarisParsed> baris;
+    try
+    {
+        await using var stream = file.OpenReadStream();
+        baris = MigrasiService.ParsePinjaman(stream, anggotaByNik);
+    }
+    catch (Exception ex) { return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" }); }
+
+    if (baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris pinjaman di file ini." });
+
+    var hasil = baris.Select(b =>
+    {
+        if (b.Error is not null || b.TanggalMulai is null) return new { b.Baris, b.Nik, b.Nama, b.PenggunaId, b.Nominal, b.TenorBulan, TanggalMulai = b.TanggalMulai, b.AngsuranSudahDibayar, sisaPokok = 0m, angsuranPerBulan = 0m, error = b.Error };
+        var ringkasan = PinjamanKalkulator.Hitung(b.Nominal, b.TenorBulan);
+        var pokokTerbayar = Math.Round(ringkasan.PokokPerBulan * b.AngsuranSudahDibayar, 2, MidpointRounding.AwayFromZero);
+        var sisaPokok = b.SisaPokokOverride ?? (b.Nominal - pokokTerbayar);
+        return new { b.Baris, b.Nik, b.Nama, b.PenggunaId, b.Nominal, b.TenorBulan, TanggalMulai = b.TanggalMulai, b.AngsuranSudahDibayar, sisaPokok, angsuranPerBulan = ringkasan.AngsuranPerBulan, error = b.Error };
+    }).ToList();
+
+    var valid = hasil.Where(h => h.error is null).ToList();
+    return Results.Ok(new { baris = hasil, totalSisaPokok = valid.Sum(h => h.sisaPokok), jumlahValid = valid.Count, jumlahError = hasil.Count - valid.Count });
+}).RequireAuthorization("Pengurus").DisableAntiforgery();
+
+app.MapPost("/api/admin/migrasi/pinjaman/komit", async (PinjamanMigrasiKomitRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
+{
+    if (request.Baris is null || request.Baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris untuk diimpor." });
+
+    var penggunaIds = request.Baris.Select(b => b.PenggunaId).ToList();
+    var penggunaMap = await db.Pengguna.Where(p => penggunaIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
+
+    decimal totalSisaPokok = 0;
+    foreach (var b in request.Baris)
+    {
+        if (!penggunaMap.TryGetValue(b.PenggunaId, out var pengguna)) continue;
+        if (!PinjamanKalkulator.TenorValid.Contains(b.TenorBulan)) continue;
+
+        var ringkasan = PinjamanKalkulator.Hitung(b.Nominal, b.TenorBulan);
+        var pengajuan = new PengajuanPinjaman
+        {
+            PenggunaId = pengguna.Id,
+            NomorPengajuan = $"PLJ-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            Nominal = b.Nominal,
+            TenorBulan = b.TenorBulan,
+            BungaTahunan = ringkasan.BungaTahunan,
+            EstimasiCicilanBulanan = ringkasan.AngsuranPerBulan,
+            EstimasiTotalJasa = ringkasan.TotalJasa,
+            Tujuan = "[Migrasi data lama]",
+            Status = "Disetujui",
+            DiputuskanPada = request.Tanggal
+        };
+        db.PengajuanPinjaman.Add(pengajuan);
+
+        var pokokTerbayar = Math.Round(ringkasan.PokokPerBulan * b.AngsuranSudahDibayar, 2, MidpointRounding.AwayFromZero);
+        var sisaPokok = b.SisaPokokOverride ?? (b.Nominal - pokokTerbayar);
+        var pinjaman = new Pinjaman
+        {
+            PenggunaId = pengguna.Id,
+            Pengajuan = pengajuan,
+            NomorPinjaman = $"PJM-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            Pokok = b.Nominal,
+            TenorBulan = b.TenorBulan,
+            BungaTahunan = ringkasan.BungaTahunan,
+            PokokPerBulan = ringkasan.PokokPerBulan,
+            JasaPerBulan = ringkasan.JasaPerBulan,
+            AngsuranPerBulan = ringkasan.AngsuranPerBulan,
+            SisaPokok = sisaPokok,
+            AngsuranTerbayar = b.AngsuranSudahDibayar,
+            TanggalMulai = b.TanggalMulai,
+            Status = "Aktif"
+        };
+        var jadwal = PinjamanKalkulator.BuatJadwal(pinjaman);
+        for (var i = 0; i < b.AngsuranSudahDibayar && i < jadwal.Count; i++)
+        {
+            jadwal[i].Status = "Dibayar";
+            jadwal[i].JumlahDibayar = jadwal[i].Total;
+            jadwal[i].DibayarPada = jadwal[i].JatuhTempo;
+        }
+        pinjaman.Angsuran = jadwal;
+        db.Pinjaman.Add(pinjaman);
+        totalSisaPokok += sisaPokok;
+    }
+
+    if (totalSisaPokok <= 0) return Results.BadRequest(new { message = "Tidak ada sisa pokok pinjaman yang diimpor." });
+
+    var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+    var entri = await jurnalService.CatatAsync(request.Tanggal, $"Migrasi Pinjaman Aktif ({request.Baris.Count} anggota)", "Manual", "Migrasi", null, dicatatOlehId,
+        [BarisJurnal.D(KodeAkun.PiutangPinjaman, totalSisaPokok), BarisJurnal.K(KodeAkun.KliringMigrasi, totalSisaPokok)]);
+    await db.SaveChangesAsync();
+    await audit.CatatAsync(principal, "Migrasi", "ImportPinjaman",
+        $"Import Pinjaman Aktif: {request.Baris.Count} anggota, total sisa pokok {totalSisaPokok:N0}.", entri.Id);
+    return Results.Ok(new { message = "Pinjaman aktif berhasil diimpor.", jurnalId = entri.Id, nomorJurnal = entri.NomorJurnal, totalSisaPokok });
+}).RequireAuthorization("Pengurus");
+
+// ═══ Admin: Migrasi Data — Import Tagihan Kredit (per-anggota) ══════════════
+app.MapGet("/api/admin/migrasi/tagihan-kredit/template", async (KkcsDbContext db) =>
+{
+    var anggota = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif").ToListAsync();
+    var bytes = MigrasiService.BuatTemplateTagihanKredit(anggota);
+    return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Template Tagihan Kredit KKCS.xlsx");
+}).RequireAuthorization("Pengurus");
+
+app.MapPost("/api/admin/migrasi/tagihan-kredit/preview", async (IFormFile file, KkcsDbContext db) =>
+{
+    if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
+    var anggotaByNik = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif")
+        .ToDictionaryAsync(p => p.NomorIndukKaryawan);
+
+    List<MigrasiService.TagihanKreditBarisParsed> baris;
+    try
+    {
+        await using var stream = file.OpenReadStream();
+        baris = MigrasiService.ParseTagihanKredit(stream, anggotaByNik);
+    }
+    catch (Exception ex) { return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" }); }
+
+    if (baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris tagihan kredit di file ini." });
+
+    var hasil = baris.Select(b =>
+    {
+        if (b.Error is not null) return new { b.Baris, b.Nik, b.Nama, b.PenggunaId, b.Keterangan, b.Total, b.TenorBulan, TanggalMulai = b.TanggalMulai, b.AngsuranSudahDibayar, sisaTagihan = 0m, error = b.Error };
+        var angsuranPerBulan = Math.Round(b.Total / b.TenorBulan, 2, MidpointRounding.AwayFromZero);
+        var terbayar = Math.Round(angsuranPerBulan * b.AngsuranSudahDibayar, 2, MidpointRounding.AwayFromZero);
+        var sisaTagihan = b.SisaOverride ?? Math.Max(0, b.Total - terbayar);
+        return new { b.Baris, b.Nik, b.Nama, b.PenggunaId, b.Keterangan, b.Total, b.TenorBulan, TanggalMulai = b.TanggalMulai, b.AngsuranSudahDibayar, sisaTagihan, error = b.Error };
+    }).ToList();
+
+    var valid = hasil.Where(h => h.error is null).ToList();
+    return Results.Ok(new { baris = hasil, totalSisaTagihan = valid.Sum(h => h.sisaTagihan), jumlahValid = valid.Count, jumlahError = hasil.Count - valid.Count });
+}).RequireAuthorization("Pengurus").DisableAntiforgery();
+
+app.MapPost("/api/admin/migrasi/tagihan-kredit/komit", async (TagihanKreditMigrasiKomitRequest request, ClaimsPrincipal principal, KkcsDbContext db, JurnalService jurnalService, AuditService audit) =>
+{
+    if (request.Baris is null || request.Baris.Count == 0) return Results.BadRequest(new { message = "Tidak ada baris untuk diimpor." });
+
+    var penggunaIds = request.Baris.Select(b => b.PenggunaId).ToList();
+    var penggunaMap = await db.Pengguna.Where(p => penggunaIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
+    var produkPlaceholder = await db.Produk.FirstOrDefaultAsync(p => p.Kode == "PRD-MIGRASI");
+    if (produkPlaceholder is null) return Results.BadRequest(new { message = "Produk placeholder migrasi tidak ditemukan — hubungi pengembang." });
+
+    decimal totalSisaTagihan = 0;
+    foreach (var b in request.Baris)
+    {
+        if (!penggunaMap.TryGetValue(b.PenggunaId, out var pengguna)) continue;
+        if (b.TenorBulan < 1) continue;
+
+        var pembelian = new PembelianProduk
+        {
+            ProdukId = produkPlaceholder.Id,
+            PembeliId = pengguna.Id,
+            NomorTransaksi = $"TRX-MIG-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(100, 999)}",
+            Jenis = "Beli",
+            Jumlah = 1,
+            HargaSatuan = b.Total,
+            Total = b.Total,
+            MetodePembayaran = "Kredit",
+            Status = "Selesai",
+            Catatan = "Migrasi data lama",
+            DiajukanPada = b.TanggalMulai,
+            DiprosesPada = b.TanggalMulai
+        };
+        db.PembelianProduk.Add(pembelian);
+
+        var angsuranPerBulan = Math.Round(b.Total / b.TenorBulan, 2, MidpointRounding.AwayFromZero);
+        var terbayar = Math.Round(angsuranPerBulan * b.AngsuranSudahDibayar, 2, MidpointRounding.AwayFromZero);
+        var sisaTagihan = b.SisaPokokOverride ?? Math.Max(0, b.Total - terbayar);
+        var tagihan = new TagihanKredit
+        {
+            Pembelian = pembelian,
+            PenggunaId = pengguna.Id,
+            Total = b.Total,
+            Status = sisaTagihan <= 0 ? "Lunas" : "Belum",
+            Keterangan = b.Keterangan,
+            TenorBulan = b.TenorBulan,
+            AngsuranPerBulan = angsuranPerBulan,
+            DibuatPada = b.TanggalMulai,
+            LunasPada = sisaTagihan <= 0 ? b.TanggalMulai : null
+        };
+
+        var jadwal = new List<AngsuranTagihanKredit>(b.TenorBulan);
+        decimal terjadwal = 0;
+        for (var ke = 1; ke <= b.TenorBulan; ke++)
+        {
+            var nominal = ke == b.TenorBulan ? b.Total - terjadwal : angsuranPerBulan;
+            terjadwal += nominal;
+            var status = ke <= b.AngsuranSudahDibayar ? "Dibayar" : "Belum";
+            jadwal.Add(new AngsuranTagihanKredit
+            {
+                AngsuranKe = ke,
+                JatuhTempo = b.TanggalMulai.AddMonths(ke),
+                Nominal = nominal,
+                Status = status,
+                JumlahDibayar = status == "Dibayar" ? nominal : null,
+                DibayarPada = status == "Dibayar" ? b.TanggalMulai.AddMonths(ke) : null
+            });
+        }
+        tagihan.Angsuran = jadwal;
+        db.TagihanKredit.Add(tagihan);
+        totalSisaTagihan += sisaTagihan;
+    }
+
+    if (totalSisaTagihan <= 0) return Results.BadRequest(new { message = "Tidak ada sisa tagihan kredit yang diimpor (semua sudah lunas atau tidak ada baris valid)." });
+
+    var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+    var entri = await jurnalService.CatatAsync(request.Tanggal, $"Migrasi Tagihan Kredit ({request.Baris.Count} anggota)", "Manual", "Migrasi", null, dicatatOlehId,
+        [BarisJurnal.D(KodeAkun.PiutangKreditProduk, totalSisaTagihan), BarisJurnal.K(KodeAkun.KliringMigrasi, totalSisaTagihan)]);
+    await db.SaveChangesAsync();
+    await audit.CatatAsync(principal, "Migrasi", "ImportTagihanKredit",
+        $"Import Tagihan Kredit: {request.Baris.Count} anggota, total sisa tagihan {totalSisaTagihan:N0}.", entri.Id);
+    return Results.Ok(new { message = "Tagihan kredit berhasil diimpor.", jurnalId = entri.Id, nomorJurnal = entri.NomorJurnal, totalSisaTagihan });
 }).RequireAuthorization("Pengurus");
 
 // ═══ Admin: Kalkulator SHU (Sisa Hasil Usaha) ═══════════════════════════════
@@ -2816,6 +3201,14 @@ static async Task<LaporanRatResponse> BuatLaporanRatAsync(KkcsDbContext db, int 
 
     var rabTotalPendapatan = (konten?.RabPendapatanPinjaman ?? 0) + (konten?.RabPendapatanLain ?? 0);
     var rabTotalBebanRaw = (konten?.RabBebanOperasional ?? 0) + (konten?.RabBebanUmum ?? 0) + (konten?.RabCadanganPiutang ?? 0);
+
+    // Realisasi beban dipetakan ke 3 kategori RAB dari RAT: akun 5-5910 (Beban Umum & Administrasi) dan
+    // 5-5920 (Beban Penyisihan Piutang Tak Tertagih) dipisah sendiri; sisanya (bunga simpanan, HPP
+    // produk, gaji/sewa, dll) dianggap Beban Operasional — biaya inti menjalankan koperasi sehari-hari.
+    var realisasiBebanUmum = labaRugi.Beban.Where(b => b.Kode == "5-5910").Sum(b => b.Saldo);
+    var realisasiBebanCadanganPiutang = labaRugi.Beban.Where(b => b.Kode == "5-5920").Sum(b => b.Saldo);
+    var realisasiBebanOperasional = labaRugi.TotalBeban - realisasiBebanUmum - realisasiBebanCadanganPiutang;
+
     var shuSebelumPajak = labaRugi.LabaBersih;
     var pajakShu = konten?.RealisasiPajakShu;
     var shuSetelahPajak = pajakShu.HasValue ? shuSebelumPajak - pajakShu.Value : (decimal?)null;
@@ -2830,6 +3223,7 @@ static async Task<LaporanRatResponse> BuatLaporanRatAsync(KkcsDbContext db, int 
         shuSebelumPajak, pajakShu, shuSetelahPajak,
         konten == null || rabTotalPendapatan == 0 ? null : rabTotalPendapatan,
         konten == null || rabTotalBebanRaw == 0 ? null : rabTotalBebanRaw,
+        realisasiBebanOperasional, realisasiBebanUmum, realisasiBebanCadanganPiutang,
         CekKelengkapanRat(konten, shu));
 }
 
@@ -2968,6 +3362,18 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
 
+record NeracaAwalBarisInput(string KodeAkun, decimal Debit, decimal Kredit);
+record NeracaAwalKomitRequest(DateTime Tanggal, string Keterangan, List<NeracaAwalBarisInput> Baris);
+
+record SimpananMigrasiBarisInput(int PenggunaId, decimal SaldoPokok, decimal SaldoWajib);
+record SimpananMigrasiKomitRequest(DateTime Tanggal, List<SimpananMigrasiBarisInput> Baris);
+
+record PinjamanMigrasiBarisInput(int PenggunaId, decimal Nominal, int TenorBulan, DateTime TanggalMulai, int AngsuranSudahDibayar, decimal? SisaPokokOverride);
+record PinjamanMigrasiKomitRequest(DateTime Tanggal, List<PinjamanMigrasiBarisInput> Baris);
+
+record TagihanKreditMigrasiBarisInput(int PenggunaId, string Keterangan, decimal Total, int TenorBulan, DateTime TanggalMulai, int AngsuranSudahDibayar, decimal? SisaPokokOverride);
+record TagihanKreditMigrasiKomitRequest(DateTime Tanggal, List<TagihanKreditMigrasiBarisInput> Baris);
+
 record AnggotaRequest(
     string NomorAnggota,
     string NamaLengkap,
@@ -3026,7 +3432,9 @@ record LaporanRatResponse(
     NeracaResult NeracaAkhirTahun, NeracaResult? NeracaTahunLalu,
     LabaRugiResult LabaRugi, List<BukuBesarAkunItem> BukuBesar, RatShuResponse? Shu,
     decimal ShuSebelumPajak, decimal? PajakShu, decimal? ShuSetelahPajak,
-    decimal? RabTotalPendapatan, decimal? RabTotalBeban, List<string> ItemBelumLengkap);
+    decimal? RabTotalPendapatan, decimal? RabTotalBeban,
+    decimal RealisasiBebanOperasional, decimal RealisasiBebanUmum, decimal RealisasiBebanCadanganPiutang,
+    List<string> ItemBelumLengkap);
 record GantiPasswordRequest(string PasswordLama, string PasswordBaru);
 
 record DashboardTrenBulanan(string Label, decimal Pendapatan, decimal Beban, decimal LabaBersih);

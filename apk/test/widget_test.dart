@@ -13,7 +13,7 @@ void main() {
     expect(find.text('Buat akun baru'), findsOneWidget);
   });
 
-  testWidgets('beranda menampilkan empat layanan anggota', (WidgetTester tester) async {
+  testWidgets('beranda menampilkan portal mandiri anggota dan navigasi', (WidgetTester tester) async {
     const session = AuthSession(
       token: 'test-token',
       user: AuthUser(id: 1, namaLengkap: 'Test User', nomorIndukKaryawan: 'NIK-001', email: 'test@example.com'),
@@ -25,19 +25,58 @@ void main() {
     expect(find.text('Portal Mandiri Anggota'), findsOneWidget);
     expect(find.text('Ringkasan keuangan'), findsOneWidget);
     expect(find.text('Total simpanan'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -360));
-    await tester.pump();
-    expect(find.text('Pengumuman terbaru'), findsOneWidget);
-    expect(find.text('Produk terbaru'), findsOneWidget);
-    expect(find.text('Beras Premium 5 kg'), findsOneWidget);
-    expect(find.text('Minyak Goreng 2 L'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -360));
-    await tester.pump();
     expect(find.text('Beranda'), findsOneWidget);
     expect(find.text('Simpan Pinjam'), findsOneWidget);
-    expect(find.text('Katalog'), findsNWidgets(2));
+    expect(find.text('Katalog'), findsOneWidget);
     expect(find.text('E-RAT'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('beranda navigasi ke halaman detail saat kartu ringkasan keuangan diklik', (WidgetTester tester) async {
+    const session = AuthSession(
+      token: 'test-token',
+      user: AuthUser(id: 1, namaLengkap: 'Test User', nomorIndukKaryawan: 'NIK-001', email: 'test@example.com'),
+    );
+    await tester.pumpWidget(MaterialApp(home: HomePage(auth: AuthService(), session: session)));
+
+    // 1. Klik kartu Total simpanan
+    await tester.tap(find.text('Total simpanan'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Rincian Total Simpanan'), findsOneWidget);
+
+    // Kembali ke beranda
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 2. Klik kartu Pinjaman aktif
+    await tester.tap(find.text('Pinjaman aktif'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Detail Pinjaman Aktif'), findsOneWidget);
+
+    // Kembali ke beranda
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 3. Klik kartu Cicilan berjalan
+    await tester.tap(find.text('Cicilan berjalan'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Detail Cicilan Berjalan'), findsOneWidget);
+
+    // Kembali ke beranda
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 4. Klik kartu Estimasi SHU
+    await tester.tap(find.textContaining('Estimasi SHU'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('SHU Saya'), findsOneWidget);
   });
 
   testWidgets('modul E-RAT menampilkan voting dan laporan tahunan', (WidgetTester tester) async {
@@ -48,16 +87,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: EratPage(session: session)));
 
     expect(find.text('Partisipasi E-RAT'), findsOneWidget);
-    expect(find.text('Voting Digital'), findsOneWidget);
-    expect(find.text('Setuju'), findsOneWidget);
-    expect(find.text('Tolak'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -320));
-    await tester.pump();
-    expect(find.text('Laporan Tahunan'), findsOneWidget);
-    expect(find.text('Unduh laporan tahunan'), findsOneWidget);
+    expect(find.text('Rapat Anggota Tahunan Digital'), findsOneWidget);
+    expect(find.text('Voting'), findsOneWidget);
   });
 
-  testWidgets('modul simpan pinjam menampilkan simpanan, E-Loan, dan simulasi cicilan', (WidgetTester tester) async {
+  testWidgets('modul simpan pinjam menampilkan tab simpanan dan pinjaman', (WidgetTester tester) async {
     const session = AuthSession(
       token: 'test-token',
       user: AuthUser(id: 1, namaLengkap: 'Test User', nomorIndukKaryawan: 'NIK-001', email: 'test@example.com'),
@@ -65,24 +99,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: DigitalSavingsLoanPage(session: session)));
 
     expect(find.text('Simpanan & Pinjaman Digital'), findsOneWidget);
-    expect(find.text('Multi-Simpanan'), findsOneWidget);
-    expect(find.text('Simpanan pokok'), findsOneWidget);
-    expect(find.text('Simpanan wajib'), findsOneWidget);
-    expect(find.text('Simpanan sukarela'), findsOneWidget);
-    expect(find.text('Simpanan berjangka'), findsOneWidget);
-    expect(find.text('Pengajuan Pinjaman / E-Loan'), findsOneWidget);
-    expect(find.text('Nominal pinjaman'), findsOneWidget);
-    expect(find.text('Tenor pinjaman'), findsOneWidget);
-    expect(find.text('Tujuan pinjaman'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -360));
-    await tester.pump();
-    expect(find.text('Simulasi Cicilan'), findsOneWidget);
-    expect(find.text('Estimasi cicilan per bulan'), findsOneWidget);
-    expect(find.text('Ajukan pinjaman'), findsOneWidget);
-    expect(find.text('Approval Workflow'), findsNothing);
+    expect(find.text('Simpanan'), findsOneWidget);
+    expect(find.text('Pinjaman'), findsOneWidget);
   });
 
-  testWidgets('modul unit usaha menampilkan katalog produk view-only', (WidgetTester tester) async {
+  testWidgets('modul unit usaha menampilkan katalog produk koperasi', (WidgetTester tester) async {
     const session = AuthSession(
       token: 'test-token',
       user: AuthUser(id: 1, namaLengkap: 'Test User', nomorIndukKaryawan: 'NIK-001', email: 'test@example.com'),
@@ -90,15 +111,8 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: BusinessUnitPage(session: session)));
 
     expect(find.text('Katalog Produk Koperasi'), findsNWidgets(2));
-    expect(find.text('Mode lihat saja'), findsOneWidget);
-    expect(find.text('Beras Premium 5 kg'), findsOneWidget);
-    expect(find.text('Rp 78.000'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -320));
-    await tester.pump();
-    expect(find.text('Digital Ordering'), findsOneWidget);
-    expect(find.text('Pelajari tahap berikutnya'), findsOneWidget);
-    expect(find.text('POS Toko Karyawan'), findsNothing);
-    expect(find.text('Vendor & Supplier'), findsNothing);
+    expect(find.text('Jual produk ke koperasi'), findsOneWidget);
+    expect(find.text('Ajukan produk baru'), findsOneWidget);
   });
 
   testWidgets('akun menampilkan aksi manajemen anggota dan logout', (WidgetTester tester) async {
@@ -110,7 +124,22 @@ void main() {
 
     expect(find.text('Akun saya'), findsOneWidget);
     expect(find.text('Data pribadi'), findsOneWidget);
+    expect(find.text('Edit Profil'), findsOneWidget);
+
+    // Buka mode edit profil
+    await tester.tap(find.text('Edit Profil'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Simpan perubahan'), findsOneWidget);
+
+    // Batal edit profil via tombol header
+    await tester.tap(find.byTooltip('Batal edit'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pump();
+    expect(find.text('SHU Saya'), findsOneWidget);
+    expect(find.text('Buka'), findsOneWidget);
+
     await tester.drag(find.byType(ListView), const Offset(0, -360));
     await tester.pump();
     await tester.drag(find.byType(ListView), const Offset(0, -320));

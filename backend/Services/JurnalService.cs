@@ -19,6 +19,7 @@ public static class KodeAkun
     public const string SimpananWajib = "3-3200";
     public const string ShuDitahan = "3-3900";
     public const string CadanganKoperasi = "3-3910";
+    public const string KliringMigrasi = "3-3990";
     public const string PendapatanJasaPinjaman = "4-4100";
     public const string PendapatanPenjualanProduk = "4-4200";
     public const string BebanBungaSukarela = "5-5100";

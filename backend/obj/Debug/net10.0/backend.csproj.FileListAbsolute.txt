@@ -711,3 +711,11 @@ E:\Kerja\kkcs-project\backend\obj\validation-static-cors\runtimes\win\lib\net9.0
 E:\Kerja\kkcs-project\backend\obj\validation-static-cors\runtimes\win-arm64\native\Microsoft.Data.SqlClient.SNI.dll
 E:\Kerja\kkcs-project\backend\obj\validation-static-cors\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
 E:\Kerja\kkcs-project\backend\obj\validation-static-cors\runtimes\win-x86\native\Microsoft.Data.SqlClient.SNI.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\ClosedXML.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\ClosedXML.Parser.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\DocumentFormat.OpenXml.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\DocumentFormat.OpenXml.Framework.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\ExcelNumberFormat.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\RBush.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\SixLabors.Fonts.dll
+E:\Kerja\kkcs-project\backend\bin\Debug\net10.0\System.IO.Packaging.dll

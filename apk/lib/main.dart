@@ -13,6 +13,51 @@ void main() {
   runApp(const KkcsApp());
 }
 
+abstract final class KkcsColors {
+  // Palet Biru Tosca & Biru Tua sesuai tampilan admin pengurus
+  static const primary = Color(0xFF0891B2);      // Tosca Utama (Cyan 600)
+  static const primaryDark = Color(0xFF0E7490);  // Tosca Gelap (Cyan 700)
+  static const primaryDeep = Color(0xFF083344);  // Biru Tua / Navy (Cyan 950)
+  static const primaryLight = Color(0xFFECFEFF); // Tosca Sangat Lembut (Cyan 50)
+  static const mint = Color(0xFFCFFAFE);         // Mint Pastel (Cyan 100)
+
+  // Netral
+  static const background = Color(0xFFF6FAFB);   // Cool Grey-Cyan Background
+  static const surface = Color(0xFFFFFFFF);      // Putih Card / Surface
+  static const border = Color(0xFFDBE8EA);       // Line / Border Halus
+  static const borderLight = Color(0xFFEDF6F7);  // Divider Halus
+  static const borderSubtle = Color(0xFFE2E8F0); // Border Netral Halus
+
+  // Tipografi
+  static const textPrimary = Color(0xFF0F172A);  // Dark Ink (Slate 900)
+  static const textSecondary = Color(0xFF53717D);// Slate Muted
+  static const textMuted = Color(0xFF64748B);    // Slate 500
+  static const textDisabled = Color(0xFF94A3B8); // Slate 400
+
+  // Semantik & Status
+  static const success = Color(0xFF059669);      // Emerald 600
+  static const successBg = Color(0xFFECFDF5);    // Emerald 50
+  static const warning = Color(0xFFD97706);      // Amber 600
+  static const warningBg = Color(0xFFFFFBEB);    // Amber 50
+  static const danger = Color(0xFFDC2626);       // Red 600
+  static const dangerBg = Color(0xFFFEF2F2);     // Red 50
+  static const info = Color(0xFF0284C7);         // Sky 600
+  static const infoBg = Color(0xFFF0F9FF);       // Sky 50
+
+  // Gradien Khas
+  static const heroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryDeep, primaryDark, primary],
+  );
+
+  static const cardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF8FAFC), Colors.white],
+  );
+}
+
 class KkcsApp extends StatelessWidget {
   const KkcsApp({super.key});
 
@@ -22,19 +67,151 @@ class KkcsApp extends StatelessWidget {
       title: 'KKCS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0B6E69),
+        useMaterial3: true,
+        colorScheme: const ColorScheme(
           brightness: Brightness.light,
+          primary: KkcsColors.primary,
+          onPrimary: Colors.white,
+          primaryContainer: KkcsColors.primaryLight,
+          onPrimaryContainer: KkcsColors.primaryDeep,
+          secondary: KkcsColors.primaryDark,
+          onSecondary: Colors.white,
+          secondaryContainer: KkcsColors.mint,
+          onSecondaryContainer: KkcsColors.primaryDeep,
+          tertiary: KkcsColors.info,
+          onTertiary: Colors.white,
+          tertiaryContainer: KkcsColors.infoBg,
+          onTertiaryContainer: Color(0xFF0369A1),
+          error: KkcsColors.danger,
+          onError: Colors.white,
+          errorContainer: KkcsColors.dangerBg,
+          onErrorContainer: Color(0xFF991B1B),
+          surface: KkcsColors.surface,
+          onSurface: KkcsColors.textPrimary,
+          onSurfaceVariant: KkcsColors.textSecondary,
+          outline: KkcsColors.border,
+          outlineVariant: KkcsColors.borderLight,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF6F8F7),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
+        scaffoldBackgroundColor: KkcsColors.background,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: KkcsColors.primaryDeep,
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          surfaceTintColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            color: KkcsColors.primaryDeep,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+          iconTheme: IconThemeData(color: KkcsColors.primaryDeep),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: KkcsColors.border, width: 1),
+          ),
+          margin: EdgeInsets.zero,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: KkcsColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
         ),
-        useMaterial3: true,
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: KkcsColors.primary,
+            side: const BorderSide(color: KkcsColors.primary, width: 1.2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: KkcsColors.primary,
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: KkcsColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: KkcsColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: KkcsColors.primary, width: 1.8),
+          ),
+          labelStyle: const TextStyle(color: KkcsColors.textSecondary, fontSize: 14),
+          floatingLabelStyle: const TextStyle(color: KkcsColors.primary, fontWeight: FontWeight.w600),
+        ),
+        tabBarTheme: const TabBarThemeData(
+          labelColor: KkcsColors.primary,
+          unselectedLabelColor: KkcsColors.textSecondary,
+          indicatorColor: KkcsColors.primary,
+          labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: KkcsColors.primaryLight,
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: KkcsColors.primary);
+            }
+            return const IconThemeData(color: KkcsColors.textSecondary);
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(color: KkcsColors.primary, fontWeight: FontWeight.w800, fontSize: 12);
+            }
+            return const TextStyle(color: KkcsColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 12);
+          }),
+        ),
+        dataTableTheme: DataTableThemeData(
+          headingRowColor: WidgetStateProperty.all(const Color(0xFFF6FAFB)),
+          headingTextStyle: const TextStyle(
+            color: KkcsColors.textSecondary,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+            letterSpacing: 0.5,
+          ),
+          dataTextStyle: const TextStyle(
+            color: KkcsColors.textPrimary,
+            fontSize: 12.5,
+          ),
+          dividerThickness: 1,
+        ),
+        dividerTheme: const DividerThemeData(
+          color: KkcsColors.borderLight,
+          thickness: 1,
+          space: 20,
+        ),
+        textTheme: const TextTheme(
+          headlineLarge: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w800),
+          headlineMedium: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w800),
+          headlineSmall: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w800),
+          titleLarge: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w800),
+          titleMedium: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w700),
+          titleSmall: TextStyle(color: KkcsColors.primaryDeep, fontWeight: FontWeight.w700),
+          bodyLarge: TextStyle(color: KkcsColors.textPrimary),
+          bodyMedium: TextStyle(color: KkcsColors.textPrimary),
+          bodySmall: TextStyle(color: KkcsColors.textSecondary),
+        ),
       ),
       home: const AuthGate(),
     );
@@ -46,7 +223,7 @@ class AuthUser {
     required this.id,
     required this.namaLengkap,
     required this.nomorIndukKaryawan,
-    required this.statusKeanggotaan,
+    this.statusKeanggotaan = 'Aktif',
     this.email,
     this.nomorTelepon,
     this.alamat,
@@ -539,42 +716,158 @@ class LandingPage extends StatelessWidget {
 
   final AuthService auth;
 
+  Widget _featurePill({required IconData icon, required String title, required String subtitle}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: KkcsColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: KkcsColors.primaryDeep.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: KkcsColors.primaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: KkcsColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: KkcsColors.primaryDeep,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: KkcsColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: KkcsColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _BrandMark(),
-                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const _BrandMark(size: 58),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: KkcsColors.primaryLight,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: KkcsColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified, size: 13, color: KkcsColors.primary),
+                            SizedBox(width: 6),
+                            Text(
+                              'Koperasi Resmi',
+                              style: TextStyle(
+                                color: KkcsColors.primaryDeep,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
                   Text(
                     'Layanan koperasi\ndalam satu ruang.',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                          color: KkcsColors.primaryDeep,
+                          height: 1.12,
+                          letterSpacing: -0.5,
                         ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     'Selamat datang di KKCS. Akses layanan anggota dengan mudah, transparan, dan terarah.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
+                    style: const TextStyle(
+                      color: KkcsColors.textSecondary,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
+                  _featurePill(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: 'Simpan Pinjam Mandiri',
+                    subtitle: 'Pengajuan pinjaman & pantau simpanan secara realtime',
+                  ),
+                  _featurePill(
+                    icon: Icons.storefront_outlined,
+                    title: 'Katalog & Unit Usaha',
+                    subtitle: 'Belanja produk kebutuhan dan kanal penjualan anggota',
+                  ),
+                  _featurePill(
+                    icon: Icons.how_to_vote_outlined,
+                    title: 'E-RAT & Transparansi SHU',
+                    subtitle: 'Voting digital keputusan tahunan dan kalkulasi dividen',
+                  ),
+                  const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => LoginPage(auth: auth)),
                     ),
-                    child: const Text('Masuk ke akun'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KkcsColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 1,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.login_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Text('Masuk ke akun', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(
@@ -582,7 +875,32 @@ class LandingPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(builder: (_) => RegisterPage(auth: auth)),
                     ),
-                    child: const Text('Buat akun baru'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: KkcsColors.primary,
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: KkcsColors.primary, width: 1.4),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_add_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text('Buat akun baru', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const Center(
+                    child: Text(
+                      'KKCS Mobile • Versi 2.0.0',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: KkcsColors.textDisabled,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -646,7 +964,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: 'Selamat datang kembali',
-      subtitle: 'Masuk untuk melanjutkan ke akun KKCS Anda.',
+      subtitle: 'Masuk untuk mengakses portal mandiri dan layanan koperasi Anda.',
       child: Form(
         key: _formKey,
         child: Column(
@@ -655,18 +973,27 @@ class _LoginPageState extends State<LoginPage> {
             _ErrorMessage(message: _error),
             TextFormField(
               controller: _nikController,
-              decoration: const InputDecoration(labelText: 'Nomor Induk Karyawan (NIK)'),
+              decoration: const InputDecoration(
+                labelText: 'Nomor Induk Karyawan (NIK)',
+                hintText: 'Contoh: NIK-001',
+                prefixIcon: Icon(Icons.badge_outlined, size: 20, color: KkcsColors.primary),
+              ),
               validator: _requiredNik,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _passwordController,
               obscureText: !_showPassword,
               decoration: InputDecoration(
                 labelText: 'Password',
+                hintText: 'Masukkan kata sandi',
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: KkcsColors.primary),
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _showPassword = !_showPassword),
-                  icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: KkcsColors.textSecondary,
+                  ),
                   tooltip: 'Tampilkan password',
                 ),
               ),
@@ -675,15 +1002,51 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _loading ? null : _submit,
-              child: _loading ? const _ButtonLoader() : const Text('Masuk'),
+              style: FilledButton.styleFrom(
+                backgroundColor: KkcsColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _loading
+                  ? const _ButtonLoader()
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Masuk', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 18),
+                      ],
+                    ),
             ),
             const SizedBox(height: 18),
-            TextButton(
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => RegisterPage(auth: widget.auth)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: KkcsColors.borderLight),
               ),
-              child: const Text('Belum punya akun? Daftar'),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Belum punya akun?', style: TextStyle(fontSize: 13, color: KkcsColors.textSecondary)),
+                  TextButton(
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => RegisterPage(auth: widget.auth)),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Daftar di sini',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: KkcsColors.primary),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -752,7 +1115,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: 'Buat akun KKCS',
-      subtitle: 'Daftarkan akun anggota untuk mengakses layanan koperasi.',
+      subtitle: 'Daftarkan akun anggota baru untuk mengakses seluruh layanan koperasi.',
       child: Form(
         key: _formKey,
         child: Column(
@@ -762,20 +1125,32 @@ class _RegisterPageState extends State<RegisterPage> {
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Nama lengkap'),
+              decoration: const InputDecoration(
+                labelText: 'Nama lengkap',
+                hintText: 'Nama lengkap sesuai KTP',
+                prefixIcon: Icon(Icons.person_outline_rounded, size: 20, color: KkcsColors.primary),
+              ),
               validator: (value) => value == null || value.trim().isEmpty ? 'Nama wajib diisi' : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _nikController,
-              decoration: const InputDecoration(labelText: 'Nomor Induk Karyawan (NIK)'),
+              decoration: const InputDecoration(
+                labelText: 'Nomor Induk Karyawan (NIK)',
+                hintText: 'Contoh: NIK-001',
+                prefixIcon: Icon(Icons.badge_outlined, size: 20, color: KkcsColors.primary),
+              ),
               validator: _requiredNik,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email (opsional)'),
+              decoration: const InputDecoration(
+                labelText: 'Email (opsional)',
+                hintText: 'nama@perusahaan.com',
+                prefixIcon: Icon(Icons.email_outlined, size: 20, color: KkcsColors.primary),
+              ),
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -783,9 +1158,14 @@ class _RegisterPageState extends State<RegisterPage> {
               obscureText: !_showPassword,
               decoration: InputDecoration(
                 labelText: 'Password',
+                hintText: 'Minimal 8 karakter',
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: KkcsColors.primary),
                 suffixIcon: IconButton(
                   onPressed: () => setState(() => _showPassword = !_showPassword),
-                  icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: KkcsColors.textSecondary,
+                  ),
                   tooltip: 'Tampilkan password',
                 ),
               ),
@@ -795,21 +1175,83 @@ class _RegisterPageState extends State<RegisterPage> {
             TextFormField(
               controller: _confirmController,
               obscureText: !_showPassword,
-              decoration: const InputDecoration(labelText: 'Konfirmasi password'),
+              decoration: const InputDecoration(
+                labelText: 'Konfirmasi password',
+                hintText: 'Ulangi kata sandi di atas',
+                prefixIcon: Icon(Icons.lock_reset_rounded, size: 20, color: KkcsColors.primary),
+              ),
               validator: (value) => value == _passwordController.text ? null : 'Password belum sama',
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: KkcsColors.infoBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: KkcsColors.info.withValues(alpha: 0.2)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: KkcsColors.info),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Setelah mendaftar, keanggotaan Anda akan diverifikasi oleh pengurus sebelum transaksi dapat dilakukan.',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF0369A1), height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
             FilledButton(
               onPressed: _loading ? null : _submit,
-              child: _loading ? const _ButtonLoader() : const Text('Daftar'),
+              style: FilledButton.styleFrom(
+                backgroundColor: KkcsColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: _loading
+                  ? const _ButtonLoader()
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Text('Daftar Akun', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      ],
+                    ),
             ),
             const SizedBox(height: 18),
-            TextButton(
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => LoginPage(auth: widget.auth)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: KkcsColors.borderLight),
               ),
-              child: const Text('Sudah punya akun? Masuk'),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Sudah punya akun?', style: TextStyle(fontSize: 13, color: KkcsColors.textSecondary)),
+                  TextButton(
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => LoginPage(auth: widget.auth)),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Masuk ke akun',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: KkcsColors.primary),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -899,12 +1341,40 @@ class _HomePageState extends State<HomePage> {
     final s = _summary;
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Image.asset('assets/logo_kkcs.png', fit: BoxFit.contain),
+          ),
+        ),
         title: const Text('Beranda KKCS'),
         actions: [
-          IconButton(
-            onPressed: () => _openService(0),
-            icon: _ProfileAvatar(user: widget.session.user, radius: 16),
-            tooltip: 'Akun saya',
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              onPressed: () => _openService(0),
+              icon: Container(
+                padding: const EdgeInsets.all(1.5),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: KkcsColors.primary, width: 1.5),
+                ),
+                child: _ProfileAvatar(user: widget.session.user, radius: 15),
+              ),
+              tooltip: 'Akun saya',
+            ),
           ),
         ],
       ),
@@ -914,26 +1384,72 @@ class _HomePageState extends State<HomePage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Text(
-                'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: KkcsColors.primaryDeep,
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.successBg,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: KkcsColors.success.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified, size: 12, color: KkcsColors.success),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.session.user.statusKeanggotaan,
+                                    style: const TextStyle(color: KkcsColors.success, fontSize: 10.5, fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Akses layanan anggota dan transparansi koperasi dalam satu tempat.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: KkcsColors.textSecondary, height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Akses layanan anggota dan transparansi koperasi dalam satu tempat.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               _TransparencyDashboard(session: widget.session, summary: s, loading: _loading, error: _error, onRefresh: _load),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
               _HomeAnnouncementCard(items: s?.pengumuman ?? const [], onOpen: _openTautan),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
               _LatestProductsPreview(products: s?.produkTerbaru ?? const [], onOpenCatalog: () => _openService(2)),
-              const SizedBox(height: 24),
-              Text(
-                'Pilih layanan dari navigasi di bawah.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              const SizedBox(height: 22),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.touch_app_outlined, size: 14, color: KkcsColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Pilih layanan dari navigasi di bawah.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1025,85 +1541,130 @@ class _TransparencyDashboard extends StatelessWidget {
     final s = summary;
     return Card(
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            color: colors.primary,
+            decoration: const BoxDecoration(
+              gradient: KkcsColors.heroGradient,
+            ),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             child: Row(
               children: [
-                Icon(Icons.visibility_outlined, color: colors.onPrimary),
-                const SizedBox(width: 10),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .16),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: Colors.white.withValues(alpha: .2)),
+                  ),
+                  child: const Icon(Icons.visibility_outlined, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Portal Mandiri Anggota',
-                          style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 17)),
-                      const SizedBox(height: 4),
-                      Text('Dashboard transparansi keanggotaan Anda',
-                          style: TextStyle(color: colors.onPrimary.withValues(alpha: .82))),
+                      const Text(
+                        'Portal Mandiri Anggota',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Dashboard transparansi keanggotaan Anda',
+                        style: TextStyle(color: Colors.white.withValues(alpha: .88), fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
                 IconButton(
                   onPressed: loading ? null : () => onRefresh(),
-                  icon: Icon(Icons.refresh, color: colors.onPrimary.withValues(alpha: .9), size: 19),
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
                   tooltip: 'Muat ulang',
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Ringkasan keuangan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
-                if (loading) const Padding(padding: EdgeInsets.only(bottom: 10), child: LinearProgressIndicator(minHeight: 2)),
-                if (error != null) Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(error!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.error)),
-                ),
-                Row(children: [
-                  Expanded(child: _DashboardMetric(icon: Icons.savings_outlined, label: 'Total simpanan', value: _value(s?.totalSimpanan))),
-                  const SizedBox(width: 10),
-                  Expanded(child: _DashboardMetric(
-                    icon: Icons.request_quote_outlined,
-                    label: 'Pinjaman aktif',
-                    value: s == null ? '—' : (s.jumlahPinjamanAktif == 0 ? 'Tidak ada' : '${formatRupiah(s.sisaPokokPinjaman)} sisa'),
-                  )),
-                ]),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: _DashboardMetric(
-                    icon: Icons.payments_outlined,
-                    label: 'Cicilan berjalan',
-                    value: s == null ? '—' : (s.cicilanBulananBerjalan == 0 ? 'Tidak ada' : '${formatRupiah(s.cicilanBulananBerjalan)} / bln'),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _DashboardMetric(
-                    icon: Icons.auto_graph_outlined,
-                    label: s?.estimasiShuTahun == null ? 'Estimasi SHU' : 'Estimasi SHU ${s!.estimasiShuTahun}',
-                    value: s?.estimasiShuNominal == null ? 'Belum tersedia' : formatRupiah(s!.estimasiShuNominal!),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ShuSayaPage(session: session)),
+                Row(
+                  children: [
+                    const Icon(Icons.analytics_outlined, size: 18, color: KkcsColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Ringkasan keuangan',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep),
                     ),
-                  )),
-                ]),
+                  ],
+                ),
                 const SizedBox(height: 12),
+                if (loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2.5)),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(error!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.error)),
+                  ),
                 Row(children: [
-                  Icon(Icons.sync_outlined, size: 15, color: colors.onSurfaceVariant),
-                  const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      s == null
-                          ? 'Memuat data terkini...'
-                          : 'Pokok ${formatRupiah(s.simpananPokok)} · Wajib ${formatRupiah(s.simpananWajib)} · Sukarela ${formatRupiah(s.simpananSukarela)} · Berjangka ${formatRupiah(s.simpananBerjangka)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                    child: _DashboardMetric(
+                      icon: Icons.savings_outlined,
+                      label: 'Total simpanan',
+                      value: _value(s?.totalSimpanan),
+                      accentColor: KkcsColors.success,
+                      accentBg: KkcsColors.successBg,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => DetailSimpananPage(session: session)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _DashboardMetric(
+                      icon: Icons.request_quote_outlined,
+                      label: 'Pinjaman aktif',
+                      value: s == null ? '—' : (s.jumlahPinjamanAktif == 0 ? 'Tidak ada' : '${formatRupiah(s.sisaPokokPinjaman)} sisa'),
+                      accentColor: KkcsColors.warning,
+                      accentBg: KkcsColors.warningBg,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => DetailPinjamanAktifPage(session: session)),
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: _DashboardMetric(
+                      icon: Icons.payments_outlined,
+                      label: 'Cicilan berjalan',
+                      value: s == null ? '—' : (s.cicilanBulananBerjalan == 0 ? 'Tidak ada' : '${formatRupiah(s.cicilanBulananBerjalan)} / bln'),
+                      accentColor: KkcsColors.primary,
+                      accentBg: KkcsColors.primaryLight,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => DetailCicilanPage(session: session)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _DashboardMetric(
+                      icon: Icons.auto_graph_outlined,
+                      label: s?.estimasiShuTahun == null ? 'Estimasi SHU' : 'Estimasi SHU ${s!.estimasiShuTahun}',
+                      value: s?.estimasiShuNominal == null ? 'Belum tersedia' : formatRupiah(s!.estimasiShuNominal!),
+                      accentColor: const Color(0xFF6366F1),
+                      accentBg: const Color(0xFFEEF2FF),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ShuSayaPage(session: session)),
+                      ),
                     ),
                   ),
                 ]),
@@ -1131,38 +1692,134 @@ class _HomeAnnouncementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Pengumuman', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 10),
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.campaign_rounded, size: 18, color: KkcsColors.primary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Pengumuman', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep)),
+                  const SizedBox(height: 1),
+                  Text('Informasi penting dan agenda koperasi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary, fontSize: 11.5)),
+                ],
+              ),
+            ),
+            if (items.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: KkcsColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${items.length} baru',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: KkcsColors.primary),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
         if (items.isEmpty)
-          Card(
-            color: colors.tertiaryContainer,
-            child: const Padding(padding: EdgeInsets.all(16), child: Text('Belum ada pengumuman.')),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: KkcsColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.notifications_none_rounded, size: 20, color: KkcsColors.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Belum ada pengumuman.',
+                    style: TextStyle(color: KkcsColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
           )
         else
-          ...items.map((a) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                color: colors.tertiaryContainer,
-                child: InkWell(
-                  onTap: a.tautan.isEmpty ? null : () => onOpen(a.tautan),
+          ...items.map((a) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(children: [
-                      CircleAvatar(backgroundColor: colors.tertiary, child: Icon(_icon(a.ikon), color: colors.onTertiary, size: 20)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(a.judul, style: const TextStyle(fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 3),
-                          Text(a.isi, style: Theme.of(context).textTheme.bodySmall),
-                        ]),
+                  border: Border.all(color: KkcsColors.borderLight),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: a.tautan.isEmpty ? null : () => onOpen(a.tautan),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: KkcsColors.primaryLight,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(_icon(a.ikon), color: KkcsColors.primary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(a.judul, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: KkcsColors.primaryDeep)),
+                                const SizedBox(height: 4),
+                                Text(a.isi, style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary, height: 1.35)),
+                              ],
+                            ),
+                          ),
+                          if (a.tautan.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.chevron_right, size: 16, color: KkcsColors.primary),
+                            ),
+                          ],
+                        ],
                       ),
-                      if (a.tautan.isNotEmpty) const Icon(Icons.chevron_right),
-                    ]),
+                    ),
                   ),
                 ),
               )),
@@ -1179,38 +1836,177 @@ class _LatestProductsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Expanded(child: Text('Produk terbaru', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
-          TextButton(onPressed: onOpenCatalog, child: const Text('Buka katalog')),
-        ]),
-        const SizedBox(height: 6),
+        Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.storefront_outlined, size: 18, color: KkcsColors.primary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Produk terbaru', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep)),
+                  const SizedBox(height: 1),
+                  Text('Katalog unit usaha koperasi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary, fontSize: 11.5)),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onOpenCatalog,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              icon: const Text('Buka katalog', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: KkcsColors.primary)),
+              label: const Icon(Icons.arrow_forward_rounded, size: 14, color: KkcsColors.primary),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         if (products.isEmpty)
-          Text('Belum ada produk di katalog.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54))
-        else
-          ...products.map((p) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  onTap: onOpenCatalog,
-                  leading: ClipRRect(
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: KkcsColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: p.fotoUrl == null
-                          ? Container(color: colors.primaryContainer, child: Icon(Icons.shopping_bag_outlined, color: colors.onPrimaryContainer))
-                          : Image.network('${AuthService.baseUrl}${p.fotoUrl}', fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(color: colors.primaryContainer, child: const Icon(Icons.image_not_supported_outlined))),
+                  ),
+                  child: const Icon(Icons.storefront_outlined, size: 20, color: KkcsColors.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Belum ada produk di katalog.',
+                    style: TextStyle(color: KkcsColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...products.map((p) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: KkcsColors.borderLight),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onOpenCatalog,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              color: const Color(0xFFF1F5F9),
+                              child: p.fotoUrl == null
+                                  ? Container(
+                                      color: KkcsColors.primaryLight,
+                                      child: const Icon(Icons.shopping_bag_outlined, color: KkcsColors.primary, size: 24),
+                                    )
+                                  : Image.network(
+                                      '${AuthService.baseUrl}${p.fotoUrl}',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: KkcsColors.primaryLight,
+                                        child: const Icon(Icons.image_not_supported_outlined, color: KkcsColors.primary, size: 22),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  p.nama,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: KkcsColors.primaryDeep),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: p.sewa ? const Color(0xFFEFF6FF) : KkcsColors.successBg,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        p.sewa ? 'Sewa' : 'Jual',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: p.sewa ? const Color(0xFF2563EB) : KkcsColors.success,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        p.sewa
+                                            ? (p.sumber == 'TitipanAnggota' ? 'Titipan Anggota' : 'Unit Koperasi')
+                                            : (p.stok > 0 ? 'Stok ${p.stok.toStringAsFixed(p.stok % 1 == 0 ? 0 : 2)} ${p.satuan}' : 'Stok habis'),
+                                        style: const TextStyle(fontSize: 11, color: KkcsColors.textSecondary),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${formatRupiah(p.harga)}${p.sewa ? '/${p.satuan}' : ''}',
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: KkcsColors.primary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  title: Text(p.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(p.sewa
-                      ? 'Sewa · ${p.sumber == 'TitipanAnggota' ? 'titipan anggota' : 'koperasi'}'
-                      : (p.stok > 0 ? 'Stok ${p.stok.toStringAsFixed(p.stok % 1 == 0 ? 0 : 2)} ${p.satuan}' : 'Stok habis')),
-                  trailing: Text('${formatRupiah(p.harga)}${p.sewa ? '/${p.satuan}' : ''}', style: const TextStyle(fontWeight: FontWeight.w800)),
                 ),
               )),
       ],
@@ -1219,44 +2015,1207 @@ class _LatestProductsPreview extends StatelessWidget {
 }
 
 class _DashboardMetric extends StatelessWidget {
-  const _DashboardMetric({required this.icon, required this.label, required this.value, this.onTap});
+  const _DashboardMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.accentColor,
+    this.accentBg,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? accentColor;
+  final Color? accentBg;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final color = accentColor ?? KkcsColors.primary;
+    final bg = accentBg ?? KkcsColors.primaryLight;
+
     final content = Container(
-      constraints: const BoxConstraints(minHeight: 82),
-      padding: const EdgeInsets.all(12),
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: .45),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: KkcsColors.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 19, color: colors.primary),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: color),
+              ),
               if (onTap != null) ...[
                 const Spacer(),
-                Icon(Icons.chevron_right, size: 16, color: colors.onSurfaceVariant),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: KkcsColors.border),
+                  ),
+                  child: const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: KkcsColors.primary),
+                ),
               ],
             ],
           ),
-          const SizedBox(height: 7),
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 3),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: KkcsColors.primaryDeep),
+          ),
         ],
       ),
     );
     if (onTap == null) return content;
-    return InkWell(borderRadius: BorderRadius.circular(10), onTap: onTap, child: content);
+    return InkWell(borderRadius: BorderRadius.circular(12), onTap: onTap, child: content);
+  }
+}
+
+// ── DETAIL TOTAL SIMPANAN ──────────────────────────────────────────────────
+class DetailSimpananPage extends StatefulWidget {
+  const DetailSimpananPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<DetailSimpananPage> createState() => _DetailSimpananPageState();
+}
+
+class _DetailSimpananPageState extends State<DetailSimpananPage> {
+  bool _loading = true;
+  String? _error;
+  SavingsOverview? _overview;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await AuthService().fetchSavings();
+      if (!mounted) return;
+      setState(() => _overview = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e is ApiException ? e.message : 'Gagal memuat rincian simpanan.');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Widget _categoryCard({
+    required IconData icon,
+    required String title,
+    required String badge,
+    required String subtitle,
+    required double amount,
+    String? extraInfo,
+    Color? accentColor,
+    Color? accentBg,
+  }) {
+    final color = accentColor ?? KkcsColors.primary;
+    final bg = accentBg ?? KkcsColors.primaryLight;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KkcsColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: KkcsColors.primaryDeep.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.5,
+                            color: KkcsColors.primaryDeep,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            badge,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: KkcsColors.borderLight),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Saldo Simpanan',
+                  style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  formatRupiah(amount),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: KkcsColors.primaryDeep,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (extraInfo != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 13, color: KkcsColors.textDisabled),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    extraInfo,
+                    style: const TextStyle(fontSize: 11, color: KkcsColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final o = _overview;
+    final totalBerjangka = o == null
+        ? 0.0
+        : o.berjangka.milikSaya.fold<double>(0.0, (acc, item) => acc + item.nominal);
+    final totalSimpanan = o == null
+        ? 0.0
+        : (o.pokok.saldo + o.wajib.saldo + o.sukarela.saldo + totalBerjangka);
+
+    return Scaffold(
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(
+        title: const Text('Rincian Total Simpanan'),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Muat ulang',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _ErrorMessage(message: _error),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: KkcsColors.heroGradient,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: KkcsColors.primaryDeep.withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.shield_outlined, size: 13, color: Color(0xFFA5F3FC)),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Akumulasi Simpanan',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: KkcsColors.successBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Aktif',
+                                  style: TextStyle(color: KkcsColors.success, fontSize: 10.5, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'TOTAL SALDO SIMPANAN',
+                            style: TextStyle(
+                              color: Color(0xFFA5F3FC),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            formatRupiah(totalSimpanan),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Tercatat atas nama ${widget.session.user.namaLengkap} (${widget.session.user.nomorIndukKaryawan})',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    const Row(
+                      children: [
+                        Icon(Icons.pie_chart_outline_rounded, size: 18, color: KkcsColors.primary),
+                        SizedBox(width: 8),
+                        Text(
+                          'Kategori Akun Simpanan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (o != null) ...[
+                      _categoryCard(
+                        icon: Icons.account_balance_rounded,
+                        title: 'Simpanan Pokok',
+                        badge: 'Wajib Awal',
+                        subtitle: 'Simpanan pokok keanggotaan koperasi pertama kali',
+                        amount: o.pokok.saldo,
+                        extraInfo: o.pokok.nomorRekening != null ? 'No. Rekening: ${o.pokok.nomorRekening}' : 'Terdaftar resmi',
+                        accentColor: KkcsColors.primary,
+                        accentBg: KkcsColors.primaryLight,
+                      ),
+                      _categoryCard(
+                        icon: Icons.calendar_month_rounded,
+                        title: 'Simpanan Wajib',
+                        badge: 'Rutin Bulanan',
+                        subtitle: 'Iuran wajib yang disetorkan tiap bulan keanggotaan',
+                        amount: o.wajib.saldo,
+                        extraInfo: o.wajib.tagihan.any((t) => t.status != 'Dibayar' && t.status != 'Lunas')
+                            ? '${o.wajib.tagihan.where((t) => t.status != 'Dibayar' && t.status != 'Lunas').length} tagihan belum terbayar'
+                            : 'Semua tagihan wajib lunas',
+                        accentColor: KkcsColors.success,
+                        accentBg: KkcsColors.successBg,
+                      ),
+                      _categoryCard(
+                        icon: Icons.wallet_rounded,
+                        title: 'Simpanan Sukarela',
+                        badge: 'Fleksibel',
+                        subtitle: 'Tabungan fleksibel yang dapat disetor atau ditarik',
+                        amount: o.sukarela.saldo,
+                        extraInfo: 'Dapat disetor atau dicairkan di menu Simpan Pinjam',
+                        accentColor: const Color(0xFF0284C7),
+                        accentBg: const Color(0xFFF0F9FF),
+                      ),
+                      _categoryCard(
+                        icon: Icons.lock_clock_rounded,
+                        title: 'Simpanan Berjangka',
+                        badge: 'Investasi',
+                        subtitle: 'Simpanan berjangka dengan bagi hasil kompetitif',
+                        amount: totalBerjangka,
+                        extraInfo: '${o.berjangka.milikSaya.length} penempatan bilyet terdaftar',
+                        accentColor: const Color(0xFF6366F1),
+                        accentBg: const Color(0xFFEEF2FF),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    const Row(
+                      children: [
+                        Icon(Icons.history_rounded, size: 18, color: KkcsColors.primary),
+                        SizedBox(width: 8),
+                        Text(
+                          'Riwayat Mutasi Terakhir',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (o == null || o.mutasi.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: KkcsColors.border),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Belum ada riwayat mutasi transaksi.',
+                            style: TextStyle(color: KkcsColors.textSecondary, fontSize: 13),
+                          ),
+                        ),
+                      )
+                    else
+                      ...o.mutasi.map((m) => Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: KkcsColors.borderLight),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: m.jenis == 'Setor' ? KkcsColors.successBg : KkcsColors.dangerBg,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    m.jenis == 'Setor' ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                    size: 16,
+                                    color: m.jenis == 'Setor' ? KkcsColors.success : KkcsColors.danger,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        m.keterangan ?? (m.jenis == 'Setor' ? 'Setoran Simpanan' : 'Penarikan Simpanan'),
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primaryDeep),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _monthLabel(m.tanggal),
+                                        style: const TextStyle(fontSize: 11, color: KkcsColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      (m.jenis == 'Setor' ? '+ ' : '- ') + formatRupiah(m.nominal),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                        color: m.jenis == 'Setor' ? KkcsColors.success : KkcsColors.danger,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Saldo: ${formatRupiah(m.saldoSetelah)}',
+                                      style: const TextStyle(fontSize: 10.5, color: KkcsColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── DETAIL PINJAMAN AKTIF ──────────────────────────────────────────────────
+class DetailPinjamanAktifPage extends StatefulWidget {
+  const DetailPinjamanAktifPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<DetailPinjamanAktifPage> createState() => _DetailPinjamanAktifPageState();
+}
+
+class _DetailPinjamanAktifPageState extends State<DetailPinjamanAktifPage> {
+  bool _loading = true;
+  String? _error;
+  LoanOverview? _overview;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await AuthService().fetchMyLoans();
+      if (!mounted) return;
+      setState(() => _overview = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e is ApiException ? e.message : 'Gagal memuat rincian pinjaman.');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final o = _overview;
+    final pinjamanAktif = o?.pinjaman.where((p) => !p.lunas).toList() ?? const <Loan>[];
+    final totalSisaPokok = pinjamanAktif.fold<double>(0.0, (acc, item) => acc + item.sisaPokok);
+
+    return Scaffold(
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(
+        title: const Text('Detail Pinjaman Aktif'),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Muat ulang',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _ErrorMessage(message: _error),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF083344), Color(0xFF0E7490), Color(0xFF155E75)],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: KkcsColors.primaryDeep.withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.request_quote_outlined, size: 13, color: Color(0xFFFDE68A)),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Fasilitas Pinjaman',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: pinjamanAktif.isEmpty ? KkcsColors.successBg : KkcsColors.warningBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${pinjamanAktif.length} Fasilitas Aktif',
+                                  style: TextStyle(
+                                    color: pinjamanAktif.isEmpty ? KkcsColors.success : KkcsColors.warning,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'TOTAL SISA POKOK PINJAMAN',
+                            style: TextStyle(
+                              color: Color(0xFFFDE68A),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            formatRupiah(totalSisaPokok),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            pinjamanAktif.isEmpty
+                                ? 'Tidak ada kewajiban pinjaman yang sedang berjalan.'
+                                : 'Kewajiban aktif yang tercatat atas nama Anda di koperasi.',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    if (pinjamanAktif.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: KkcsColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                color: KkcsColors.successBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_circle_outline_rounded, size: 42, color: KkcsColors.success),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Tidak Ada Pinjaman Aktif',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Anda tidak memiliki pinjaman berjalan saat ini. Pengajuan pinjaman baru dapat dilakukan melalui tab Pinjaman pada menu Simpan Pinjam.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12.5, color: KkcsColors.textSecondary, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ...pinjamanAktif.map((loan) {
+                        final progress = loan.tenorBulan > 0
+                            ? (loan.angsuranTerbayar / loan.tenorBulan).clamp(0.0, 1.0)
+                            : 0.0;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: KkcsColors.border),
+                            boxShadow: [
+                              BoxShadow(
+                                color: KkcsColors.primaryDeep.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: KkcsColors.primaryLight,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(Icons.receipt_long_rounded, size: 18, color: KkcsColors.primary),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            loan.nomorPinjaman,
+                                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: KkcsColors.primaryDeep),
+                                          ),
+                                          Text(
+                                            'Tenor ${loan.tenorBulan} bulan',
+                                            style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  _StatusBadge(status: loan.status),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Kemajuan Angsuran',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KkcsColors.textSecondary),
+                                      ),
+                                      Text(
+                                        '${loan.angsuranTerbayar}/${loan.tenorBulan} bln (${(progress * 100).toStringAsFixed(0)}%)',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: KkcsColors.primary),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      minHeight: 7,
+                                      backgroundColor: const Color(0xFFF1F5F9),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(KkcsColors.primary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: KkcsColors.borderLight),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Plafon Pinjaman Awal', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                        Text(formatRupiah(loan.pokok), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: KkcsColors.primaryDeep)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Sisa Pokok Pinjaman', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                        Text(formatRupiah(loan.sisaPokok), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: KkcsColors.danger)),
+                                      ],
+                                    ),
+                                    const Divider(height: 14, color: KkcsColors.borderLight),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Angsuran per Bulan', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                        Text('${formatRupiah(loan.angsuranPerBulan)} / bln', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: KkcsColors.primary)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0FDF4),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.stars_rounded, size: 16, color: KkcsColors.success),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Pelunasan Dipercepat',
+                                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: KkcsColors.success),
+                                          ),
+                                          Text(
+                                            'Nilai: ${formatRupiah(loan.nilaiPelunasanDipercepat)} (Hemat jasa ${formatRupiah(loan.jasaDibebaskan)})',
+                                            style: const TextStyle(fontSize: 11, color: Color(0xFF166534)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── DETAIL CICILAN BERJALAN ──────────────────────────────────────────────────
+class DetailCicilanPage extends StatefulWidget {
+  const DetailCicilanPage({required this.session, super.key});
+
+  final AuthSession session;
+
+  @override
+  State<DetailCicilanPage> createState() => _DetailCicilanPageState();
+}
+
+class _DetailCicilanPageState extends State<DetailCicilanPage> {
+  bool _loading = true;
+  String? _error;
+  LoanOverview? _overview;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final data = await AuthService().fetchMyLoans();
+      if (!mounted) return;
+      setState(() => _overview = data);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e is ApiException ? e.message : 'Gagal memuat rincian cicilan.');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final o = _overview;
+    final pinjamanAktif = o?.pinjaman.where((p) => !p.lunas).toList() ?? const <Loan>[];
+    final totalCicilanBulanan = pinjamanAktif.fold<double>(0.0, (acc, item) => acc + item.angsuranPerBulan);
+    final totalSisaAngsuran = pinjamanAktif.fold<int>(0, (acc, item) => acc + item.sisaAngsuran);
+
+    return Scaffold(
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(
+        title: const Text('Detail Cicilan Berjalan'),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Muat ulang',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _ErrorMessage(message: _error),
+                      ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF0891B2), Color(0xFF0284C7), Color(0xFF0369A1)],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: KkcsColors.primary.withValues(alpha: 0.25),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.payments_outlined, size: 13, color: Colors.white),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'Cicilan Bulanan',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '$totalSisaAngsuran Bulan Sisa',
+                                  style: const TextStyle(color: KkcsColors.primaryDeep, fontSize: 10.5, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'TOTAL CICILAN PER BULAN',
+                            style: TextStyle(
+                              color: Color(0xFFCFFAFE),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${formatRupiah(totalCicilanBulanan)} / bln',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            pinjamanAktif.isEmpty
+                                ? 'Tidak ada kewajiban cicilan yang harus dibayarkan.'
+                                : 'Total pemotongan gaji / setoran angsuran pinjaman bulanan.',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    const Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded, size: 18, color: KkcsColors.primary),
+                        SizedBox(width: 8),
+                        Text(
+                          'Daftar Cicilan Pinjaman Aktif',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (pinjamanAktif.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: KkcsColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                color: KkcsColors.successBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_circle_outline_rounded, size: 42, color: KkcsColors.success),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Tidak Ada Cicilan Berjalan',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Anda tidak memiliki tanggungan cicilan pinjaman bulanan saat ini.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 12.5, color: KkcsColors.textSecondary, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ...pinjamanAktif.map((loan) {
+                        final angsuranTertunda = loan.angsuran.where((a) => a.status != 'Lunas').toList();
+                        final angsuranBerikutnya = angsuranTertunda.isNotEmpty ? angsuranTertunda.first : null;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: KkcsColors.border),
+                            boxShadow: [
+                              BoxShadow(
+                                color: KkcsColors.primaryDeep.withValues(alpha: 0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    loan.nomorPinjaman,
+                                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.primaryDeep),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: KkcsColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      'Sisa ${loan.sisaAngsuran} bln',
+                                      style: const TextStyle(color: KkcsColors.primary, fontSize: 11, fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: KkcsColors.borderLight),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Pokok Angsuran', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                        Text(formatRupiah(loan.pokokPerBulan), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: KkcsColors.primaryDeep)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Jasa Koperasi', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                        Text(formatRupiah(loan.jasaPerBulan), style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: KkcsColors.primaryDeep)),
+                                      ],
+                                    ),
+                                    const Divider(height: 14, color: KkcsColors.borderLight),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Total Tagihan per Bulan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: KkcsColors.primaryDeep)),
+                                        Text(formatRupiah(loan.angsuranPerBulan), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: KkcsColors.primary)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (angsuranBerikutnya != null) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFFBEB),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFFDE68A)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.access_time_rounded, size: 15, color: Color(0xFFD97706)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Angsuran ke-${angsuranBerikutnya.angsuranKe} jatuh tempo: ${_monthLabel(angsuranBerikutnya.jatuhTempo)}',
+                                          style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1293,15 +3252,26 @@ class _ShuSayaPageState extends State<ShuSayaPage> {
       if (!mounted) return;
       setState(() => _error = e is ApiException ? e.message : 'Gagal memuat data SHU.');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('SHU Saya')),
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(
+        title: const Text('SHU Saya'),
+        actions: [
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Muat ulang data',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -1313,35 +3283,115 @@ class _ShuSayaPageState extends State<ShuSayaPage> {
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(_error!, style: TextStyle(color: colors.error)),
+                        child: _ErrorMessage(message: _error),
                       ),
-                    Text(
-                      'Sisa Hasil Usaha (SHU) adalah bagian keuntungan koperasi yang dibagikan ke setiap anggota aktif, '
-                      'dihitung dari jasa modal (simpanan pokok+wajib) dan jasa usaha (transaksi pinjaman & belanja) Anda tiap tahun buku.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFECFEFF), Color(0xFFF0FDFA)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF99F6E4), width: 1.2),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFF99F6E4)),
+                                ),
+                                child: const Icon(Icons.auto_graph_rounded, size: 18, color: KkcsColors.primaryDark),
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Text(
+                                  'Sisa Hasil Usaha (SHU)',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: KkcsColors.primaryDeep,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF99F6E4)),
+                                ),
+                                child: const Text(
+                                  'Dividen Anggota',
+                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: KkcsColors.primary),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Sisa Hasil Usaha (SHU) adalah bagian keuntungan koperasi yang dibagikan secara adil kepada setiap anggota aktif. '
+                            'Nominal dihitung dari jasa modal (simpanan pokok & wajib) dan jasa usaha (transaksi belanja & pinjaman) Anda sepanjang tahun buku.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: KkcsColors.textSecondary,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 18),
                     if (_riwayat.isEmpty && !_loading)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 40),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: KkcsColors.border),
+                        ),
                         child: Column(
                           children: [
-                            Icon(Icons.auto_graph_outlined, size: 48, color: colors.outline),
-                            const SizedBox(height: 12),
-                            Text('Belum ada SHU yang difinalisasi',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Estimasi SHU akan muncul di sini setelah pengurus memfinalisasi tahun buku.',
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.query_stats_rounded, size: 42, color: KkcsColors.primary),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Belum Ada SHU yang Difinalisasi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: KkcsColors.primaryDeep,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Estimasi dan pembagian SHU akan otomatis muncul di sini setelah pengurus menyelesaikan tutup buku dan disahkan pada Rapat Anggota Tahunan (RAT).',
                               textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: KkcsColors.textSecondary,
+                                height: 1.4,
+                              ),
                             ),
                           ],
                         ),
                       )
                     else
                       ..._riwayat.asMap().entries.map((entry) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
+                            padding: const EdgeInsets.only(bottom: 16),
                             child: _ShuYearCard(data: entry.value, highlighted: entry.key == 0),
                           )),
                   ],
@@ -1358,65 +3408,323 @@ class _ShuYearCard extends StatelessWidget {
   final ShuHistoryEntry data;
   final bool highlighted;
 
-  Widget _baris(BuildContext context, String label, double value, {bool bold = false, Color? color}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
-            Text(formatRupiah(value),
-                style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600, fontSize: bold ? 15 : 13, color: color)),
-          ],
-        ),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      elevation: highlighted ? 2 : 0,
-      color: highlighted ? colors.primaryContainer.withValues(alpha: .35) : null,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: highlighted ? BorderSide(color: colors.primary.withValues(alpha: .4)) : BorderSide(color: colors.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  Widget _calcRow({
+    required String label,
+    required double value,
+    String? subtitle,
+    bool bold = false,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.auto_graph_outlined, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
-                Text('Tahun Buku ${data.tahun}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                if (highlighted) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(20)),
-                    child: Text('Terbaru', style: TextStyle(color: colors.onPrimary, fontSize: 10, fontWeight: FontWeight.w700)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: bold ? 13.5 : 12.5,
+                    fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                    color: bold ? KkcsColors.primaryDeep : KkcsColors.textSecondary,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 10.5, color: KkcsColors.textMuted),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: 10),
-            _baris(context, 'Simpanan Anda (dasar Jasa Modal)', data.simpananAnggota),
-            _baris(context, 'Transaksi Anda (dasar Jasa Usaha)', data.transaksiAnggota),
-            const Divider(height: 20),
-            _baris(context, 'Jasa Modal Anggota (JMA)', data.jma),
-            _baris(context, 'Jasa Usaha Anggota (JUA)', data.jua),
-            _baris(context, 'Total SHU (Bruto)', data.totalShu),
-            _baris(context, 'PPh Final', -data.pajak, color: Colors.orange.shade800),
-            const Divider(height: 20),
-            _baris(context, 'SHU Diterima (Neto)', data.totalShuNeto, bold: true, color: colors.primary),
-            const SizedBox(height: 10),
-            Text(
-              'Difinalisasi ${_monthLabel(data.difinalisasiPada)} · Jasa Modal ${(data.persenJasaModal * 100).toStringAsFixed(0)}% / Jasa Usaha ${(data.persenJasaUsaha * 100).toStringAsFixed(0)}%',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black45, fontSize: 11),
+          ),
+          Text(
+            (value < 0 ? '- ' : '') + formatRupiah(value.abs()),
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
+              fontSize: bold ? 14 : 13,
+              color: color ?? (bold ? KkcsColors.primaryDeep : KkcsColors.textPrimary),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: highlighted ? KkcsColors.primary : KkcsColors.border,
+          width: highlighted ? 1.6 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: highlighted ? KkcsColors.primary.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.02),
+            blurRadius: highlighted ? 16 : 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: highlighted ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: highlighted ? const Color(0xFFCCFBF1) : KkcsColors.borderLight,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: highlighted ? KkcsColors.primary : KkcsColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Tahun Buku ${data.tahun}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: KkcsColors.primaryDeep,
+                  ),
+                ),
+                const Spacer(),
+                if (highlighted)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: KkcsColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star_rounded, size: 12, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Terbaru',
+                          style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Selesai',
+                      style: TextStyle(color: KkcsColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFECFEFF), Color(0xFFE0F2FE)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF67E8F9), width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.verified_rounded, size: 14, color: KkcsColors.primary),
+                                SizedBox(width: 5),
+                                Text(
+                                  'SHU DITERIMA (NETO)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: KkcsColors.primaryDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Bersih setelah PPh Final 10%',
+                              style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        formatRupiah(data.totalShuNeto),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: KkcsColors.primaryDeep,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: KkcsColors.borderLight),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.savings_outlined, size: 14, color: KkcsColors.primary),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Dasar Simpanan',
+                                  style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              formatRupiah(data.simpananAnggota),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep),
+                            ),
+                            const SizedBox(height: 1),
+                            const Text(
+                              'Pokok & Wajib',
+                              style: TextStyle(fontSize: 10, color: KkcsColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: KkcsColors.borderLight),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.shopping_bag_outlined, size: 14, color: Color(0xFF6366F1)),
+                                SizedBox(width: 5),
+                                Text(
+                                  'Dasar Transaksi',
+                                  style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              formatRupiah(data.transaksiAnggota),
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep),
+                            ),
+                            const SizedBox(height: 1),
+                            const Text(
+                              'Pinjaman & Belanja',
+                              style: TextStyle(fontSize: 10, color: KkcsColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: KkcsColors.borderLight),
+                  ),
+                  child: Column(
+                    children: [
+                      _calcRow(
+                        label: 'Jasa Modal Anggota (JMA)',
+                        subtitle: 'Porsi Modal ${(data.persenJasaModal * 100).toStringAsFixed(0)}%',
+                        value: data.jma,
+                      ),
+                      _calcRow(
+                        label: 'Jasa Usaha Anggota (JUA)',
+                        subtitle: 'Porsi Usaha ${(data.persenJasaUsaha * 100).toStringAsFixed(0)}%',
+                        value: data.jua,
+                      ),
+                      const Divider(height: 16, color: KkcsColors.borderLight),
+                      _calcRow(
+                        label: 'Total SHU (Bruto)',
+                        value: data.totalShu,
+                        bold: true,
+                      ),
+                      _calcRow(
+                        label: 'PPh Final (10%)',
+                        subtitle: 'Pajak dividen resmi',
+                        value: -data.pajak,
+                        color: const Color(0xFFD97706),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 13, color: KkcsColors.textDisabled),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        'Difinalisasi ${_monthLabel(data.difinalisasiPada)} · Skema JMA ${(data.persenJasaModal * 100).toStringAsFixed(0)}% / JUA ${(data.persenJasaUsaha * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(fontSize: 11, color: KkcsColors.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1699,34 +4007,128 @@ class _EratPageState extends State<EratPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Text('Rapat Anggota Tahunan Digital',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text('Gunakan hak suara Anda dan baca dokumen RAT koperasi.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
-              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.only(top: 4, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rapat Anggota Tahunan Digital',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                            letterSpacing: -0.3,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Gunakan hak suara Anda dan pelajari dokumen pertanggungjawaban koperasi.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: KkcsColors.textSecondary,
+                            height: 1.35,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
               if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
-              Text('Voting', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(color: KkcsColors.primary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Voting',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: KkcsColors.primaryDeep,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               if (!_loading && _agenda.isEmpty)
-                Text('Belum ada agenda voting yang ditayangkan.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: KkcsColors.borderSubtle),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Belum ada agenda voting yang ditayangkan.',
+                      style: TextStyle(fontSize: 13, color: KkcsColors.textSecondary),
+                    ),
+                  ),
+                ),
               ..._agenda.map(_buildAgendaCard),
               const SizedBox(height: 16),
               if (_laporanRat != null) ...[
-                Text('Laporan RAT Resmi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 18,
+                      decoration: BoxDecoration(color: KkcsColors.primary, borderRadius: BorderRadius.circular(2)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Laporan RAT Resmi',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 _buildLaporanRatCard(_laporanRat!),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
               ],
-              Text('Dokumen RAT terkini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(color: KkcsColors.primary, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Dokumen RAT terkini',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: KkcsColors.primaryDeep,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               if (!_loading && _dokumen.isEmpty)
-                Text('Belum ada dokumen RAT diterbitkan.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: KkcsColors.borderSubtle),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Belum ada dokumen RAT diterbitkan.',
+                      style: TextStyle(fontSize: 13, color: KkcsColors.textSecondary),
+                    ),
+                  ),
+                ),
               ..._dokumen.asMap().entries.map((entry) => _buildDocumentCard(entry.value, terbaru: entry.key == 0)),
             ],
           ),
@@ -1736,71 +4138,211 @@ class _EratPageState extends State<EratPage> {
   }
 
   Widget _buildAgendaCard(EratAgendaItem agenda) {
-    final colors = Theme.of(context).colorScheme;
     final selesai = agenda.status == 'Selesai';
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: KkcsColors.borderSubtle, width: 1.2),
+      ),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Expanded(child: Text(agenda.judul, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: selesai ? colors.surfaceContainerHighest : colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: selesai ? const Color(0xFFF1F5F9) : KkcsColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    selesai ? Icons.task_alt_outlined : Icons.how_to_vote_outlined,
+                    size: 20,
+                    color: selesai ? KkcsColors.textSecondary : KkcsColors.primary,
+                  ),
                 ),
-                child: Text(selesai ? 'Selesai' : 'Berlangsung',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: selesai ? Colors.black54 : colors.onPrimaryContainer)),
-              ),
-            ]),
-            if (agenda.deskripsi != null && agenda.deskripsi!.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(agenda.deskripsi!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
-            ],
-            const SizedBox(height: 10),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        agenda.judul,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.textPrimary),
+                      ),
+                      if (agenda.deskripsi != null && agenda.deskripsi!.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          agenda.deskripsi!,
+                          style: const TextStyle(fontSize: 12.5, color: KkcsColors.textSecondary, height: 1.3),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: selesai ? const Color(0xFFF1F5F9) : KkcsColors.primaryLight,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: selesai ? KkcsColors.borderSubtle : KkcsColors.primary.withValues(alpha: 0.25)),
+                  ),
+                  child: Text(
+                    selesai ? 'Selesai' : 'Berlangsung',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: selesai ? KkcsColors.textSecondary : KkcsColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
             if (agenda.tampilkanHasil)
               ...agenda.opsi.map((o) {
                 final pct = agenda.totalSuara == 0 ? 0.0 : o.jumlah / agenda.totalSuara;
                 final dipilih = agenda.pilihanSaya == o.id;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Expanded(child: Text('${o.label}${dipilih ? '  (pilihan Anda)' : ''}',
-                          style: TextStyle(fontWeight: dipilih ? FontWeight.w800 : FontWeight.w500))),
-                      Text('${o.jumlah} · ${(pct * 100).toStringAsFixed(0)}%', style: Theme.of(context).textTheme.bodySmall),
-                    ]),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(value: pct, minHeight: 7, backgroundColor: colors.surfaceContainerHighest),
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: dipilih ? const Color(0xFFF0FDFA) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: dipilih ? KkcsColors.primary : KkcsColors.borderSubtle,
+                      width: dipilih ? 1.4 : 1.0,
                     ),
-                  ]),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    o.label,
+                                    style: TextStyle(
+                                      fontWeight: dipilih ? FontWeight.w800 : FontWeight.w600,
+                                      fontSize: 13,
+                                      color: dipilih ? KkcsColors.primaryDeep : KkcsColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                if (dipilih) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: KkcsColors.primary,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text('Pilihan Anda', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '${o.jumlah} suara · ${(pct * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              color: dipilih ? KkcsColors.primary : KkcsColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 7,
+                          backgroundColor: const Color(0xFFE2E8F0),
+                          valueColor: AlwaysStoppedAnimation<Color>(dipilih ? KkcsColors.primary : const Color(0xFF0284C7)),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               })
             else ...[
-              ...agenda.opsi.map((o) => RadioListTile<int>(
-                    contentPadding: EdgeInsets.zero,
-                    value: o.id,
-                    groupValue: _pilihan[agenda.id],
-                    title: Text(o.label),
-                    onChanged: _busyAgenda == agenda.id ? null : (v) => setState(() => _pilihan[agenda.id] = v!),
-                  )),
-              const SizedBox(height: 6),
+              ...agenda.opsi.map((o) {
+                final isSelected = _pilihan[agenda.id] == o.id;
+                return InkWell(
+                  onTap: _busyAgenda == agenda.id ? null : () => setState(() => _pilihan[agenda.id] = o.id),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? KkcsColors.primaryLight : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? KkcsColors.primary : KkcsColors.borderSubtle,
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                          size: 20,
+                          color: isSelected ? KkcsColors.primary : KkcsColors.textDisabled,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            o.label,
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 13,
+                              color: isSelected ? KkcsColors.primaryDeep : KkcsColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 10),
               FilledButton.icon(
                 onPressed: (_pilihan[agenda.id] == null || _busyAgenda == agenda.id) ? null : () => _vote(agenda),
+                style: FilledButton.styleFrom(
+                  backgroundColor: KkcsColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(42),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 icon: _busyAgenda == agenda.id
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.how_to_vote_outlined, size: 18),
-                label: const Text('Kirim suara'),
+                label: const Text('Kirim suara', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
-            const SizedBox(height: 6),
-            Text('${agenda.totalSuara} suara masuk', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.people_alt_outlined, size: 14, color: KkcsColors.textDisabled),
+                const SizedBox(width: 6),
+                Text(
+                  '${agenda.totalSuara} suara masuk',
+                  style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -1808,41 +4350,123 @@ class _EratPageState extends State<EratPage> {
   }
 
   Widget _buildDocumentCard(RatDocument doc, {required bool terbaru}) {
-    final colors = Theme.of(context).colorScheme;
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
-      color: terbaru ? colors.primaryContainer : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: terbaru ? KkcsColors.primary.withValues(alpha: 0.35) : KkcsColors.borderSubtle,
+          width: 1.2,
+        ),
+      ),
+      color: terbaru ? const Color(0xFFF0FDFA) : Colors.white,
       child: ListTile(
-        leading: Icon(Icons.picture_as_pdf_outlined, color: terbaru ? colors.onPrimaryContainer : colors.primary),
-        title: Row(children: [
-          Flexible(child: Text(doc.judul, style: const TextStyle(fontWeight: FontWeight.w700))),
-          if (terbaru) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(6)),
-              child: Text('Terbaru', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: colors.onPrimary)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: terbaru ? KkcsColors.primaryLight : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            Icons.picture_as_pdf_outlined,
+            color: terbaru ? KkcsColors.primary : const Color(0xFFEF4444),
+            size: 20,
+          ),
+        ),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                doc.judul,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: KkcsColors.textPrimary),
+              ),
             ),
+            if (terbaru) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: KkcsColors.primary, borderRadius: BorderRadius.circular(4)),
+                child: const Text('Terbaru', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ],
           ],
-        ]),
-        subtitle: Text('Tahun ${doc.tahun}${doc.deskripsi != null && doc.deskripsi!.isNotEmpty ? ' · ${doc.deskripsi}' : ''}'),
-        trailing: const Icon(Icons.open_in_new),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            'Tahun ${doc.tahun}${doc.deskripsi != null && doc.deskripsi!.isNotEmpty ? ' · ${doc.deskripsi}' : ''}',
+            style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+          ),
+        ),
+        trailing: const Icon(Icons.open_in_new, size: 18, color: KkcsColors.primary),
         onTap: () => _openDocument(doc),
       ),
     );
   }
 
   Widget _buildLaporanRatCard(LaporanRatTahunan laporan) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 4),
-      color: colors.primaryContainer,
-      child: ListTile(
-        leading: Icon(Icons.fact_check_outlined, color: colors.onPrimaryContainer),
-        title: Text('Laporan RAT Tahun Buku ${laporan.tahun}', style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text('Neraca, Hasil Usaha & SHU otomatis dari sistem${laporan.shu != null ? ' · SHU neto ${formatRupiah(laporan.shu!.totalShuNeto)}' : ''}'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => LaporanRatDetailPage(laporan: laporan))),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDFA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF99F6E4), width: 1.2),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => LaporanRatDetailPage(laporan: laporan))),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: KkcsColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.fact_check_outlined, color: KkcsColors.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Laporan RAT Tahun Buku ${laporan.tahun}',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: KkcsColors.primaryDeep),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: KkcsColors.primary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Resmi', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Neraca, Hasil Usaha & SHU otomatis dari sistem${laporan.shu != null ? ' · SHU neto ${formatRupiah(laporan.shu!.totalShuNeto)}' : ''}',
+                        style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary, height: 1.25),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: KkcsColors.primary),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1856,10 +4480,6 @@ class LaporanRatDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shu = laporan.shu;
-    // Finalisasi lama (sebelum kebijakan 2 lapis) tidak punya persenAnggota tersendiri — dulu
-    // persenJasaModal/persenJasaUsaha adalah fraksi LANGSUNG dari Total SHU, jadi jumlah keduanya =
-    // porsi Anggota sebenarnya. Rekonstruksi di sini supaya tetap tampil benar (bukan 0%), lalu
-    // normalisasi JMA/JUA jadi sub-split di dalam pool Anggota itu (persis makna Lapis 2 sekarang).
     final persenAnggotaEfektif = shu == null
         ? 0.0
         : (shu.persenAnggota > 0 ? shu.persenAnggota : (shu.persenJasaModal + shu.persenJasaUsaha));
@@ -1882,26 +4502,26 @@ class LaporanRatDetailPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
             const SizedBox(height: 20),
 
-            _RatSectionTitle('Visi & Misi'),
+            const _RatSectionTitle('Visi & Misi'),
             _RatCard(children: [
-              Text(laporan.visi, style: const TextStyle(fontStyle: FontStyle.italic)),
+              Text(laporan.visi, style: const TextStyle(fontStyle: FontStyle.italic, height: 1.35, color: KkcsColors.textPrimary)),
               const SizedBox(height: 10),
-              Text(laporan.misi),
+              Text(laporan.misi, style: const TextStyle(height: 1.35, color: KkcsColors.textSecondary)),
             ]),
             const SizedBox(height: 18),
 
-            _RatSectionTitle('Keanggotaan'),
+            const _RatSectionTitle('Keanggotaan'),
             Row(children: [
-              Expanded(child: _RatStatBox(label: 'Anggota aktif', value: '${laporan.totalAnggotaAktifSaatIni}')),
+              Expanded(child: _RatStatBox(label: 'Anggota aktif', value: '${laporan.totalAnggotaAktifSaatIni}', color: KkcsColors.success)),
               const SizedBox(width: 10),
-              Expanded(child: _RatStatBox(label: 'Anggota baru', value: '${laporan.anggotaBaruTahunIni}')),
+              Expanded(child: _RatStatBox(label: 'Anggota baru', value: '${laporan.anggotaBaruTahunIni}', color: KkcsColors.primary)),
               const SizedBox(width: 10),
-              Expanded(child: _RatStatBox(label: 'Nonaktif', value: '${laporan.totalAnggotaNonaktifSaatIni}')),
+              Expanded(child: _RatStatBox(label: 'Nonaktif', value: '${laporan.totalAnggotaNonaktifSaatIni}', color: KkcsColors.textSecondary)),
             ]),
             const SizedBox(height: 18),
 
             if ((laporan.kegiatanBisnis ?? '').isNotEmpty || (laporan.kegiatanSosial ?? '').isNotEmpty) ...[
-              _RatSectionTitle('Laporan Kegiatan Usaha'),
+              const _RatSectionTitle('Laporan Kegiatan Usaha'),
               _RatCard(children: [
                 if ((laporan.kegiatanBisnis ?? '').isNotEmpty) _RatLabeled('Kegiatan Bisnis', laporan.kegiatanBisnis!),
                 if ((laporan.kegiatanSosial ?? '').isNotEmpty) ...[
@@ -1917,13 +4537,13 @@ class LaporanRatDetailPage extends StatelessWidget {
               _RatRow('Total Aset', formatRupiah(laporan.totalAset), bold: true),
               _RatRow('Total Liabilitas (kewajiban)', formatRupiah(laporan.totalLiabilitas)),
               _RatRow('Total Ekuitas (kekayaan bersih)', formatRupiah(laporan.totalEkuitas)),
-              const Divider(height: 22),
+              const Divider(height: 22, color: KkcsColors.borderSubtle),
               _RatRow('Total Pendapatan', formatRupiah(laporan.totalPendapatan)),
               _RatRow('Total Beban', formatRupiah(laporan.totalBeban)),
               _RatRow('Sisa Hasil Usaha (SHU)', formatRupiah(laporan.labaBersih), bold: true),
               if (laporan.rabTotalPendapatan != null || laporan.rabTotalBeban != null) ...[
-                const Divider(height: 22),
-                Text('Rencana Anggaran Belanja (RAB) tahun ini', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                const Divider(height: 22, color: KkcsColors.borderSubtle),
+                Text('Rencana Anggaran Belanja (RAB) tahun ini', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: KkcsColors.primaryDeep)),
                 const SizedBox(height: 6),
                 if (laporan.rabTotalPendapatan != null) _RatRow('Rencana Pendapatan', formatRupiah(laporan.rabTotalPendapatan!)),
                 if (laporan.rabTotalBeban != null) _RatRow('Rencana Beban', formatRupiah(laporan.rabTotalBeban!)),
@@ -1936,21 +4556,21 @@ class LaporanRatDetailPage extends StatelessWidget {
               _RatCard(children: [
                 _RatRow('Total SHU', formatRupiah(shu.totalShu), bold: true),
                 const SizedBox(height: 12),
-                Text('Lapis 1 — Pembagian Total SHU', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0B6E69))),
+                Text('Lapis 1 — Pembagian Total SHU', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: KkcsColors.primary)),
                 const SizedBox(height: 6),
                 _shuAllocationBarLapis1(context, shu, persenAnggotaEfektif),
                 const SizedBox(height: 8),
                 _RatRow('Anggota (dipecah di Lapis 2) · ${(persenAnggotaEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool)),
                 _RatRow('Pengurus · ${(shu.persenPengurus * 100).toStringAsFixed(0)}%', formatRupiah(shu.jasaPengurusPool)),
                 _RatRow('Cadangan (ditahan permanen) · ${(shu.persenCadangan * 100).toStringAsFixed(0)}%', formatRupiah(shu.cadanganAmount)),
-                const Divider(height: 26),
-                Text('Lapis 2 — Pembagian Pool Anggota', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF8A5A12))),
+                const Divider(height: 26, color: KkcsColors.borderSubtle),
+                Text('Lapis 2 — Pembagian Pool Anggota', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800, color: KkcsColors.warning)),
                 const SizedBox(height: 6),
                 _shuAllocationBarLapis2(context, persenModalEfektif, persenUsahaEfektif),
                 const SizedBox(height: 8),
                 _RatRow('Jasa Modal Anggota (JMA) · ${(persenModalEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool * persenModalEfektif)),
                 _RatRow('Jasa Usaha Anggota (JUA) · ${(persenUsahaEfektif * 100).toStringAsFixed(0)}%', formatRupiah(anggotaPool * persenUsahaEfektif)),
-                const Divider(height: 26),
+                const Divider(height: 26, color: KkcsColors.borderSubtle),
                 _RatRow('PPh atas bagian anggota', formatRupiah(shu.totalPajak)),
                 _RatRow('Neto diterima ${shu.jumlahAnggota} anggota', formatRupiah(shu.totalShuNeto), bold: true),
               ]),
@@ -1958,7 +4578,7 @@ class LaporanRatDetailPage extends StatelessWidget {
             ],
 
             if ((laporan.rencanaBisnisTahunDepan ?? '').isNotEmpty || (laporan.rencanaSosialTahunDepan ?? '').isNotEmpty) ...[
-              _RatSectionTitle('Rencana Kegiatan Tahun Depan'),
+              const _RatSectionTitle('Rencana Kegiatan Tahun Depan'),
               _RatCard(children: [
                 if ((laporan.rencanaBisnisTahunDepan ?? '').isNotEmpty) _RatLabeled('Rencana Bisnis', laporan.rencanaBisnisTahunDepan!),
                 if ((laporan.rencanaSosialTahunDepan ?? '').isNotEmpty) ...[
@@ -1970,7 +4590,7 @@ class LaporanRatDetailPage extends StatelessWidget {
             ],
 
             if ((laporan.catatanTambahan ?? '').isNotEmpty) ...[
-              _RatSectionTitle('Catatan Tambahan'),
+              const _RatSectionTitle('Catatan Tambahan'),
               _RatCard(children: [Text(laporan.catatanTambahan!)]),
             ],
 
@@ -1984,26 +4604,24 @@ class LaporanRatDetailPage extends StatelessWidget {
   }
 
   Widget _shuAllocationBarLapis1(BuildContext context, LaporanRatShu shu, double persenAnggotaEfektif) {
-    final colors = Theme.of(context).colorScheme;
     Widget seg(double flex, Color color) => flex <= 0 ? const SizedBox.shrink() : Expanded(flex: (flex * 100).round().clamp(1, 1000), child: Container(height: 10, color: color));
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: Row(children: [
-        seg(persenAnggotaEfektif, colors.primary),
-        seg(shu.persenPengurus, colors.secondary),
-        seg(shu.persenCadangan, colors.tertiary),
+        seg(persenAnggotaEfektif, KkcsColors.primary),
+        seg(shu.persenPengurus, KkcsColors.primaryDark),
+        seg(shu.persenCadangan, KkcsColors.primaryDeep),
       ]),
     );
   }
 
   Widget _shuAllocationBarLapis2(BuildContext context, double persenModalEfektif, double persenUsahaEfektif) {
-    final colors = Theme.of(context).colorScheme;
     Widget seg(double flex, Color color) => flex <= 0 ? const SizedBox.shrink() : Expanded(flex: (flex * 100).round().clamp(1, 1000), child: Container(height: 10, color: color));
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: Row(children: [
-        seg(persenModalEfektif, colors.primary),
-        seg(persenUsahaEfektif, colors.primary.withValues(alpha: 0.55)),
+        seg(persenModalEfektif, KkcsColors.primary),
+        seg(persenUsahaEfektif, const Color(0xFF38BDF8)),
       ]),
     );
   }
@@ -2015,7 +4633,17 @@ class _RatSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0B6E69))),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 16,
+              decoration: BoxDecoration(color: KkcsColors.primary, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 8),
+            Text(text, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.primaryDeep)),
+          ],
+        ),
       );
 }
 
@@ -2024,6 +4652,12 @@ class _RatCard extends StatelessWidget {
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: KkcsColors.borderSubtle, width: 1.2),
+        ),
+        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
@@ -2032,19 +4666,24 @@ class _RatCard extends StatelessWidget {
 }
 
 class _RatStatBox extends StatelessWidget {
-  const _RatStatBox({required this.label, required this.value});
+  const _RatStatBox({required this.label, required this.value, this.color});
   final String label;
   final String value;
+  final Color? color;
+
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-          child: Column(children: [
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-            const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.black54)),
-          ]),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: KkcsColors.borderSubtle, width: 1.2),
         ),
+        child: Column(children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: color ?? KkcsColors.primaryDeep)),
+          const SizedBox(height: 4),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: KkcsColors.textSecondary)),
+        ]),
       );
 }
 
@@ -2054,9 +4693,9 @@ class _RatLabeled extends StatelessWidget {
   final String value;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text(value),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: KkcsColors.primaryDeep)),
+        const SizedBox(height: 3),
+        Text(value, style: const TextStyle(fontSize: 13, color: KkcsColors.textPrimary, height: 1.35)),
       ]);
 }
 
@@ -2067,10 +4706,26 @@ class _RatRow extends StatelessWidget {
   final bool bold;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(child: Text(label, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w500))),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+                fontSize: 13,
+                color: bold ? KkcsColors.textPrimary : KkcsColors.textSecondary,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 13,
+              color: bold ? KkcsColors.primaryDeep : KkcsColors.textPrimary,
+            ),
+          ),
         ]),
       );
 }
@@ -2087,10 +4742,18 @@ class DigitalSavingsLoanPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Simpanan & Pinjaman Digital'),
-          bottom: const TabBar(tabs: [
-            Tab(icon: Icon(Icons.savings_outlined), text: 'Simpanan'),
-            Tab(icon: Icon(Icons.request_quote_outlined), text: 'Pinjaman'),
-          ]),
+          bottom: const TabBar(
+            indicatorColor: KkcsColors.primary,
+            indicatorWeight: 3,
+            labelColor: KkcsColors.primary,
+            unselectedLabelColor: KkcsColors.textSecondary,
+            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5),
+            tabs: [
+              Tab(icon: Icon(Icons.savings_outlined), text: 'Simpanan'),
+              Tab(icon: Icon(Icons.request_quote_outlined), text: 'Pinjaman'),
+            ],
+          ),
         ),
         body: SafeArea(
           child: TabBarView(children: [
@@ -2232,16 +4895,30 @@ class _LoanTabState extends State<LoanTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Text(
-                'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              Container(
+                padding: const EdgeInsets.only(top: 4, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Halo, ${widget.session.user.namaLengkap.split(' ').first}',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                            letterSpacing: -0.3,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ajukan pinjaman, bayar angsuran, dan pelunasan dipercepat secara paperless.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: KkcsColors.textSecondary,
+                            height: 1.35,
+                          ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Ajukan pinjaman, bayar angsuran, dan pelunasan dipercepat secara paperless.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
-              ),
-              const SizedBox(height: 20),
               if (_loadingLoans) const Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: LinearProgressIndicator(minHeight: 2),
@@ -2310,26 +4987,68 @@ class _LoanTabState extends State<LoanTab> {
                 subtitle: 'Skema KKCS: jasa flat ${(kLoanAnnualRates[_tenor]! * 100).toStringAsFixed(2)}% per tahun untuk tenor ini.',
                 children: [
                   _InfoRow(label: 'Pokok pinjaman', value: formatRupiah(_amount)),
-                  _InfoRow(label: 'Tenor', value: '$_tenor bulan'),
-                  const Divider(height: 20),
+                  _InfoRow(label: 'Tenor pinjaman', value: '$_tenor bulan'),
+                  const Divider(height: 18, color: KkcsColors.borderSubtle),
                   _InfoRow(label: 'Pokok / bulan', value: formatRupiah(_breakdown.principalPerMonth)),
                   _InfoRow(label: 'Jasa / bulan', value: formatRupiah(_breakdown.interestPerMonth)),
-                  _InfoRow(label: 'Cicilan / bulan', value: formatRupiah(_breakdown.installmentPerMonth)),
-                  const Divider(height: 20),
-                  _InfoRow(label: 'Total jasa ($_tenor bln)', value: formatRupiah(_breakdown.totalInterest)),
-                  _InfoRow(label: 'Total pembayaran', value: formatRupiah(_breakdown.totalPayment)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Jika dilunasi sebelum tenor berakhir, Anda cukup membayar sisa pokok — jasa bulan berikutnya tidak dibebankan.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: KkcsColors.primaryLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Estimasi Cicilan / bln',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primaryDeep),
+                        ),
+                        Text(
+                          formatRupiah(_breakdown.installmentPerMonth),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.primaryDeep),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const Divider(height: 18, color: KkcsColors.borderSubtle),
+                  _InfoRow(label: 'Total jasa ($_tenor bln)', value: formatRupiah(_breakdown.totalInterest)),
+                  _InfoRow(label: 'Total pembayaran normal', value: formatRupiah(_breakdown.totalPayment)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: KkcsColors.borderSubtle),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: KkcsColors.primary),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Jika dilunasi sebelum tenor berakhir, Anda cukup membayar sisa pokok — jasa bulan berikutnya tidak dibebankan.',
+                            style: TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary, height: 1.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   FilledButton.icon(
                     onPressed: _submittingLoan ? null : _submitLoan,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KkcsColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                     icon: _submittingLoan
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.send_outlined),
-                    label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman'),
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.send_outlined, size: 18),
+                    label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman', style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -2337,11 +5056,34 @@ class _LoanTabState extends State<LoanTab> {
                 const SizedBox(height: 16),
                 _AccountSectionCard(
                   icon: Icons.verified_outlined,
-                  title: 'Riwayat pinjaman lunas',
-                  subtitle: 'Pinjaman yang sudah selesai.',
+                  title: 'Riwayat Pinjaman Lunas',
+                  subtitle: 'Pinjaman yang sudah berhasil diselesaikan.',
                   children: [
                     for (final loan in settledLoans)
-                      _InfoRow(label: loan.nomorPinjaman, value: '${formatRupiah(loan.pokok)} · Lunas'),
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: KkcsColors.borderSubtle),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(loan.nomorPinjaman, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                                  const SizedBox(height: 2),
+                                  Text('Pokok ${formatRupiah(loan.pokok)} · ${loan.tenorBulan} bulan', style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                ],
+                              ),
+                            ),
+                            const _StatusBadge(status: 'Dibayar'),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -2358,28 +5100,42 @@ class _PendingApplicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      color: colors.surfaceContainerHighest.withValues(alpha: .5),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.hourglass_top_outlined, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Pengajuan menunggu persetujuan', style: TextStyle(fontWeight: FontWeight.w800))),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _InfoRow(label: 'Nomor pengajuan', value: application.nomorPengajuan),
-            _InfoRow(label: 'Nominal', value: formatRupiah(application.nominal)),
-            _InfoRow(label: 'Tenor', value: '${application.tenorBulan} bulan'),
-            _InfoRow(label: 'Estimasi cicilan / bulan', value: formatRupiah(application.estimasiCicilanBulanan)),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: KkcsColors.warningBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KkcsColors.warning.withValues(alpha: 0.35), width: 1.2),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: KkcsColors.warning.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.hourglass_top_outlined, size: 18, color: KkcsColors.warning),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Pengajuan Pinjaman Tertunda',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF92400E)),
+                ),
+              ),
+              const _StatusBadge(status: 'Diajukan'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _InfoRow(label: 'Nomor pengajuan', value: application.nomorPengajuan),
+          _InfoRow(label: 'Nominal diajukan', value: formatRupiah(application.nominal)),
+          _InfoRow(label: 'Tenor pinjaman', value: '${application.tenorBulan} bulan'),
+          _InfoRow(label: 'Estimasi cicilan / bulan', value: formatRupiah(application.estimasiCicilanBulanan)),
+        ],
       ),
     );
   }
@@ -2394,29 +5150,51 @@ class _ActiveLoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final progress = loan.tenorBulan == 0 ? 0.0 : loan.angsuranTerbayar / loan.tenorBulan;
     final pending = loan.pembayaranTertunda;
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: KkcsColors.borderSubtle, width: 1.2),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            color: colors.primary,
+            decoration: const BoxDecoration(
+              gradient: KkcsColors.heroGradient,
+            ),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Row(
               children: [
-                Icon(Icons.request_quote_outlined, color: colors.onPrimary),
-                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.request_quote_outlined, color: Color(0xFFA5F3FC), size: 20),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Pinjaman aktif', style: TextStyle(color: colors.onPrimary, fontWeight: FontWeight.w800, fontSize: 16)),
-                      Text(loan.nomorPinjaman, style: TextStyle(color: colors.onPrimary.withValues(alpha: .85), fontSize: 12)),
+                      const Text('Pinjaman Aktif', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                      Text(loan.nomorPinjaman, style: TextStyle(color: Colors.white.withValues(alpha: .85), fontSize: 12, fontWeight: FontWeight.w500)),
                     ],
                   ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                  ),
+                  child: const Text('Aktif', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
@@ -2428,42 +5206,57 @@ class _ActiveLoanCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(value: progress.clamp(0.0, 1.0), minHeight: 8),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: const AlwaysStoppedAnimation<Color>(KkcsColors.primary),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Angsuran ke-${loan.angsuranTerbayar} dari ${loan.tenorBulan} · sisa ${loan.sisaAngsuran} bulan',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Angsuran ${loan.angsuranTerbayar}/${loan.tenorBulan} bulan',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: KkcsColors.primaryDeep),
+                    ),
+                    Text(
+                      'Sisa ${loan.sisaAngsuran} bulan',
+                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: KkcsColors.textSecondary),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _InfoRow(label: 'Pokok pinjaman', value: formatRupiah(loan.pokok)),
                 _InfoRow(label: 'Cicilan / bulan', value: formatRupiah(loan.angsuranPerBulan)),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.only(left: 2, bottom: 8),
                   child: Text(
-                    'Pokok ${formatRupiah(loan.pokokPerBulan)} + jasa ${formatRupiah(loan.jasaPerBulan)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    'Rincian: Pokok ${formatRupiah(loan.pokokPerBulan)} + jasa ${formatRupiah(loan.jasaPerBulan)}',
+                    style: const TextStyle(fontSize: 11.5, color: KkcsColors.textMuted),
                   ),
                 ),
-                _InfoRow(label: 'Sisa pokok', value: formatRupiah(loan.sisaPokok)),
-                const SizedBox(height: 12),
+                _InfoRow(label: 'Sisa pokok pinjaman', value: formatRupiah(loan.sisaPokok)),
+                const SizedBox(height: 14),
                 if (pending != null)
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest.withValues(alpha: .55),
+                      color: KkcsColors.warningBg,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: KkcsColors.warning.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.hourglass_top_outlined, size: 18, color: colors.primary),
+                        const Icon(Icons.hourglass_top_outlined, size: 20, color: KkcsColors.warning),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             pending.jenis == 'Pelunasan'
-                                ? 'Pengajuan pelunasan dipercepat ${formatRupiah(pending.jumlahDiajukan)} menunggu persetujuan pengurus.'
-                                : 'Pengajuan pembayaran angsuran ${formatRupiah(pending.jumlahDiajukan)} menunggu persetujuan pengurus.',
-                            style: Theme.of(context).textTheme.bodySmall,
+                                ? 'Pengajuan pelunasan dipercepat ${formatRupiah(pending.jumlahDiajukan)} sedang ditinjau pengurus.'
+                                : 'Pengajuan pembayaran angsuran ${formatRupiah(pending.jumlahDiajukan)} sedang ditinjau pengurus.',
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
                           ),
                         ),
                       ],
@@ -2472,50 +5265,86 @@ class _ActiveLoanCard extends StatelessWidget {
                 else ...[
                   FilledButton.icon(
                     onPressed: busy ? null : () => onRequestPayment('Angsuran'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KkcsColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                     icon: const Icon(Icons.payments_outlined, size: 18),
-                    label: Text('Ajukan pembayaran angsuran (${formatRupiah(loan.angsuranPerBulan)})'),
+                    label: Text('Ajukan Pembayaran Angsuran (${formatRupiah(loan.angsuranPerBulan)})', style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: colors.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFF0FDFA), // Soft mint / teal 50
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF99F6E4), width: 1.2), // teal 200
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.bolt_outlined, size: 18, color: colors.onTertiaryContainer),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.bolt_outlined, size: 18, color: KkcsColors.primary),
+                            ),
                             const SizedBox(width: 8),
-                            Text('Pelunasan dipercepat', style: TextStyle(fontWeight: FontWeight.w800, color: colors.onTertiaryContainer)),
+                            const Text(
+                              'Pelunasan Dipercepat',
+                              style: TextStyle(fontWeight: FontWeight.w800, color: KkcsColors.primaryDeep, fontSize: 14),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Bebas Jasa', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: KkcsColors.primary)),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('Bayar sekarang', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onTertiaryContainer)),
-                        Text(formatRupiah(loan.nilaiPelunasanDipercepat),
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: colors.onTertiaryContainer)),
+                        const SizedBox(height: 10),
+                        const Text('Nominal pelunasan (sisa pokok)', style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                        const SizedBox(height: 2),
+                        Text(
+                          formatRupiah(loan.nilaiPelunasanDipercepat),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 22, color: KkcsColors.primaryDeep, letterSpacing: -0.5),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           loan.jasaDibebaskan > 0
-                              ? 'Hanya sisa pokok — jasa ${formatRupiah(loan.jasaDibebaskan)} dibebaskan.'
-                              : 'Anda hanya membayar sisa pokok, tanpa tambahan jasa.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onTertiaryContainer),
+                              ? 'Hanya sisa pokok — sisa jasa ${formatRupiah(loan.jasaDibebaskan)} dibebaskan sepenuhnya.'
+                              : 'Anda hanya membayar sisa pokok, tanpa beban bunga di bulan berikutnya.',
+                          style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary, height: 1.3),
                         ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: busy ? null : () => onRequestPayment('Pelunasan'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colors.onTertiaryContainer,
-                            side: BorderSide(color: colors.onTertiaryContainer.withValues(alpha: .4)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: busy ? null : () => onRequestPayment('Pelunasan'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: KkcsColors.primaryDeep,
+                              side: const BorderSide(color: KkcsColors.primary, width: 1.4),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.bolt_outlined, size: 18, color: KkcsColors.primary),
+                            label: const Text('Ajukan Pelunasan Dipercepat', style: TextStyle(fontWeight: FontWeight.w700)),
                           ),
-                          icon: const Icon(Icons.bolt_outlined, size: 18),
-                          label: const Text('Ajukan pelunasan dipercepat'),
                         ),
                         const SizedBox(height: 6),
-                        Text('Pengajuan diverifikasi pengurus koperasi sebelum pinjaman dinyatakan lunas.',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: colors.onTertiaryContainer.withValues(alpha: .8))),
+                        const Text(
+                          'Pengajuan diverifikasi pengurus koperasi sebelum pinjaman dinyatakan lunas.',
+                          style: TextStyle(fontSize: 11, color: KkcsColors.textMuted),
+                        ),
                       ],
                     ),
                   ),
@@ -2526,7 +5355,7 @@ class _ActiveLoanCard extends StatelessWidget {
                   child: ExpansionTile(
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: EdgeInsets.zero,
-                    title: const Text('Lihat jadwal angsuran'),
+                    title: const Text('Lihat jadwal angsuran', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
                     children: [_LoanScheduleTable(installments: loan.angsuran)],
                   ),
                 ),
@@ -2559,31 +5388,22 @@ class _LoanScheduleTable extends StatelessWidget {
         dataRowMinHeight: 34,
         dataRowMaxHeight: 44,
         columns: const [
-          DataColumn(label: Text('#')),
-          DataColumn(label: Text('Jatuh tempo')),
-          DataColumn(label: Text('Pokok')),
-          DataColumn(label: Text('Jasa')),
-          DataColumn(label: Text('Total')),
-          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.w800))),
+          DataColumn(label: Text('Jatuh tempo', style: TextStyle(fontWeight: FontWeight.w800))),
+          DataColumn(label: Text('Pokok', style: TextStyle(fontWeight: FontWeight.w800))),
+          DataColumn(label: Text('Jasa', style: TextStyle(fontWeight: FontWeight.w800))),
+          DataColumn(label: Text('Total', style: TextStyle(fontWeight: FontWeight.w800))),
+          DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w800))),
         ],
         rows: [
           for (final item in installments)
             DataRow(cells: [
-              DataCell(Text(item.jenis == 'Pelunasan' ? '⚡' : '${item.angsuranKe}')),
+              DataCell(Text(item.jenis == 'Pelunasan' ? '⚡' : '${item.angsuranKe}', style: const TextStyle(fontWeight: FontWeight.w600))),
               DataCell(Text(_month(item.jatuhTempo))),
               DataCell(Text(formatRupiah(item.pokok))),
               DataCell(Text(item.jasa == 0 ? '—' : formatRupiah(item.jasa))),
-              DataCell(Text(formatRupiah(item.total))),
-              DataCell(Text(
-                item.status,
-                style: TextStyle(
-                  color: switch (item.status) {
-                    'Dibayar' => Colors.green.shade700,
-                    'Dibatalkan' => Colors.black45,
-                    _ => Colors.orange.shade800,
-                  },
-                ),
-              )),
+              DataCell(Text(formatRupiah(item.total), style: const TextStyle(fontWeight: FontWeight.w700))),
+              DataCell(_StatusBadge(status: item.status)),
             ]),
         ],
       ),
@@ -2780,11 +5600,30 @@ class _BusinessUnitPageState extends State<BusinessUnitPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
-              Text('Katalog Produk Koperasi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text('Beli atau sewa produk koperasi, atau jual produk Anda ke koperasi.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
-              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.only(top: 4, bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Katalog Produk Koperasi',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                            letterSpacing: -0.3,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Beli atau sewa produk koperasi, atau jual produk Anda ke koperasi.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: KkcsColors.textSecondary,
+                            height: 1.35,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
               if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
               if (_error != null)
                 Padding(
@@ -2792,12 +5631,43 @@ class _BusinessUnitPageState extends State<BusinessUnitPage> {
                   child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
               if (!_loading && _catalog.isEmpty)
-                Text('Belum ada produk di katalog.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: KkcsColors.borderSubtle, width: 1.2),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          color: KkcsColors.primaryLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.inventory_2_outlined, size: 32, color: KkcsColors.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Belum ada produk di katalog.',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: KkcsColors.textPrimary),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Produk yang tersedia untuk dijual atau disewa akan muncul di sini.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
               ..._catalog.map((product) => _CatalogProductCard(
                     product: product,
                     onBuy: _busy ? null : () => _buy(product),
                   )),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               _AccountSectionCard(
                 icon: Icons.sell_outlined,
                 title: 'Jual produk ke koperasi',
@@ -2805,17 +5675,51 @@ class _BusinessUnitPageState extends State<BusinessUnitPage> {
                 children: [
                   FilledButton.icon(
                     onPressed: _busy ? null : _sell,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KkcsColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                     icon: const Icon(Icons.add_business_outlined, size: 18),
-                    label: const Text('Ajukan produk baru'),
+                    label: const Text('Ajukan produk baru', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                   if (_myListings.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ..._myListings.map((item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                    const SizedBox(height: 14),
+                    const Text('Produk yang Anda Ajukan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    ..._myListings.map((item) => Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: KkcsColors.borderSubtle),
+                          ),
                           child: Row(children: [
-                            Expanded(child: Text('${item.nama} · ${formatRupiah(item.harga)}')),
-                            Text(_statusLabel(item.status),
-                                style: TextStyle(color: _statusColor(context, item.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.storefront_outlined, size: 18, color: KkcsColors.primary),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.nama, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                                  Text(
+                                    '${formatRupiah(item.harga)} / ${item.satuan} · ${item.sewa ? 'Disewakan' : 'Dijual'}',
+                                    style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _StatusBadge(status: item.status),
                           ]),
                         )),
                   ],
@@ -2828,21 +5732,62 @@ class _BusinessUnitPageState extends State<BusinessUnitPage> {
                   title: 'Transaksi saya',
                   subtitle: 'Riwayat pembelian & penyewaan produk.',
                   children: _myPurchases
-                      .map((p) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                Expanded(child: Text('${p.jenis} ${p.produkNama} · ${formatRupiah(p.total)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                                Text(_statusLabel(p.status),
-                                    style: TextStyle(color: _statusColor(context, p.status), fontWeight: FontWeight.w600, fontSize: 12)),
-                              ]),
-                              Text(
-                                p.metodePembayaran == 'Kredit'
-                                    ? 'Kredit · tagihan: ${p.tagihanKreditStatus ?? 'menunggu'}'
-                                    : 'Tunai',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
-                              ),
-                            ]),
+                      .map((p) => Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: KkcsColors.borderSubtle),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: p.jenis == 'Sewa' ? const Color(0xFFE0F2FE) : KkcsColors.primaryLight,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        p.jenis,
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: p.jenis == 'Sewa' ? const Color(0xFF0369A1) : KkcsColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        p.produkNama,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary),
+                                      ),
+                                    ),
+                                    _StatusBadge(status: p.status),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      p.metodePembayaran == 'Kredit'
+                                          ? 'Kredit · tagihan: ${p.tagihanKreditStatus ?? 'menunggu'}'
+                                          : 'Tunai',
+                                      style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+                                    ),
+                                    Text(
+                                      formatRupiah(p.total),
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: KkcsColors.primaryDeep),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ))
                       .toList(),
                 ),
@@ -2863,60 +5808,115 @@ class _CatalogProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final habis = !product.sewa && product.stok <= 0;
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: KkcsColors.borderSubtle, width: 1.2),
+      ),
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: SizedBox(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 child: product.fotoUrl == null
-                    ? Container(color: colors.primaryContainer, child: Icon(Icons.inventory_2_outlined, color: colors.onPrimaryContainer))
-                    : Image.network('${AuthService.baseUrl}${product.fotoUrl}', fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: colors.primaryContainer, child: const Icon(Icons.broken_image_outlined))),
+                    ? Container(
+                        color: KkcsColors.primaryLight,
+                        child: const Icon(Icons.inventory_2_outlined, color: KkcsColors.primary, size: 28),
+                      )
+                    : Image.network(
+                        '${AuthService.baseUrl}${product.fotoUrl}',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: KkcsColors.primaryLight,
+                          child: const Icon(Icons.broken_image_outlined, color: KkcsColors.textDisabled, size: 28),
+                        ),
+                      ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Expanded(child: Text(product.nama, style: const TextStyle(fontWeight: FontWeight.w700))),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: colors.secondaryContainer, borderRadius: BorderRadius.circular(6)),
-                      child: Text(product.sewa ? 'Sewa' : 'Jual', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: colors.onSecondaryContainer)),
-                    ),
-                  ]),
-                  const SizedBox(height: 2),
-                  Text('${formatRupiah(product.harga)} / ${product.satuan}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.nama,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: KkcsColors.textPrimary),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: product.sewa ? const Color(0xFFE0F2FE) : KkcsColors.primaryLight,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          product.sewa ? 'Sewa' : 'Jual',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            color: product.sewa ? const Color(0xFF0369A1) : KkcsColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${formatRupiah(product.harga)} / ${product.satuan}',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: KkcsColors.primaryDeep),
+                  ),
                   if (product.deskripsi != null && product.deskripsi!.isNotEmpty) ...[
                     const SizedBox(height: 3),
-                    Text(product.deskripsi!, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      product.deskripsi!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary, height: 1.25),
+                    ),
                   ],
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    Expanded(
-                      child: Text(
-                        product.sewa
-                            ? (product.sumber == 'TitipanAnggota' ? 'Titipan ${product.diajukanOleh ?? 'anggota'}' : 'Milik koperasi')
-                            : (habis ? 'Stok habis' : 'Stok ${product.stok.toStringAsFixed(product.stok % 1 == 0 ? 0 : 2)} ${product.satuan}'),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: habis ? Colors.red.shade700 : Colors.black54),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.sewa
+                              ? (product.sumber == 'TitipanAnggota' ? 'Titipan ${product.diajukanOleh ?? 'anggota'}' : 'Milik koperasi')
+                              : (habis ? 'Stok habis' : 'Stok: ${product.stok.toStringAsFixed(product.stok % 1 == 0 ? 0 : 2)} ${product.satuan}'),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: habis ? FontWeight.w700 : FontWeight.w500,
+                            color: habis ? KkcsColors.danger : KkcsColors.textSecondary,
+                          ),
+                        ),
                       ),
-                    ),
-                    FilledButton(
-                      onPressed: habis ? null : onBuy,
-                      child: Text(product.sewa ? 'Sewa' : 'Beli'),
-                    ),
-                  ]),
+                      FilledButton(
+                        onPressed: habis ? null : onBuy,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: KkcsColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        child: Text(
+                          product.sewa ? 'Sewa' : 'Beli',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -2958,39 +5958,175 @@ class _BuySheetState extends State<_BuySheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('${p.sewa ? 'Sewa' : 'Beli'} ${p.nama}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text('${formatRupiah(p.harga)} / ${p.satuan}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 14),
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: KkcsColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(p.sewa ? Icons.handshake_outlined : Icons.shopping_bag_outlined, color: KkcsColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${p.sewa ? 'Sewa' : 'Beli'} ${p.nama}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: KkcsColors.textPrimary),
+                    ),
+                    Text(
+                      '${formatRupiah(p.harga)} / ${p.satuan}',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _jumlahController,
             keyboardType: TextInputType.number,
             onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(labelText: p.sewa ? 'Jumlah / durasi' : 'Jumlah', suffixText: p.satuan),
+            decoration: InputDecoration(
+              labelText: p.sewa ? 'Jumlah / durasi sewa' : 'Jumlah pembelian',
+              suffixText: p.satuan,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
-          const SizedBox(height: 12),
-          const Text('Metode pembayaran', style: TextStyle(fontWeight: FontWeight.w700)),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'Tunai',
-            groupValue: _metode,
-            onChanged: (v) => setState(() => _metode = v!),
-            title: const Text('Tunai'),
-            subtitle: const Text('Dibayar fisik ke pengurus'),
-          ),
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: 'Kredit',
-            groupValue: _metode,
-            onChanged: (v) => setState(() => _metode = v!),
-            title: const Text('Kredit'),
-            subtitle: const Text('Jadi hutang — ditagih lewat SDM (potong gaji)'),
-          ),
-          const SizedBox(height: 8),
-          TextField(controller: _catatanController, decoration: const InputDecoration(labelText: 'Catatan (opsional)')),
           const SizedBox(height: 14),
-          _InfoRow(label: 'Total', value: formatRupiah(p.harga * _jumlah)),
+          const Text('Metode Pembayaran', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _metode = 'Tunai'),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _metode == 'Tunai' ? KkcsColors.primaryLight : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _metode == 'Tunai' ? KkcsColors.primary : KkcsColors.borderSubtle,
+                        width: _metode == 'Tunai' ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.payments_outlined, size: 18, color: _metode == 'Tunai' ? KkcsColors.primary : KkcsColors.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tunai',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: _metode == 'Tunai' ? KkcsColors.primaryDeep : KkcsColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Dibayar fisik ke pengurus',
+                          style: TextStyle(fontSize: 10.5, color: KkcsColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _metode = 'Kredit'),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _metode == 'Kredit' ? KkcsColors.primaryLight : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _metode == 'Kredit' ? KkcsColors.primary : KkcsColors.borderSubtle,
+                        width: _metode == 'Kredit' ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.credit_card_outlined, size: 18, color: _metode == 'Kredit' ? KkcsColors.primary : KkcsColors.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Kredit',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: _metode == 'Kredit' ? KkcsColors.primaryDeep : KkcsColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Tagihan potong gaji',
+                          style: TextStyle(fontSize: 10.5, color: KkcsColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
+          TextField(
+            controller: _catatanController,
+            decoration: InputDecoration(
+              labelText: 'Catatan (opsional)',
+              hintText: 'Contoh: Titip di meja piket / sewa 2 hari',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF99F6E4)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Pembayaran', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primaryDeep)),
+                Text(
+                  formatRupiah(p.harga * _jumlah),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: KkcsColors.primaryDeep),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
           FilledButton(
             onPressed: _jumlah <= 0
                 ? null
@@ -2999,7 +6135,13 @@ class _BuySheetState extends State<_BuySheet> {
                     metode: _metode,
                     catatan: _catatanController.text.trim().isEmpty ? null : _catatanController.text.trim(),
                   )),
-            child: const Text('Ajukan'),
+            style: FilledButton.styleFrom(
+              backgroundColor: KkcsColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Ajukan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
           ),
         ],
       ),
@@ -3079,9 +6221,25 @@ class _SellProductPageState extends State<SellProductPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
-              Text(
-                'Barang yang disetujui akan menjadi milik koperasi dan tampil di katalog. Pelunasan ke Anda diatur pengurus.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF99F6E4)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20, color: KkcsColors.primary),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Barang yang disetujui akan menjadi milik koperasi dan tampil di katalog. Pelunasan ke Anda diatur pengurus.',
+                        style: TextStyle(fontSize: 12, color: KkcsColors.primaryDeep, height: 1.35),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               GestureDetector(
@@ -3089,77 +6247,145 @@ class _SellProductPageState extends State<SellProductPage> {
                 child: Container(
                   height: 160,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
+                    color: _foto == null ? KkcsColors.primaryLight : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _foto == null ? KkcsColors.primary.withValues(alpha: 0.4) : KkcsColors.success,
+                      width: 1.4,
+                    ),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Center(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_foto == null ? Icons.add_a_photo_outlined : Icons.check_circle_outline,
-                          color: _foto == null ? null : Colors.green.shade700),
-                      const SizedBox(height: 6),
-                      Text(_foto == null ? 'Tambahkan foto produk (opsional)' : 'Foto dipilih: ${_foto!.name}'),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _foto == null ? Colors.white : KkcsColors.successBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _foto == null ? Icons.add_a_photo_outlined : Icons.check_circle_outline,
+                          color: _foto == null ? KkcsColors.primary : KkcsColors.success,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _foto == null ? 'Tambahkan foto produk (opsional)' : 'Foto dipilih: ${_foto!.name}',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: _foto == null ? KkcsColors.primaryDeep : KkcsColors.success,
+                        ),
+                      ),
                     ]),
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _namaController,
-                decoration: const InputDecoration(labelText: 'Nama produk'),
+                decoration: InputDecoration(
+                  labelText: 'Nama produk',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _deskripsiController,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Deskripsi (opsional)'),
+                decoration: InputDecoration(
+                  labelText: 'Deskripsi (opsional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _jenis,
-                decoration: const InputDecoration(labelText: 'Jenis'),
+                decoration: InputDecoration(
+                  labelText: 'Kriteria penawaran',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 items: const [
-                  DropdownMenuItem(value: 'Jual', child: Text('Dijual')),
-                  DropdownMenuItem(value: 'Sewa', child: Text('Disewakan')),
+                  DropdownMenuItem(value: 'Jual', child: Text('Penjualan — Dijual ke Koperasi')),
+                  DropdownMenuItem(value: 'Sewa', child: Text('Penyewaan — Disewakan lewat Koperasi')),
                 ],
-                onChanged: (v) => setState(() => _jenis = v ?? 'Jual'),
+                onChanged: (v) => setState(() {
+                  _jenis = v ?? 'Jual';
+                  if (_jenis == 'Sewa') {
+                    _satuanController.text = 'Hari';
+                    _stokController.text = '0';
+                  } else if (_satuanController.text == 'Hari' || _satuanController.text == 'Bulan') {
+                    _satuanController.text = 'unit';
+                  }
+                }),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _hargaController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: _jenis == 'Sewa' ? 'Harga sewa' : 'Harga jual', prefixText: 'Rp '),
+                decoration: InputDecoration(
+                  labelText: _jenis == 'Sewa' ? 'Tarif sewa' : 'Harga jual',
+                  prefixText: 'Rp ',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 validator: (v) {
                   final n = double.tryParse((v ?? '').replaceAll('.', '').replaceAll(',', ''));
                   return n == null || n <= 0 ? 'Harga tidak valid' : null;
                 },
               ),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _stokController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Stok / jumlah'),
+              if (_jenis == 'Sewa')
+                DropdownButtonFormField<String>(
+                  value: _satuanController.text == 'Bulan' ? 'Bulan' : 'Hari',
+                  decoration: InputDecoration(
+                    labelText: 'Periode sewa',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _satuanController,
-                    decoration: const InputDecoration(labelText: 'Satuan'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Wajib' : null,
+                  items: const [
+                    DropdownMenuItem(value: 'Hari', child: Text('Harian')),
+                    DropdownMenuItem(value: 'Bulan', child: Text('Bulanan')),
+                  ],
+                  onChanged: (v) => setState(() => _satuanController.text = v ?? 'Hari'),
+                )
+              else
+                Row(children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stokController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Stok / jumlah',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
                   ),
-                ),
-              ]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _satuanController,
+                      decoration: InputDecoration(
+                        labelText: 'Satuan (unit/kg)',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
+                    ),
+                  ),
+                ]),
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: _saving ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: KkcsColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 icon: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.send_outlined),
-                label: Text(_saving ? 'Mengirim...' : 'Kirim pengajuan'),
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.send_outlined, size: 18),
+                label: Text(_saving ? 'Mengirim...' : 'Kirim Pengajuan Produk', style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -3681,10 +6907,10 @@ class PersonalCashFlow {
 }
 
 String _statusLabel(String status) => switch (status) {
-      'Ditagih' => 'Menunggu konfirmasi pengurus',
-      'Dibayar' => 'Lunas',
-      'Diajukan' => 'Menunggu persetujuan',
-      'Disetujui' => 'Disetujui',
+      'Ditagih' => 'Menunggu konfirmasi',
+      'Dibayar' || 'Lunas' => 'Lunas',
+      'Diajukan' || 'MenungguPersetujuan' => 'Menunggu persetujuan',
+      'Disetujui' || 'Selesai' => 'Disetujui',
       'Ditolak' => 'Ditolak',
       'Aktif' => 'Aktif (dana terkunci)',
       'JatuhTempo' => 'Jatuh tempo',
@@ -3693,11 +6919,45 @@ String _statusLabel(String status) => switch (status) {
     };
 
 Color _statusColor(BuildContext context, String status) => switch (status) {
-      'Dibayar' || 'Disetujui' || 'Aktif' || 'Dicairkan' => Colors.green.shade700,
-      'Ditolak' => Theme.of(context).colorScheme.error,
-      'JatuhTempo' => Colors.blue.shade700,
-      _ => Colors.orange.shade800,
+      'Dibayar' || 'Disetujui' || 'Aktif' || 'Dicairkan' || 'Lunas' || 'Selesai' => KkcsColors.success,
+      'Ditolak' || 'Dibatalkan' => KkcsColors.danger,
+      'JatuhTempo' => KkcsColors.info,
+      _ => KkcsColors.warning,
     };
+
+Color _statusBgColor(BuildContext context, String status) => switch (status) {
+      'Dibayar' || 'Disetujui' || 'Aktif' || 'Dicairkan' || 'Lunas' || 'Selesai' => KkcsColors.successBg,
+      'Ditolak' || 'Dibatalkan' => KkcsColors.dangerBg,
+      'JatuhTempo' => const Color(0xFFEFF6FF),
+      _ => KkcsColors.warningBg,
+    };
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(context, status);
+    final bg = _statusBgColor(context, status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
 
 String _monthLabel(DateTime date) {
   const names = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -3942,11 +7202,30 @@ class _SavingsTabState extends State<SavingsTab> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
-          Text('Simpanan saya', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Text('Pokok, wajib, sukarela, dan berjangka dalam satu tempat.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.only(top: 4, bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Simpanan Saya',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: KkcsColors.primaryDeep,
+                        letterSpacing: -0.3,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pokok, wajib, sukarela, dan berjangka dalam satu tempat.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: KkcsColors.textSecondary,
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
+          ),
           if (_loading) const Padding(padding: EdgeInsets.only(bottom: 12), child: LinearProgressIndicator(minHeight: 2)),
           if (_error != null)
             Padding(
@@ -3968,21 +7247,69 @@ class _SavingsTabState extends State<SavingsTab> {
               children: [
                 _InfoRow(label: 'Saldo terkumpul', value: formatRupiah(data.wajib.saldo)),
                 _InfoRow(label: 'Nominal per bulan', value: formatRupiah(data.wajib.nominalBulanan)),
-                const SizedBox(height: 6),
-                Text('Pembayaran dikonfirmasi pengurus (potong gaji / setor).',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
                 const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: KkcsColors.borderSubtle),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: KkcsColors.primary),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Pembayaran dikonfirmasi pengurus koperasi (potong gaji / setor tunai).',
+                          style: TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (data.wajib.tagihan.isEmpty)
-                  Text('Belum ada tagihan.', style: Theme.of(context).textTheme.bodySmall)
-                else
-                  ...data.wajib.tagihan.take(6).map((bill) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        child: Row(children: [
-                          Expanded(child: Text('Periode ${bill.periode} · ${formatRupiah(bill.nominal)}')),
-                          Text(_statusLabel(bill.status),
-                              style: TextStyle(color: _statusColor(context, bill.status), fontWeight: FontWeight.w600, fontSize: 12)),
-                        ]),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Text('Belum ada riwayat tagihan.', style: TextStyle(fontSize: 12.5, color: KkcsColors.textMuted)),
+                  )
+                else ...[
+                  const Text('Riwayat Tagihan Bulanan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  ...data.wajib.tagihan.take(6).map((bill) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: KkcsColors.borderSubtle),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.calendar_month_outlined, size: 16, color: KkcsColors.primary),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Periode ${bill.periode}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                                  Text(formatRupiah(bill.nominal), style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                                ],
+                              ),
+                            ),
+                            _StatusBadge(status: bill.status),
+                          ],
+                        ),
                       )),
+                ],
               ],
             ),
             const SizedBox(height: 14),
@@ -3991,34 +7318,63 @@ class _SavingsTabState extends State<SavingsTab> {
               title: 'Simpanan Sukarela',
               subtitle: 'Bunga ${(data.sukarela.bungaTahunan * 100).toStringAsFixed(2)}%/th, dihitung saldo harian, dipotong PPh ${(data.sukarela.tarifPphBunga * 100).toStringAsFixed(0)}%, dibukukan tanggal akhir tiap bulan.',
               children: [
-                _InfoRow(label: 'Saldo', value: formatRupiah(data.sukarela.saldo)),
-                const SizedBox(height: 10),
+                _InfoRow(label: 'Saldo sukarela saat ini', value: formatRupiah(data.sukarela.saldo)),
+                const SizedBox(height: 12),
                 Row(children: [
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: _busy ? null : () => _submitSukarela('Setor'),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Setor'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: KkcsColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Setor Sukarela', style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _busy ? null : () => _submitSukarela('Tarik'),
-                      icon: const Icon(Icons.remove, size: 18),
-                      label: const Text('Tarik'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: KkcsColors.primaryDeep,
+                        side: const BorderSide(color: KkcsColors.primary, width: 1.4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.remove_circle_outline, size: 18),
+                      label: const Text('Tarik Sukarela', style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
                 ]),
                 if (data.sukarela.pengajuan.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  ...data.sukarela.pengajuan.take(5).map((req) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        child: Row(children: [
-                          Expanded(child: Text('${req.jenis} ${formatRupiah(req.nominal)}')),
-                          Text(_statusLabel(req.status),
-                              style: TextStyle(color: _statusColor(context, req.status), fontWeight: FontWeight.w600, fontSize: 12)),
-                        ]),
+                  const SizedBox(height: 14),
+                  const Text('Pengajuan Terakhir', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  ...data.sukarela.pengajuan.take(5).map((req) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: KkcsColors.borderSubtle),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              req.jenis == 'Tarik' ? Icons.arrow_circle_up_outlined : Icons.arrow_circle_down_outlined,
+                              size: 18,
+                              color: req.jenis == 'Tarik' ? KkcsColors.danger : KkcsColors.success,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text('${req.jenis} ${formatRupiah(req.nominal)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
+                            ),
+                            _StatusBadge(status: req.status),
+                          ],
+                        ),
                       )),
                 ],
               ],
@@ -4030,56 +7386,146 @@ class _SavingsTabState extends State<SavingsTab> {
               subtitle: 'Bunga ${(data.berjangka.bungaTahunan * 100).toStringAsFixed(2)}%/th. Dana terkunci hingga jatuh tempo.',
               children: [
                 if (data.berjangka.produk.isEmpty)
-                  Text('Belum ada paket berjangka tersedia.', style: Theme.of(context).textTheme.bodySmall)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Text('Belum ada paket berjangka tersedia.', style: TextStyle(fontSize: 12.5, color: KkcsColors.textMuted)),
+                  )
                 else
                   ...data.berjangka.produk.map((produk) {
                     final bunga = produk.nominal * data.berjangka.bungaTahunan * produk.tenorBulan / 12;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 5),
-                      child: ListTile(
-                        title: Text(produk.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text('${formatRupiah(produk.nominal)} · ${produk.tenorBulan} bulan\nEstimasi bunga ${formatRupiah(bunga)}'),
-                        isThreeLine: true,
-                        trailing: FilledButton(
-                          onPressed: _busy ? null : () => _ajukanBerjangka(produk),
-                          child: const Text('Ajukan'),
-                        ),
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: KkcsColors.borderSubtle),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  produk.nama,
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: KkcsColors.primaryDeep),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: KkcsColors.primaryLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('${produk.tenorBulan} Bulan', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: KkcsColors.primary)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Nominal Pokok', style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary)),
+                                  Text(formatRupiah(produk.nominal), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary)),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text('Estimasi Bunga', style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary)),
+                                  Text(formatRupiah(bunga), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.success)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          FilledButton(
+                            onPressed: _busy ? null : () => _ajukanBerjangka(produk),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: KkcsColors.primary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(36),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text('Ajukan Simpanan Berjangka', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                          ),
+                        ],
                       ),
                     );
                   }),
                 if (data.berjangka.milikSaya.isNotEmpty) ...[
-                  const Divider(height: 22),
-                  Text('Simpanan berjangka saya', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  ...data.berjangka.milikSaya.map((deposit) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                  const Divider(height: 24, color: KkcsColors.borderSubtle),
+                  const Text('Simpanan Berjangka Aktif & Riwayat', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: KkcsColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  ...data.berjangka.milikSaya.map((deposit) => Container(
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: KkcsColors.borderSubtle),
+                        ),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
-                            Expanded(child: Text('${deposit.produkNama} · ${formatRupiah(deposit.nominal)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                            Text(_statusLabel(deposit.status),
-                                style: TextStyle(color: _statusColor(context, deposit.status), fontWeight: FontWeight.w600, fontSize: 12)),
+                            Expanded(
+                              child: Text(
+                                '${deposit.produkNama} · ${formatRupiah(deposit.nominal)}',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.textPrimary),
+                              ),
+                            ),
+                            _StatusBadge(status: deposit.status),
                           ]),
+                          const SizedBox(height: 4),
                           if (deposit.tanggalJatuhTempo != null)
-                            Text('Jatuh tempo ${_monthLabel(deposit.tanggalJatuhTempo!)}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+                            Text('Jatuh tempo: ${_monthLabel(deposit.tanggalJatuhTempo!)}',
+                                style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
                           Text(
                             deposit.bungaDibayar != null
                                 ? (deposit.bungaDibayar == 0
                                     ? 'Dicairkan dipercepat — tanpa bunga'
                                     : 'Bunga dibayar ${formatRupiah(deposit.bungaDibayar!)} (masuk ke sukarela)')
-                                : 'Estimasi bunga saat jatuh tempo ${formatRupiah(deposit.estimasiBunga)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                                : 'Estimasi bunga saat jatuh tempo: ${formatRupiah(deposit.estimasiBunga)}',
+                            style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
                           ),
                           if (deposit.status == 'Aktif') ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             if (deposit.pencairanDiajukan)
-                              Text('Pengajuan pencairan dipercepat menunggu persetujuan pengurus.',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange.shade800, fontWeight: FontWeight.w600))
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: KkcsColors.warningBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: KkcsColors.warning.withValues(alpha: 0.3)),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.hourglass_top_outlined, size: 15, color: KkcsColors.warning),
+                                    SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Pengajuan pencairan dipercepat menunggu persetujuan pengurus.',
+                                        style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.w600, fontSize: 11.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
                             else
                               OutlinedButton.icon(
                                 onPressed: _busy ? null : () => _ajukanPencairan(deposit),
-                                icon: const Icon(Icons.lock_open_outlined, size: 16),
-                                label: const Text('Ajukan pencairan dipercepat'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: KkcsColors.danger,
+                                  side: const BorderSide(color: KkcsColors.danger),
+                                  minimumSize: const Size.fromHeight(34),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.lock_open_outlined, size: 15),
+                                label: const Text('Ajukan pencairan dipercepat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                               ),
                           ],
                         ]),
@@ -4091,20 +7537,55 @@ class _SavingsTabState extends State<SavingsTab> {
               const SizedBox(height: 14),
               _AccountSectionCard(
                 icon: Icons.receipt_long_outlined,
-                title: 'Mutasi terakhir',
+                title: 'Mutasi Terakhir',
                 subtitle: 'Riwayat transaksi simpanan.',
                 children: data.mutasi
                     .take(10)
                     .map((m) {
                       final debit = m.jenis == 'Tarik' || m.jenis == 'Pajak';
-                      return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(children: [
-                            Expanded(child: Text('${m.rekening} · ${m.jenis}', style: const TextStyle(fontSize: 13))),
-                            Text('${debit ? '-' : '+'}${formatRupiah(m.nominal)}',
-                                style: TextStyle(fontWeight: FontWeight.w700, color: debit ? Colors.red.shade700 : Colors.green.shade700)),
-                          ]),
-                        );
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: debit ? KkcsColors.dangerBg : KkcsColors.successBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                debit ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                size: 16,
+                                color: debit ? KkcsColors.danger : KkcsColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${m.rekening} · ${m.jenis}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5, color: KkcsColors.textPrimary)),
+                                  Text(_monthLabel(m.tanggal), style: const TextStyle(fontSize: 11, color: KkcsColors.textMuted)),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${debit ? '-' : '+'}${formatRupiah(m.nominal)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: debit ? KkcsColors.danger : KkcsColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     })
                     .toList(),
               ),
@@ -4126,23 +7607,54 @@ class _SavingsBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      color: colors.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(icon, color: colors.onPrimaryContainer, size: 20),
-            const SizedBox(width: 8),
-            Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer)),
-          ]),
-          const SizedBox(height: 10),
-          Text(formatRupiah(saldo),
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: colors.onPrimaryContainer)),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: KkcsColors.heroGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: KkcsColors.primaryDeep.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: const Color(0xFFA5F3FC), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            formatRupiah(saldo),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+          ),
           const SizedBox(height: 6),
-          Text(caption, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onPrimaryContainer.withValues(alpha: .8))),
-        ]),
+          Text(
+            caption,
+            style: const TextStyle(color: Color(0xFFE0F2FE), fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -4159,10 +7671,13 @@ class _ProfileAvatar extends StatelessWidget {
     final photoUrl = user.fotoUrl;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: KkcsColors.mint,
       backgroundImage: photoUrl == null ? null : NetworkImage('${AuthService.baseUrl}$photoUrl'),
       child: photoUrl == null
-          ? Text(user.namaLengkap[0].toUpperCase(), style: TextStyle(color: Colors.white, fontSize: radius * .7, fontWeight: FontWeight.bold))
+          ? Text(
+              user.namaLengkap[0].toUpperCase(),
+              style: TextStyle(color: KkcsColors.primaryDeep, fontSize: radius * .75, fontWeight: FontWeight.bold),
+            )
           : null,
     );
   }
@@ -4170,43 +7685,447 @@ class _ProfileAvatar extends StatelessWidget {
 
 class _PersonalDataCard extends StatelessWidget {
   const _PersonalDataCard({
+    required this.user,
     required this.nameController,
     required this.emailController,
     required this.phoneController,
     required this.addressController,
+    required this.isEditing,
     required this.saving,
+    required this.onEdit,
+    required this.onCancel,
     required this.onSave,
   });
 
+  final AuthUser user;
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController phoneController;
   final TextEditingController addressController;
+  final bool isEditing;
   final bool saving;
+  final VoidCallback onEdit;
+  final VoidCallback onCancel;
   final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('Data pribadi', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 14),
-          TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nama lengkap')),
-          const SizedBox(height: 10),
-          TextField(controller: emailController, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email')),
-          const SizedBox(height: 10),
-          TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Nomor telepon')),
-          const SizedBox(height: 10),
-          TextField(controller: addressController, maxLines: 2, decoration: const InputDecoration(labelText: 'Alamat')),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: saving ? null : onSave,
-            icon: saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_outlined),
-            label: Text(saving ? 'Menyimpan...' : 'Simpan perubahan'),
+        padding: const EdgeInsets.all(18),
+        child: AnimatedCrossFade(
+          duration: const Duration(milliseconds: 220),
+          crossFadeState: isEditing ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: _buildViewMode(context),
+          secondChild: _buildEditMode(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewMode(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.person_outline, size: 20, color: KkcsColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Data pribadi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('Informasi profil dan kontak Anda', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary)),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: onEdit,
+              style: FilledButton.styleFrom(
+                backgroundColor: KkcsColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.edit_outlined, size: 14, color: Colors.white),
+              label: const Text('Edit Profil', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: KkcsColors.border),
           ),
-        ]),
+          child: Column(
+            children: [
+              _ProfileDetailItem(
+                icon: Icons.person_outline,
+                label: 'Nama Lengkap',
+                value: user.namaLengkap,
+              ),
+              const Divider(height: 1, indent: 52, endIndent: 16, color: Color(0xFFE2E8F0)),
+              _ProfileDetailItem(
+                icon: Icons.badge_outlined,
+                label: 'Nomor Induk Karyawan (NIK)',
+                value: user.nomorIndukKaryawan,
+                badge: user.statusKeanggotaan,
+              ),
+              const Divider(height: 1, indent: 52, endIndent: 16, color: Color(0xFFE2E8F0)),
+              _ProfileDetailItem(
+                icon: Icons.mail_outline,
+                label: 'Alamat Email',
+                value: (user.email != null && user.email!.trim().isNotEmpty) ? user.email! : null,
+                placeholder: 'Belum diisi',
+              ),
+              const Divider(height: 1, indent: 52, endIndent: 16, color: Color(0xFFE2E8F0)),
+              _ProfileDetailItem(
+                icon: Icons.phone_outlined,
+                label: 'Nomor Telepon / WhatsApp',
+                value: (user.nomorTelepon != null && user.nomorTelepon!.trim().isNotEmpty) ? user.nomorTelepon! : null,
+                placeholder: 'Belum diisi',
+              ),
+              const Divider(height: 1, indent: 52, endIndent: 16, color: Color(0xFFE2E8F0)),
+              _ProfileDetailItem(
+                icon: Icons.location_on_outlined,
+                label: 'Alamat Domisili',
+                value: (user.alamat != null && user.alamat!.trim().isNotEmpty) ? user.alamat! : null,
+                placeholder: 'Belum diisi',
+                isMultiLine: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditMode(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.edit_note_rounded, size: 22, color: KkcsColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Edit data pribadi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('Perbarui nama, kontak & alamat Anda', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary)),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: saving ? null : onCancel,
+              icon: const Icon(Icons.close, size: 20, color: KkcsColors.textSecondary),
+              tooltip: 'Batal edit',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: KkcsColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.lock_outline, size: 16, color: KkcsColors.textSecondary),
+              const SizedBox(width: 8),
+              Text('NIK: ${user.nomorIndukKaryawan}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primaryDeep)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: KkcsColors.border),
+                ),
+                child: const Text('Terkunci', style: TextStyle(fontSize: 10.5, color: KkcsColors.textSecondary, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nama lengkap *',
+            prefixIcon: Icon(Icons.badge_outlined, size: 20, color: KkcsColors.textSecondary),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            prefixIcon: Icon(Icons.mail_outline, size: 20, color: KkcsColors.textSecondary),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'Nomor telepon / WhatsApp',
+            prefixIcon: Icon(Icons.phone_outlined, size: 20, color: KkcsColors.textSecondary),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: addressController,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Alamat domisili',
+            prefixIcon: Icon(Icons.location_on_outlined, size: 20, color: KkcsColors.textSecondary),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: OutlinedButton(
+                onPressed: saving ? null : onCancel,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Batal', style: TextStyle(color: KkcsColors.textSecondary, fontWeight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 3,
+              child: FilledButton.icon(
+                onPressed: saving ? null : onSave,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.save_outlined, size: 18),
+                label: Text(saving ? 'Menyimpan...' : 'Simpan perubahan'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileDetailItem extends StatelessWidget {
+  const _ProfileDetailItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.placeholder,
+    this.badge,
+    this.isMultiLine = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? value;
+  final String? placeholder;
+  final String? badge;
+  final bool isMultiLine;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = value != null && value!.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: isMultiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: KkcsColors.primaryLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 17, color: KkcsColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: KkcsColors.textSecondary),
+                ),
+                const SizedBox(height: 2.5),
+                Text(
+                  hasValue ? value! : (placeholder ?? '—'),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
+                    fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
+                    color: hasValue ? KkcsColors.primaryDeep : KkcsColors.textSecondary.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (badge != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: KkcsColors.successBg,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: KkcsColors.success.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                badge!,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  color: KkcsColors.success,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileShuCard extends StatelessWidget {
+  const _ProfileShuCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KkcsColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: KkcsColors.primaryDeep.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: KkcsColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF99F6E4)),
+                  ),
+                  child: const Icon(Icons.auto_graph_rounded, color: KkcsColors.primaryDark, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'SHU Saya',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                              color: KkcsColors.primaryDeep,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: KkcsColors.primaryLight,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Dividen Anggota',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: KkcsColors.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Rincian pembagian SHU, jasa modal & usaha',
+                        style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: KkcsColors.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Buka',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -4227,8 +8146,10 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
   final _oldController = TextEditingController();
   final _newController = TextEditingController();
   final _confirmController = TextEditingController();
+  bool _isEditing = false;
   bool _obscureOld = true;
   bool _obscureNew = true;
+  bool _obscureConfirm = true;
   bool _saving = false;
   String? _error;
 
@@ -4238,6 +8159,16 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
     _newController.dispose();
     _confirmController.dispose();
     super.dispose();
+  }
+
+  void _cancel() {
+    setState(() {
+      _isEditing = false;
+      _error = null;
+      _oldController.clear();
+      _newController.clear();
+      _confirmController.clear();
+    });
   }
 
   Future<void> _submit() async {
@@ -4252,6 +8183,7 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
       _oldController.clear();
       _newController.clear();
       _confirmController.clear();
+      setState(() => _isEditing = false);
       widget.onSuccess();
     } catch (error) {
       if (!mounted) return;
@@ -4263,66 +8195,226 @@ class _ChangePasswordCardState extends State<_ChangePasswordCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('Ganti password', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('Masukkan password saat ini, lalu password baru minimal 8 karakter.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
-            const SizedBox(height: 14),
-            if (_error != null) ...[
-              Text(_error!, style: TextStyle(color: colors.error, fontSize: 12.5)),
-              const SizedBox(height: 10),
-            ],
-            TextFormField(
-              controller: _oldController,
-              obscureText: _obscureOld,
-              decoration: InputDecoration(
-                labelText: 'Password saat ini',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscureOld = !_obscureOld),
-                ),
-              ),
-              validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _newController,
-              obscureText: _obscureNew,
-              decoration: InputDecoration(
-                labelText: 'Password baru',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
-                ),
-              ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Wajib diisi';
-                if (v.length < 8) return 'Minimal 8 karakter';
-                return null;
-              },
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _confirmController,
-              obscureText: _obscureNew,
-              decoration: const InputDecoration(labelText: 'Konfirmasi password baru'),
-              validator: (v) => v != _newController.text ? 'Konfirmasi tidak sama dengan password baru' : null,
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: _saving ? null : _submit,
-              icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.lock_reset_outlined),
-              label: Text(_saving ? 'Menyimpan...' : 'Ganti password'),
-            ),
-          ]),
+        padding: const EdgeInsets.all(18),
+        child: AnimatedCrossFade(
+          duration: const Duration(milliseconds: 220),
+          crossFadeState: _isEditing ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: _buildViewMode(context),
+          secondChild: _buildEditMode(context),
         ),
+      ),
+    );
+  }
+
+  Widget _buildViewMode(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.shield_outlined, size: 20, color: KkcsColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Keamanan & kata sandi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('Kelola keamanan dan kata sandi akun Anda', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary)),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: () => setState(() => _isEditing = true),
+              style: FilledButton.styleFrom(
+                backgroundColor: KkcsColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.key_outlined, size: 14, color: Colors.white),
+              label: const Text('Ganti Sandi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: KkcsColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: KkcsColors.successBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.check_circle_outline, size: 16, color: KkcsColors.success),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Kata Sandi Terproteksi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KkcsColors.primaryDeep)),
+                    SizedBox(height: 1.5),
+                    Text('Disarankan mengganti sandi secara berkala', style: TextStyle(fontSize: 11, color: KkcsColors.textSecondary)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditMode(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: KkcsColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.lock_reset_outlined, size: 20, color: KkcsColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Ganti password', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('Perbarui kata sandi untuk mengamankan akun', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: KkcsColors.textSecondary)),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _saving ? null : _cancel,
+                icon: const Icon(Icons.close, size: 20, color: KkcsColors.textSecondary),
+                tooltip: 'Batal',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_error != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(color: KkcsColors.dangerBg, borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, size: 16, color: KkcsColors.danger),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_error!, style: const TextStyle(color: KkcsColors.danger, fontSize: 12.5))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextFormField(
+            controller: _oldController,
+            obscureText: _obscureOld,
+            decoration: InputDecoration(
+              labelText: 'Password saat ini',
+              prefixIcon: const Icon(Icons.lock_outline, size: 20, color: KkcsColors.textSecondary),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscureOld = !_obscureOld),
+              ),
+            ),
+            validator: (v) => (v == null || v.isEmpty) ? 'Wajib diisi' : null,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _newController,
+            obscureText: _obscureNew,
+            decoration: InputDecoration(
+              labelText: 'Password baru',
+              prefixIcon: const Icon(Icons.key_outlined, size: 20, color: KkcsColors.textSecondary),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscureNew = !_obscureNew),
+              ),
+            ),
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Wajib diisi';
+              if (v.length < 8) return 'Minimal 8 karakter';
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _confirmController,
+            obscureText: _obscureConfirm,
+            decoration: InputDecoration(
+              labelText: 'Konfirmasi password baru',
+              prefixIcon: const Icon(Icons.check_circle_outline, size: 20, color: KkcsColors.textSecondary),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+              ),
+            ),
+            validator: (v) => v != _newController.text ? 'Konfirmasi tidak sama dengan password baru' : null,
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: OutlinedButton(
+                  onPressed: _saving ? null : _cancel,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Batal', style: TextStyle(color: KkcsColors.textSecondary, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 3,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: _saving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.lock_reset_outlined, size: 18),
+                  label: Text(_saving ? 'Menyimpan...' : 'Ganti password'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -4359,20 +8451,39 @@ class _CashFlowCardState extends State<_CashFlowCard> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(child: Text('Arus kas pribadi', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
-            IconButton(
-              onPressed: widget.loading ? null : () => widget.onRefresh(),
-              icon: widget.loading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.refresh, size: 20),
-              tooltip: 'Muat ulang',
-            ),
-          ]),
-          Text('Ringkasan uang masuk & keluar dari simpanan, pinjaman, dan belanja katalog Anda.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54)),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: KkcsColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.account_balance_wallet_outlined, size: 20, color: KkcsColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Arus kas pribadi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('Mutasi simpanan, pinjaman & belanja Anda', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: widget.loading ? null : () => widget.onRefresh(),
+                icon: widget.loading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh, size: 20, color: KkcsColors.textSecondary),
+                tooltip: 'Muat ulang',
+              ),
+            ],
+          ),
           const SizedBox(height: 14),
           if (widget.error != null)
             Text(widget.error!, style: TextStyle(color: colors.error))
@@ -4380,11 +8491,11 @@ class _CashFlowCardState extends State<_CashFlowCard> {
             const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Center(child: CircularProgressIndicator()))
           else if (data != null) ...[
             Row(children: [
-              Expanded(child: _CashFlowStat(label: 'Masuk', value: data.totalMasuk, color: Colors.green.shade700, icon: Icons.arrow_downward)),
-              const SizedBox(width: 10),
-              Expanded(child: _CashFlowStat(label: 'Keluar', value: data.totalKeluar, color: Colors.red.shade700, icon: Icons.arrow_upward)),
-              const SizedBox(width: 10),
-              Expanded(child: _CashFlowStat(label: 'Bersih', value: data.saldoBersih, color: colors.primary, icon: Icons.account_balance_wallet_outlined)),
+              Expanded(child: _CashFlowStat(label: 'Masuk', value: data.totalMasuk, color: KkcsColors.success, icon: Icons.arrow_downward)),
+              const SizedBox(width: 8),
+              Expanded(child: _CashFlowStat(label: 'Keluar', value: data.totalKeluar, color: KkcsColors.danger, icon: Icons.arrow_upward)),
+              const SizedBox(width: 8),
+              Expanded(child: _CashFlowStat(label: 'Bersih', value: data.saldoBersih, color: KkcsColors.primary, icon: Icons.account_balance_wallet_outlined)),
             ]),
             const SizedBox(height: 12),
             if (riwayat.isEmpty)
@@ -4399,8 +8510,8 @@ class _CashFlowCardState extends State<_CashFlowCard> {
                     child: Row(children: [
                       CircleAvatar(
                         radius: 16,
-                        backgroundColor: (item.masuk ? Colors.green : Colors.red).withValues(alpha: .1),
-                        child: Icon(_iconFor(item.kategori), size: 16, color: item.masuk ? Colors.green.shade700 : Colors.red.shade700),
+                        backgroundColor: (item.masuk ? KkcsColors.success : KkcsColors.danger).withValues(alpha: .1),
+                        child: Icon(_iconFor(item.kategori), size: 16, color: item.masuk ? KkcsColors.success : KkcsColors.danger),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -4411,7 +8522,7 @@ class _CashFlowCardState extends State<_CashFlowCard> {
                       ),
                       Text(
                         '${item.masuk ? '+' : '−'}${formatRupiah(item.nominal)}',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: item.masuk ? Colors.green.shade700 : Colors.red.shade700),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: item.masuk ? KkcsColors.success : KkcsColors.danger),
                       ),
                     ]),
                   )),
@@ -4443,13 +8554,21 @@ class _CashFlowStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: .18)),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 15, color: color),
+        Row(
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
         const SizedBox(height: 6),
-        Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: .85))),
-        const SizedBox(height: 2),
-        Text(formatRupiah(value), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: color)),
+        Text(formatRupiah(value), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5, color: color)),
       ]),
     );
   }
@@ -4466,16 +8585,30 @@ class _AccountSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: KkcsColors.borderSubtle, width: 1.2),
+      ),
+      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            CircleAvatar(backgroundColor: Theme.of(context).colorScheme.secondaryContainer, child: Icon(icon)),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: KkcsColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: KkcsColors.primary, size: 20),
+            ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 3),
-              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.textPrimary)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(fontSize: 12, color: KkcsColors.textSecondary, height: 1.25)),
             ])),
           ]),
           const SizedBox(height: 12),
@@ -4495,15 +8628,24 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Text(label)),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: KkcsColors.textSecondary),
+          ),
+        ),
         const SizedBox(width: 12),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: KkcsColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
           ),
         ),
       ]),
@@ -4529,6 +8671,7 @@ class _AccountPageState extends State<AccountPage> {
   late final TextEditingController _addressController;
   bool _savingProfile = false;
   bool _uploadingPhoto = false;
+  bool _isEditingProfile = false;
 
   bool _loadingCashFlow = true;
   String? _cashFlowError;
@@ -4581,18 +8724,44 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
+  void _startEditProfile() {
+    setState(() {
+      _nameController.text = _user.namaLengkap;
+      _emailController.text = _user.email ?? '';
+      _phoneController.text = _user.nomorTelepon ?? '';
+      _addressController.text = _user.alamat ?? '';
+      _isEditingProfile = true;
+    });
+  }
+
+  void _cancelEditProfile() {
+    setState(() {
+      _nameController.text = _user.namaLengkap;
+      _emailController.text = _user.email ?? '';
+      _phoneController.text = _user.nomorTelepon ?? '';
+      _addressController.text = _user.alamat ?? '';
+      _isEditingProfile = false;
+    });
+  }
+
   Future<void> _saveProfile() async {
-    if (_nameController.text.trim().isEmpty) return;
+    if (_nameController.text.trim().isEmpty) {
+      _showMessage('Nama lengkap tidak boleh kosong.');
+      return;
+    }
     setState(() => _savingProfile = true);
     try {
       final user = await widget.auth.updateProfile(
-        namaLengkap: _nameController.text,
-        email: _emailController.text,
-        nomorTelepon: _phoneController.text,
-        alamat: _addressController.text,
+        namaLengkap: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        nomorTelepon: _phoneController.text.trim(),
+        alamat: _addressController.text.trim(),
       );
       if (!mounted) return;
-      setState(() => _user = user);
+      setState(() {
+        _user = user;
+        _isEditingProfile = false;
+      });
       _showMessage('Data pribadi berhasil diperbarui.');
     } catch (error) {
       if (mounted) _showMessage(error.toString());
@@ -4641,65 +8810,180 @@ class _AccountPageState extends State<AccountPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            Card(
-              elevation: 0,
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _ProfileAvatar(user: _user, radius: 32),
-                        Positioned(
-                          right: -8,
-                          bottom: -4,
-                          child: IconButton.filled(
-                            onPressed: _uploadingPhoto ? null : _showPhotoOptions,
-                            icon: _uploadingPhoto ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.camera_alt_outlined, size: 17),
-                            tooltip: 'Ubah foto profil',
+            Container(
+              decoration: BoxDecoration(
+                gradient: KkcsColors.heroGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: KkcsColors.primaryDeep.withValues(alpha: 0.22),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: _ProfileAvatar(user: _user, radius: 36),
+                      ),
+                      Positioned(
+                        right: -4,
+                        bottom: -2,
+                        child: Material(
+                          color: KkcsColors.primary,
+                          shape: const CircleBorder(side: BorderSide(color: Colors.white, width: 2)),
+                          elevation: 2,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: _uploadingPhoto ? null : _showPhotoOptions,
+                            child: Padding(
+                              padding: const EdgeInsets.all(7),
+                              child: _uploadingPhoto
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.camera_alt, size: 15, color: Colors.white),
+                            ),
                           ),
                         ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _user.namaLengkap,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.white),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.badge_outlined, size: 13, color: Color(0xFFA5F3FC)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'NIK: ${_user.nomorIndukKaryawan}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.successBg.withValues(alpha: 0.92),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified, size: 12, color: KkcsColors.success),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _user.statusKeanggotaan,
+                                    style: const TextStyle(color: KkcsColors.success, fontSize: 11, fontWeight: FontWeight.w800),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_user.email != null && _user.email!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.mail_outline, size: 13, color: Colors.white.withValues(alpha: 0.75)),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  _user.email!,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_user.namaLengkap, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text('NIK: ${_user.nomorIndukKaryawan}'),
-                          if (_user.email != null) ...[
-                            const SizedBox(height: 4),
-                            Text(_user.email!, overflow: TextOverflow.ellipsis),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _PersonalDataCard(
+              user: _user,
               nameController: _nameController,
               emailController: _emailController,
               phoneController: _phoneController,
               addressController: _addressController,
+              isEditing: _isEditingProfile,
               saving: _savingProfile,
+              onEdit: _startEditProfile,
+              onCancel: _cancelEditProfile,
               onSave: _saveProfile,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+            _ProfileShuCard(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ShuSayaPage(session: widget.session)),
+              ),
+            ),
+            const SizedBox(height: 18),
             _ChangePasswordCard(auth: widget.auth, onSuccess: () => _showMessage('Password berhasil diganti.')),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             _CashFlowCard(loading: _loadingCashFlow, error: _cashFlowError, data: _cashFlow, onRefresh: _loadCashFlow),
             const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () => _logout(context),
-              icon: const Icon(Icons.logout),
-              label: const Text('Keluar dari akun'),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: KkcsColors.danger.withValues(alpha: 0.2)),
+              ),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                onTap: () => _logout(context),
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: KkcsColors.dangerBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.logout_rounded, size: 18, color: KkcsColors.danger),
+                ),
+                title: const Text('Keluar dari akun', style: TextStyle(fontWeight: FontWeight.w700, color: KkcsColors.danger, fontSize: 14)),
+                subtitle: const Text('Akhiri sesi login aplikasi di perangkat ini', style: TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary)),
+                trailing: const Icon(Icons.chevron_right, size: 18, color: KkcsColors.danger),
+              ),
             ),
           ],
         ),
@@ -4718,23 +9002,119 @@ class _AuthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Navigator.canPop(context)
+            ? Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => Navigator.maybePop(context),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: KkcsColors.border),
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded, size: 20, color: KkcsColors.primaryDeep),
+                  ),
+                ),
+              )
+            : null,
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _BrandMark(size: 56),
-                  const SizedBox(height: 28),
-                  Text(title, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
-                  const SizedBox(height: 28),
-                  child,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: KkcsColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: KkcsColors.primaryDeep.withValues(alpha: 0.04),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const _BrandMark(size: 48),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: KkcsColors.primaryLight,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: KkcsColors.primary.withValues(alpha: 0.2)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.shield_outlined, size: 13, color: KkcsColors.primary),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'KKCS Mobile',
+                                    style: TextStyle(
+                                      color: KkcsColors.primaryDeep,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: KkcsColors.primaryDeep,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: KkcsColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        child,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline_rounded, size: 14, color: KkcsColors.textDisabled),
+                      SizedBox(width: 6),
+                      Text(
+                        'Akses aman terenkripsi • Portal Anggota KKCS',
+                        style: TextStyle(fontSize: 11.5, color: KkcsColors.textMuted, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -4758,10 +9138,19 @@ class _BrandMark extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(size * .28),
+          border: Border.all(color: KkcsColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: KkcsColors.primaryDeep.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        child: Icon(Icons.account_balance_rounded, size: size * .48, color: Colors.white),
+        padding: EdgeInsets.all(size * .12),
+        child: Image.asset('assets/logo_kkcs.png', fit: BoxFit.contain),
       ),
     );
   }
@@ -4775,9 +9164,32 @@ class _ErrorMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Text(message!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: KkcsColors.dangerBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: KkcsColors.danger.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 18, color: KkcsColors.danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message!,
+              style: const TextStyle(
+                color: KkcsColors.danger,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

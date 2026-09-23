@@ -14,6 +14,7 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 	public DbSet<Produk> Produk => Set<Produk>();
 	public DbSet<PembelianProduk> PembelianProduk => Set<PembelianProduk>();
 	public DbSet<TagihanKredit> TagihanKredit => Set<TagihanKredit>();
+	public DbSet<AngsuranTagihanKredit> AngsuranTagihanKredit => Set<AngsuranTagihanKredit>();
 	public DbSet<EratAgenda> EratAgenda => Set<EratAgenda>();
 	public DbSet<EratOpsi> EratOpsi => Set<EratOpsi>();
 	public DbSet<EratSuara> EratSuara => Set<EratSuara>();
@@ -182,7 +183,10 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.HasData(
 				new Produk { Id = 1, Kode = "PRD-BRSPRM5", Nama = "Beras Premium 5 kg", Jenis = "Jual", Harga = 78000, Stok = 0, Satuan = "paket", Sumber = "Koperasi", Status = "Disetujui", DiperbaruiPada = new DateTime(2026, 1, 1) },
 				new Produk { Id = 2, Kode = "PRD-MNYK2", Nama = "Minyak Goreng 2 L", Jenis = "Jual", Harga = 36500, Stok = 0, Satuan = "botol", Sumber = "Koperasi", Status = "Disetujui", DiperbaruiPada = new DateTime(2026, 1, 1) },
-				new Produk { Id = 3, Kode = "PRD-GULA1", Nama = "Gula Pasir 1 kg", Jenis = "Jual", Harga = 17000, Stok = 0, Satuan = "paket", Sumber = "Koperasi", Status = "Disetujui", DiperbaruiPada = new DateTime(2026, 1, 1) });
+				new Produk { Id = 3, Kode = "PRD-GULA1", Nama = "Gula Pasir 1 kg", Jenis = "Jual", Harga = 17000, Stok = 0, Satuan = "paket", Sumber = "Koperasi", Status = "Disetujui", DiperbaruiPada = new DateTime(2026, 1, 1) },
+				// Produk placeholder untuk transaksi kredit hasil Import Migrasi Data Lama (item aslinya tidak
+				// ada di katalog sistem baru) — Aktif=false supaya tidak pernah tampil di katalog anggota.
+				new Produk { Id = 4, Kode = "PRD-MIGRASI", Nama = "Migrasi Data Lama", Jenis = "Jual", Harga = 0, Stok = 0, Satuan = "paket", Sumber = "Koperasi", Status = "Disetujui", Aktif = false, DiperbaruiPada = new DateTime(2026, 1, 1) });
 		});
 
 		modelBuilder.Entity<PembelianProduk>(entity =>
@@ -209,8 +213,19 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.Property(item => item.Total).HasPrecision(18, 2);
 			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
 			entity.Property(item => item.Keterangan).HasMaxLength(500);
+			entity.Property(item => item.AngsuranPerBulan).HasPrecision(18, 2);
 			entity.HasOne(item => item.Pembelian).WithOne(item => item.TagihanKredit).HasForeignKey<TagihanKredit>(item => item.PembelianProdukId).OnDelete(DeleteBehavior.Cascade);
 			entity.HasOne(item => item.Pengguna).WithMany().HasForeignKey(item => item.PenggunaId).OnDelete(DeleteBehavior.Restrict);
+		});
+
+		modelBuilder.Entity<AngsuranTagihanKredit>(entity =>
+		{
+			entity.HasKey(item => item.Id);
+			entity.HasIndex(item => new { item.TagihanKreditId, item.AngsuranKe });
+			entity.Property(item => item.Nominal).HasPrecision(18, 2);
+			entity.Property(item => item.JumlahDibayar).HasPrecision(18, 2);
+			entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+			entity.HasOne(item => item.TagihanKredit).WithMany(item => item.Angsuran).HasForeignKey(item => item.TagihanKreditId).OnDelete(DeleteBehavior.Cascade);
 		});
 
 		modelBuilder.Entity<EratAgenda>(entity =>
@@ -357,7 +372,22 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 				new AkunAkuntansi { Id = 17, Kode = "5-5300", Nama = "Beban Pokok Penjualan", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
 				new AkunAkuntansi { Id = 18, Kode = "5-5900", Nama = "Beban Operasional Lain (Gaji, Sewa, dll)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
 				new AkunAkuntansi { Id = 19, Kode = KodeAkun.UtangJasaPengurus, Nama = "Utang Jasa Pengurus, Pengawas & Admin (SHU)", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
-				new AkunAkuntansi { Id = 20, Kode = KodeAkun.CadanganKoperasi, Nama = "Cadangan Koperasi", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) });
+				new AkunAkuntansi { Id = 20, Kode = KodeAkun.CadanganKoperasi, Nama = "Cadangan Koperasi", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 21, Kode = "5-5910", Nama = "Beban Umum & Administrasi", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+				new AkunAkuntansi { Id = 22, Kode = "5-5920", Nama = "Beban Penyisihan Piutang Tak Tertagih", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			// Akun sementara penampung lawan-jurnal semua importer migrasi data lama (Simpanan Pokok/Wajib,
+			// Pinjaman Aktif, Tagihan Kredit) — karena kas riilnya sudah tercatat lewat Import Neraca Awal,
+			// bukan lewat importer per-anggota ini. Saldo akun ini idealnya NOL setelah semua importer migrasi
+			// selesai dijalankan; kalau tidak nol berarti ada data yang belum lengkap/tidak cocok.
+			new AkunAkuntansi { Id = 23, Kode = "3-3990", Nama = "Kliring Migrasi Data Lama", Tipe = "Ekuitas", SaldoNormal = "Kredit", Sistem = true, DibuatPada = new DateTime(2026, 1, 1) },
+			// Piutang/utang ke pihak NON-anggota (bukan anggota koperasi, tidak lewat importer Pinjaman/Tagihan
+			// Kredit yang mensyaratkan NIK terdaftar) — dipakai lewat Import Neraca Awal untuk kasus seperti
+			// piutang/utang lama yang sudah disisihkan sejak awal tapi belum pernah dihapusbukukan.
+			new AkunAkuntansi { Id = 24, Kode = "1-1500", Nama = "Piutang Non-Anggota", Tipe = "Aset", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			// Kontra-aset: dicatat di sisi KREDIT supaya mengurangi Total Aset (nilai bersih piutang jadi 0
+			// kalau penyisihannya penuh), TANPA menghapus jejak nilai piutang aslinya dari pembukuan.
+			new AkunAkuntansi { Id = 25, Kode = "1-1510", Nama = "Cadangan Penyisihan Piutang Tak Tertagih", Tipe = "Aset", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 26, Kode = "2-2700", Nama = "Utang Non-Anggota", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
 		});
 
 		modelBuilder.Entity<JurnalEntri>(entity =>

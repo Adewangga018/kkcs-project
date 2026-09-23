@@ -285,6 +285,72 @@ namespace backend.Migrations
                             SaldoNormal = "Kredit",
                             Sistem = true,
                             Tipe = "Ekuitas"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "5-5910",
+                            Nama = "Beban Umum & Administrasi",
+                            SaldoNormal = "Debit",
+                            Sistem = false,
+                            Tipe = "Beban"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "5-5920",
+                            Nama = "Beban Penyisihan Piutang Tak Tertagih",
+                            SaldoNormal = "Debit",
+                            Sistem = false,
+                            Tipe = "Beban"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "3-3990",
+                            Nama = "Kliring Migrasi Data Lama",
+                            SaldoNormal = "Kredit",
+                            Sistem = true,
+                            Tipe = "Ekuitas"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "1-1500",
+                            Nama = "Piutang Non-Anggota",
+                            SaldoNormal = "Debit",
+                            Sistem = false,
+                            Tipe = "Aset"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "1-1510",
+                            Nama = "Cadangan Penyisihan Piutang Tak Tertagih",
+                            SaldoNormal = "Debit",
+                            Sistem = false,
+                            Tipe = "Aset"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Aktif = true,
+                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Kode = "2-2700",
+                            Nama = "Utang Non-Anggota",
+                            SaldoNormal = "Kredit",
+                            Sistem = false,
+                            Tipe = "Liabilitas"
                         });
                 });
 
@@ -388,6 +454,46 @@ namespace backend.Migrations
                     b.ToTable("AngsuranPinjaman");
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("AngsuranTagihanKredit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AngsuranKe")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DibayarPada")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("JatuhTempo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("JumlahDibayar")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Nominal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("TagihanKreditId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagihanKreditId", "AngsuranKe");
+
+                    b.ToTable("AngsuranTagihanKredit");
                 });
 
             modelBuilder.Entity("AuditLog", b =>
@@ -1406,6 +1512,20 @@ namespace backend.Migrations
                             Status = "Disetujui",
                             Stok = 0m,
                             Sumber = "Koperasi"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Aktif = false,
+                            DiperbaruiPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Harga = 0m,
+                            Jenis = "Jual",
+                            Kode = "PRD-MIGRASI",
+                            Nama = "Migrasi Data Lama",
+                            Satuan = "paket",
+                            Status = "Disetujui",
+                            Stok = 0m,
+                            Sumber = "Koperasi"
                         });
                 });
 
@@ -1830,6 +1950,10 @@ namespace backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("AngsuranPerBulan")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("DibuatPada")
                         .HasColumnType("datetime2");
 
@@ -1850,6 +1974,9 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("TenorBulan")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Total")
                         .HasPrecision(18, 2)
@@ -1966,6 +2093,17 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Pinjaman");
+                });
+
+            modelBuilder.Entity("AngsuranTagihanKredit", b =>
+                {
+                    b.HasOne("TagihanKredit", "TagihanKredit")
+                        .WithMany("Angsuran")
+                        .HasForeignKey("TagihanKreditId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TagihanKredit");
                 });
 
             modelBuilder.Entity("EratOpsi", b =>
@@ -2298,6 +2436,11 @@ namespace backend.Migrations
             modelBuilder.Entity("Simpanan", b =>
                 {
                     b.Navigation("Mutasi");
+                });
+
+            modelBuilder.Entity("TagihanKredit", b =>
+                {
+                    b.Navigation("Angsuran");
                 });
 #pragma warning restore 612, 618
         }
