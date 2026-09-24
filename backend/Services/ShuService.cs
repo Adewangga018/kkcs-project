@@ -22,7 +22,10 @@ public record ShuHitungResult(
 ///   JUA_i = (Transaksi Anggota_i / Total Transaksi) × % Jasa Usaha × Pool Anggota
 ///   SHU Anggota (neto)_i = (JMA_i + JUA_i) − PPh
 /// Simpanan Anggota = saldo Simpanan Pokok + Wajib per akhir tahun buku (snapshot dari mutasi).
-/// Transaksi Anggota = pokok pinjaman yang dicairkan + total pembelian/sewa produk sepanjang tahun buku.
+/// Transaksi Anggota = jasa/bunga pinjaman yang BENAR-BENAR DIBAYARKAN anggota ke koperasi sepanjang
+///   tahun buku (bukan pokok pinjaman, dan bukan cuma pinjaman yang baru dicairkan tahun itu) — sesuai
+///   praktik umum KSP: makin tertib & besar anggota mengangsur jasa pinjamannya, makin besar JUA-nya.
+///   + total pembelian/sewa produk sepanjang tahun buku.
 /// Hanya anggota berstatus Aktif yang diikutkan.
 /// </summary>
 public static class ShuService
@@ -56,14 +59,16 @@ public static class ShuService
             }
         }
 
-        // Transaksi Anggota = pokok pinjaman dicairkan + total pembelian/sewa produk, sepanjang tahun buku.
+        // Transaksi Anggota = jasa/bunga pinjaman yang benar-benar dibayarkan anggota sepanjang tahun buku
+        // (bukan pokok pinjaman) + total pembelian/sewa produk, sepanjang tahun buku.
         var transaksiPerAnggota = new Dictionary<int, decimal>();
-        var pinjamanTahunIni = await db.Pinjaman.AsNoTracking()
-            .Where(p => p.TanggalMulai >= awalTahun && p.TanggalMulai <= akhirTahun)
-            .GroupBy(p => p.PenggunaId)
-            .Select(g => new { PenggunaId = g.Key, Total = g.Sum(x => x.Pokok) })
+        var jasaDibayarTahunIni = await db.AngsuranPinjaman.AsNoTracking()
+            .Where(a => a.Status == "Dibayar" && a.DibayarPada != null && a.DibayarPada >= awalTahun && a.DibayarPada <= akhirTahun)
+            .Join(db.Pinjaman.AsNoTracking(), a => a.PinjamanId, p => p.Id, (a, p) => new { p.PenggunaId, a.Jasa })
+            .GroupBy(x => x.PenggunaId)
+            .Select(g => new { PenggunaId = g.Key, Total = g.Sum(x => x.Jasa) })
             .ToListAsync();
-        foreach (var item in pinjamanTahunIni)
+        foreach (var item in jasaDibayarTahunIni)
         {
             transaksiPerAnggota[item.PenggunaId] = transaksiPerAnggota.GetValueOrDefault(item.PenggunaId) + item.Total;
         }

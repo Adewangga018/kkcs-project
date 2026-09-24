@@ -72,6 +72,7 @@ tbody tr:hover { background: #f2f9fa; }
 .status-pill { gap: 5px; }
 .status-pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .status-pill.active { color: #0891b2; background: #ecfeff; }
+.status-pill.lunas, .status-pill.resolved { color: #059669; background: #ecfdf5; }
 .status-pill.waiting { color: #b45309; background: #fef3c7; }
 .status-pill.rejected { color: #dc2626; background: #fef2f2; }
 .status-pill.inactive { color: #64748b; background: #f1f5f9; }
@@ -1359,3 +1360,1142 @@ h1, h2, p { margin: 0; } h1, h2 { font-family: 'Space Grotesk', sans-serif; colo
   th, td { padding-inline: 15px; }
   .login-card { padding: 28px 22px; }
 }
+
+/* ========================================================
+   SHU FORMULA & GUIDE COMPONENT (Modern Fintech Styling)
+   ======================================================== */
+.shu-guide-container {
+  margin: 0 25px 18px;
+  border: 1px solid #dbe8ea;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px -2px rgba(8, 51, 68, 0.05);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.shu-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 13px 18px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shu-guide-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shu-guide-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0891b2;
+  flex-shrink: 0;
+}
+
+.shu-guide-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #083344;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shu-guide-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0891b2;
+  border: 1px solid #a5f3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.shu-guide-subtitle {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.shu-guide-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shu-guide-tabs {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.shu-guide-tab-btn {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.shu-guide-tab-btn:hover {
+  color: #083344;
+}
+
+.shu-guide-tab-btn.active {
+  background: #ffffff;
+  color: #0891b2;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.shu-guide-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Collapsed state */
+.shu-guide-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: background 0.15s ease;
+  font-size: 12.5px;
+  color: #334155;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shu-guide-collapsed:hover {
+  background: #f1f5f9;
+}
+
+.shu-flow-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11.5px;
+  flex-wrap: wrap;
+}
+
+/* Steps & Badges */
+.shu-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shu-step-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.shu-step-tag.step1 { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
+.shu-step-tag.step2 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.shu-step-tag.step3 { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+.shu-step-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Lapis 1 Pillars */
+.shu-lapis1-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.shu-pillar-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shu-pillar-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.shu-pillar-card.anggota {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfeff 100%);
+  border-color: #99f6e4;
+}
+
+.shu-pillar-card.pengurus {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+
+.shu-pillar-card.cadangan {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #cbd5e1;
+}
+
+.shu-pillar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shu-pillar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shu-pillar-formula {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #083344;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.shu-pillar-desc {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.shu-pillar-live {
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Lapis 2 Fraction Cards */
+.shu-lapis2-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.shu-formula-card {
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shu-formula-card.jma {
+  border-color: #99f6e4;
+  background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 40%);
+}
+
+.shu-formula-card.jua {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 40%);
+}
+
+.shu-formula-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shu-formula-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #083344;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Mathematical Formula Render Box */
+.shu-math-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.shu-math-var {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 800;
+  color: #083344;
+  font-size: 14px;
+}
+
+.shu-math-fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 4px;
+}
+
+.shu-math-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0e7490;
+  padding: 0 6px 3px;
+  line-height: 1.2;
+}
+
+.shu-math-bar {
+  width: 100%;
+  height: 1.5px;
+  background: #0891b2;
+  border-radius: 1px;
+}
+
+.shu-math-den {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  padding: 3px 6px 0;
+  line-height: 1.2;
+}
+
+.shu-math-op {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.shu-formula-details {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+.shu-formula-details li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.shu-formula-details li::before {
+  content: "•";
+  color: #0891b2;
+  font-weight: bold;
+}
+
+/* Lapis 3 PPh & Neto Flow */
+.shu-neto-card {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%);
+  border: 1px solid #bbf7d0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shu-neto-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shu-neto-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 9px 14px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  min-width: 140px;
+}
+
+.shu-neto-item.highlight {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.shu-neto-lbl {
+  font-size: 10.5px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.shu-neto-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #083344;
+  margin-top: 2px;
+}
+
+.shu-neto-val.green {
+  color: #15803d;
+}
+
+.shu-neto-val.red {
+  color: #b91c1c;
+}
+
+.shu-neto-callout {
+  font-size: 11.5px;
+  color: #166534;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1px solid #dcfce7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+/* Simulasi Box */
+.shu-simulasi-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shu-simulasi-head {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shu-simulasi-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.shu-simulasi-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #ffffff;
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shu-simulasi-card strong {
+  color: #083344;
+}
+
+.shu-simulasi-res {
+  margin-top: auto;
+  padding: 6px 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #0891b2;
+  font-size: 12px;
+}
+
+/* ========================================================
+   MIGRATION GUIDE BOX (Beautified Amber/Gold Fintech Card)
+   ======================================================== */
+.migrasi-guide-container {
+  margin-bottom: 20px;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px -2px rgba(180, 83, 9, 0.07);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.migrasi-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 13px 18px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border-bottom: 1px solid #fde68a;
+}
+
+.migrasi-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.migrasi-guide-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.migrasi-guide-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  cursor: pointer;
+  background: #fffdf5;
+  transition: background 0.15s ease;
+  font-size: 12.5px;
+  color: #92400e;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.migrasi-guide-collapsed:hover {
+  background: #fef9c3;
+}
+
+.migrasi-flow-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #78350f;
+  font-size: 11.5px;
+  flex-wrap: wrap;
+}
+
+.migrasi-guide-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.migrasi-step-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #fef08a;
+  background: #fffdfa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.migrasi-step-card:hover {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.08);
+}
+
+.migrasi-step-card.active {
+  background: #fefce8;
+  border-color: #d97706;
+  box-shadow: 0 0 0 1.5px #f59e0b;
+}
+
+.migrasi-step-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #fde68a;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.migrasi-step-card.active .migrasi-step-badge {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.migrasi-callout-box {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #bbf7d0;
+}
+
+.migrasi-callout-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #16a34a;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.migrasi-balance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #15803d;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* ========================================================
+   SAVINGS INTEREST FORMULA & GUIDE (Sukarela & Deposito)
+   ======================================================== */
+.bunga-guide-container {
+  margin: 0 0 22px;
+  border: 1px solid #dbe8ea;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px -2px rgba(8, 51, 68, 0.05);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.bunga-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 13px 18px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bunga-guide-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bunga-guide-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0891b2;
+  flex-shrink: 0;
+}
+
+.bunga-guide-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #083344;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bunga-guide-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0891b2;
+  border: 1px solid #a5f3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bunga-guide-subtitle {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.bunga-guide-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bunga-guide-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bunga-guide-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+.bunga-guide-chip.sukarela {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+
+.bunga-guide-chip.deposito {
+  background: #f0fdfa;
+  color: #0f766e;
+  border-color: #99f6e4;
+}
+
+.bunga-guide-chip.pph {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.bunga-guide-tabs {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.bunga-guide-tab-btn {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.bunga-guide-tab-btn:hover {
+  color: #083344;
+}
+
+.bunga-guide-tab-btn.active {
+  background: #ffffff;
+  color: #0891b2;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.bunga-guide-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: background 0.15s ease;
+  font-size: 12.5px;
+  color: #334155;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bunga-guide-collapsed:hover {
+  background: #f1f5f9;
+}
+
+.bunga-flow-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11.5px;
+  flex-wrap: wrap;
+}
+
+.bunga-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.bunga-card {
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bunga-card.sukarela {
+  border-color: #a5f3fc;
+  background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 40%);
+}
+
+.bunga-card.deposito {
+  border-color: #99f6e4;
+  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 40%);
+}
+
+.bunga-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bunga-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #083344;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bunga-card-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.bunga-card-badge.sukarela {
+  background: #ecfeff;
+  color: #0891b2;
+  border: 1px solid #a5f3fc;
+}
+
+.bunga-card-badge.deposito {
+  background: #f0fdfa;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
+}
+
+.bunga-math-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.bunga-math-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bunga-math-subrow {
+  font-size: 11.5px;
+  color: #475569;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 6px;
+  line-height: 1.4;
+}
+
+.bunga-math-var {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 800;
+  color: #083344;
+  font-size: 13.5px;
+}
+
+.bunga-math-fraction {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 4px;
+}
+
+.bunga-math-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0e7490;
+  padding: 0 6px 3px;
+  line-height: 1.2;
+}
+
+.bunga-math-bar {
+  width: 100%;
+  height: 1.5px;
+  background: #0891b2;
+  border-radius: 1px;
+}
+
+.bunga-math-den {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  padding: 3px 6px 0;
+  line-height: 1.2;
+}
+
+.bunga-math-op {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.bunga-notes-list {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+.bunga-notes-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.bunga-notes-list li > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.bunga-notes-list li::before {
+  content: "•";
+  color: #0891b2;
+  font-weight: bold;
+}
+
+.bunga-mini-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.bunga-mini-table {
+  width: 100%;
+  min-width: 0 !important;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  margin: 2px 0;
+  box-sizing: border-box;
+}
+
+.bunga-mini-table th,
+.bunga-mini-table td {
+  padding: 2.5px 5px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.bunga-mini-table th:first-child,
+.bunga-mini-table td:first-child {
+  padding-left: 2px;
+}
+
+.bunga-mini-table th:last-child,
+.bunga-mini-table td:last-child {
+  padding-right: 2px;
+}
+
+.bunga-mini-table th {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+  border-bottom: 1.5px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.bunga-mini-table-formula {
+  font-size: 9.5px;
+  color: #0891b2;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.bunga-mini-table-note {
+  font-size: 9px;
+  color: #0e7490;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.bunga-mini-table tfoot td {
+  border-bottom: none;
+  border-top: 1px dashed #cbd5e1;
+  padding: 3px 5px;
+  color: #0e7490;
+  font-weight: 700;
+}
+
+.bunga-tax-callout {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #f0fdfa;
+  border: 1px solid #a5f3fc;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #0e7490;
+  line-height: 1.45;
+}
+
+.bunga-simulasi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.bunga-simulasi-card {
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.bunga-simulasi-card.sukarela {
+  border-color: #a5f3fc;
+  background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 40%);
+}
+
+.bunga-simulasi-card.deposito {
+  border-color: #99f6e4;
+  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 40%);
+}
+
+.bunga-simulasi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bunga-simulasi-result {
+  margin-top: auto;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.bunga-simulasi-result.sukarela {
+  background: #ecfeff;
+  border-color: #a5f3fc;
+}
+
+.bunga-simulasi-result.deposito {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+
+
+

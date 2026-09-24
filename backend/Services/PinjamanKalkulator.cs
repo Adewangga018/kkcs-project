@@ -40,10 +40,18 @@ public static class PinjamanKalkulator
             jasaPerBulan * tenorBulan);
     }
 
+    // Tanggal potong gaji rutin koperasi (dipakai juga oleh Simpanan Wajib) — pinjaman yang disetujui
+    // sebelum tanggal ini masih kena potong gaji bulan berjalan, jadi angsuran ke-1 jatuh tempo bulan
+    // yang sama; kalau disetujui pada/tandelah tanggal ini, angsuran ke-1 baru jatuh tempo bulan depan.
+    private const int TanggalPotongGaji = 25;
+
     public static List<AngsuranPinjaman> BuatJadwal(Pinjaman pinjaman)
     {
         var ringkasan = Hitung(pinjaman.Pokok, pinjaman.TenorBulan);
         var jadwal = new List<AngsuranPinjaman>(pinjaman.TenorBulan);
+        var bulanDasar = pinjaman.TanggalMulai.Day < TanggalPotongGaji
+            ? pinjaman.TanggalMulai
+            : pinjaman.TanggalMulai.AddMonths(1);
         decimal pokokTerjadwal = 0;
         for (var ke = 1; ke <= pinjaman.TenorBulan; ke++)
         {
@@ -55,7 +63,7 @@ public static class PinjamanKalkulator
             jadwal.Add(new AngsuranPinjaman
             {
                 AngsuranKe = ke,
-                JatuhTempo = pinjaman.TanggalMulai.AddMonths(ke),
+                JatuhTempo = bulanDasar.AddMonths(ke - 1),
                 Pokok = pokok,
                 Jasa = ringkasan.JasaPerBulan,
                 Total = pokok + ringkasan.JasaPerBulan,

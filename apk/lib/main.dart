@@ -2760,34 +2760,35 @@ class _DetailPinjamanAktifPageState extends State<DetailPinjamanAktifPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: KkcsColors.primaryLight,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(Icons.receipt_long_rounded, size: 18, color: KkcsColors.primary),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            loan.nomorPinjaman,
-                                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: KkcsColors.primaryDeep),
-                                          ),
-                                          Text(
-                                            'Tenor ${loan.tenorBulan} bulan',
-                                            style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: KkcsColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.receipt_long_rounded, size: 18, color: KkcsColors.primary),
                                   ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          loan.nomorPinjaman,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5, color: KkcsColors.primaryDeep),
+                                        ),
+                                        Text(
+                                          'Tenor ${loan.tenorBulan} bulan',
+                                          style: const TextStyle(fontSize: 11.5, color: KkcsColors.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   _StatusBadge(status: loan.status),
                                 ],
                               ),
@@ -3129,12 +3130,17 @@ class _DetailCicilanPageState extends State<DetailCicilanPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    loan.nomorPinjaman,
-                                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.primaryDeep),
+                                  Expanded(
+                                    child: Text(
+                                      loan.nomorPinjaman,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: KkcsColors.primaryDeep),
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(

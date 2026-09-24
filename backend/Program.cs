@@ -1085,6 +1085,33 @@ app.MapDelete("/api/admin/akuntansi/jurnal/{id:int}", async (int id, ClaimsPrinc
     return Results.Ok(new { message = "Jurnal dihapus." });
 }).RequireAuthorization("Pengurus");
 
+// Rincian ringkas 1 akun (dipakai pop-up klik kode akun di Neraca) — sengaja cuma info penting:
+// saldo per tanggal terpilih + beberapa transaksi terbaru, bukan buku besar lengkap.
+app.MapGet("/api/admin/akuntansi/akun/{kode}/rincian", async (string kode, DateTime? dari, DateTime? sampai, KkcsDbContext db) =>
+{
+    var akun = await db.AkunAkuntansi.AsNoTracking().FirstOrDefaultAsync(a => a.Kode == kode);
+    if (akun is null) return Results.NotFound(new { message = $"Akun dengan kode \"{kode}\" tidak ditemukan." });
+
+    var akhir = (sampai ?? DateTime.UtcNow).Date.AddDays(1).AddTicks(-1);
+    var barisQuery = db.JurnalBaris.AsNoTracking().Include(b => b.JurnalEntri)
+        .Where(b => b.AkunId == akun.Id && b.JurnalEntri.Tanggal <= akhir);
+    // Untuk akun Pendapatan/Beban, "dari" membatasi ke periode Hasil Usaha yang sedang dilihat (bukan
+    // saldo kumulatif sejak akun dibuat) — Aset/Liabilitas/Ekuitas di Neraca tidak mengirim "dari".
+    if (dari is not null) barisQuery = barisQuery.Where(b => b.JurnalEntri.Tanggal >= dari.Value.Date);
+
+    var totalDebit = await barisQuery.SumAsync(b => (decimal?)b.Debit) ?? 0;
+    var totalKredit = await barisQuery.SumAsync(b => (decimal?)b.Kredit) ?? 0;
+    var saldo = akun.SaldoNormal == "Debit" ? totalDebit - totalKredit : totalKredit - totalDebit;
+    var totalTransaksi = await barisQuery.CountAsync();
+
+    var terbaru = await barisQuery.OrderByDescending(b => b.JurnalEntri.Tanggal).ThenByDescending(b => b.JurnalEntriId)
+        .Take(25)
+        .Select(b => new { b.JurnalEntri.Tanggal, b.JurnalEntri.NomorJurnal, b.JurnalEntri.Keterangan, b.Debit, b.Kredit })
+        .ToListAsync();
+
+    return Results.Ok(new { akun.Kode, akun.Nama, akun.Tipe, saldo, totalTransaksi, terbaru });
+}).RequireAuthorization("Pengurus");
+
 app.MapGet("/api/admin/akuntansi/neraca", async (DateTime? tanggal, KkcsDbContext db) =>
     Results.Ok(await AkuntansiReportService.HitungNeracaAsync(db, tanggal ?? DateTime.UtcNow)))
     .RequireAuthorization("Pengurus");
@@ -1505,12 +1532,14 @@ app.MapPost("/api/admin/migrasi/jurnal-harian/preview", async (IFormFile file, K
     if (file.Length == 0) return Results.BadRequest(new { message = "File kosong." });
     var akunList = await db.AkunAkuntansi.AsNoTracking().Where(a => a.Aktif).ToListAsync();
     var akunByKode = akunList.ToDictionary(a => a.Kode);
+    var anggotaByNik = await db.Pengguna.AsNoTracking().Where(p => p.StatusKeanggotaan == "Aktif")
+        .ToDictionaryAsync(p => p.NomorIndukKaryawan);
 
     List<MigrasiService.JurnalHarianBarisParsed> baris;
     try
     {
         await using var stream = file.OpenReadStream();
-        baris = MigrasiService.ParseJurnalHarian(stream, akunByKode);
+        baris = MigrasiService.ParseJurnalHarian(stream, akunByKode, anggotaByNik);
     }
     catch (Exception ex) { return Results.BadRequest(new { message = $"Gagal membaca file Excel: {ex.Message}" }); }
 
@@ -1527,7 +1556,7 @@ app.MapPost("/api/admin/migrasi/jurnal-harian/preview", async (IFormFile file, K
             noBukti = g.Key,
             tanggal = g.Select(b => b.Tanggal).FirstOrDefault(t => t is not null),
             keterangan = g.Select(b => b.Keterangan).FirstOrDefault(k => !string.IsNullOrWhiteSpace(k)),
-            baris = g.Select(b => new { b.Baris, b.KodeAkun, b.NamaAkun, b.Debit, b.Kredit, b.Error }).ToList(),
+            baris = g.Select(b => new { b.Baris, b.KodeAkun, b.NamaAkun, b.Debit, b.Kredit, b.Nik, b.PenggunaId, b.EfekSaldo, b.Error }).ToList(),
             totalDebit,
             totalKredit,
             balanced
@@ -1544,8 +1573,10 @@ app.MapPost("/api/admin/migrasi/jurnal-harian/komit", async (JurnalHarianKomitRe
 
     var subject = principal.FindFirstValue(ClaimTypes.NameIdentifier);
     int? dicatatOlehId = int.TryParse(subject, out var pid) ? pid : null;
+    var jenisSimpananByKode = await db.JenisSimpanan.ToDictionaryAsync(j => j.Kode);
 
     var berhasil = 0;
+    var efekTerapkan = 0;
     try
     {
         foreach (var v in request.Voucher)
@@ -1553,6 +1584,36 @@ app.MapPost("/api/admin/migrasi/jurnal-harian/komit", async (JurnalHarianKomitRe
             var barisJurnal = v.Baris.Select(b => new BarisJurnal(b.KodeAkun, b.Debit, b.Kredit)).ToArray();
             await jurnalService.CatatAsync(v.Tanggal, v.Keterangan, "Manual", "Migrasi", v.NoBukti, dicatatOlehId, barisJurnal);
             berhasil++;
+
+            foreach (var b in v.Baris)
+            {
+                if (b.PenggunaId is null || string.IsNullOrWhiteSpace(b.EfekSaldo)) continue;
+                var nominal = b.Debit > 0 ? b.Debit : b.Kredit;
+                if (nominal <= 0) continue;
+
+                switch (b.EfekSaldo)
+                {
+                    case "SetorPokok":
+                        await MigrasiService.TerapkanSetorAsync(db, jenisSimpananByKode, "POKOK", b.PenggunaId.Value, nominal, v.Tanggal, v.Keterangan);
+                        break;
+                    case "SetorWajib":
+                        await MigrasiService.TerapkanSetorAsync(db, jenisSimpananByKode, "WAJIB", b.PenggunaId.Value, nominal, v.Tanggal, v.Keterangan);
+                        break;
+                    case "SetorSukarela":
+                        await MigrasiService.TerapkanSetorAsync(db, jenisSimpananByKode, "SUKARELA", b.PenggunaId.Value, nominal, v.Tanggal, v.Keterangan);
+                        break;
+                    case "TarikWajib":
+                        await MigrasiService.TerapkanTarikAsync(db, jenisSimpananByKode, "WAJIB", b.PenggunaId.Value, nominal, v.Tanggal, v.Keterangan);
+                        break;
+                    case "TarikSukarela":
+                        await MigrasiService.TerapkanTarikAsync(db, jenisSimpananByKode, "SUKARELA", b.PenggunaId.Value, nominal, v.Tanggal, v.Keterangan);
+                        break;
+                    case "AngsuranPinjaman":
+                        await MigrasiService.TerapkanAngsuranAsync(db, b.PenggunaId.Value, nominal, v.Tanggal);
+                        break;
+                }
+                efekTerapkan++;
+            }
         }
         await db.SaveChangesAsync();
     }
@@ -1562,9 +1623,9 @@ app.MapPost("/api/admin/migrasi/jurnal-harian/komit", async (JurnalHarianKomitRe
     }
 
     await audit.CatatAsync(principal, "Migrasi", "ImportJurnalHarian",
-        $"Import Jurnal Harian: {request.Voucher.Count} voucher/transaksi.", null,
-        new { jumlahVoucher = request.Voucher.Count });
-    return Results.Ok(new { message = $"{request.Voucher.Count} voucher transaksi berhasil diimpor sebagai jurnal terpisah.", jumlahVoucher = request.Voucher.Count });
+        $"Import Jurnal Harian: {request.Voucher.Count} voucher/transaksi, {efekTerapkan} efek saldo anggota diterapkan.", null,
+        new { jumlahVoucher = request.Voucher.Count, jumlahEfek = efekTerapkan });
+    return Results.Ok(new { message = $"{request.Voucher.Count} voucher transaksi berhasil diimpor ({efekTerapkan} baris menggerakkan saldo anggota).", jumlahVoucher = request.Voucher.Count, jumlahEfek = efekTerapkan });
 }).RequireAuthorization("Pengurus");
 
 // ═══ Admin: Kalkulator SHU (Sisa Hasil Usaha) ═══════════════════════════════
@@ -3453,7 +3514,7 @@ record PinjamanMigrasiKomitRequest(DateTime Tanggal, List<PinjamanMigrasiBarisIn
 record TagihanKreditMigrasiBarisInput(int PenggunaId, string Keterangan, decimal Total, int TenorBulan, DateTime TanggalMulai, int AngsuranSudahDibayar, decimal? SisaPokokOverride);
 record TagihanKreditMigrasiKomitRequest(DateTime Tanggal, List<TagihanKreditMigrasiBarisInput> Baris);
 
-record JurnalHarianBarisInput(string KodeAkun, decimal Debit, decimal Kredit);
+record JurnalHarianBarisInput(string KodeAkun, decimal Debit, decimal Kredit, int? PenggunaId, string? EfekSaldo);
 record JurnalHarianVoucherInput(string NoBukti, DateTime Tanggal, string Keterangan, List<JurnalHarianBarisInput> Baris);
 record JurnalHarianKomitRequest(List<JurnalHarianVoucherInput> Voucher);
 

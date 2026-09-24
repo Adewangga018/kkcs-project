@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using Microsoft.EntityFrameworkCore;
 
 /// <summary>Satu baris hasil parsing template Excel "Neraca Awal" (saldo awal per akun, sebelum divalidasi balance).</summary>
 public record NeracaAwalBarisParsed(int Baris, string KodeAkun, string? NamaAkun, decimal Debit, decimal Kredit, string? Error);
@@ -359,6 +360,10 @@ public static class MigrasiService
     }
 
     // ═══ Import Jurnal Harian (banyak transaksi bertanggal beda-beda, dikelompokkan per No Bukti) ═══
+    // Efek saldo per-anggota yang boleh dipicu oleh satu baris jurnal — dijaga terpisah dari sisi akuntansi
+    // (Debit/Kredit) supaya baris tetap valid meski efek anggotanya kosong (baris umum/non-anggota).
+    public static readonly string[] EfekSaldoValid = ["SetorPokok", "SetorWajib", "TarikWajib", "SetorSukarela", "TarikSukarela", "AngsuranPinjaman"];
+
     public static byte[] BuatTemplateJurnalHarian(List<AkunAkuntansi> akunAktif)
     {
         using var wb = new XLWorkbook();
@@ -369,7 +374,9 @@ public static class MigrasiService
         ws.Cell(1, 4).Value = "Keterangan";
         ws.Cell(1, 5).Value = "Debit";
         ws.Cell(1, 6).Value = "Kredit";
-        var header = ws.Range(1, 1, 1, 6);
+        ws.Cell(1, 7).Value = "NIK Anggota (opsional)";
+        ws.Cell(1, 8).Value = "Efek Saldo Anggota (opsional)";
+        var header = ws.Range(1, 1, 1, 8);
         header.Style.Font.Bold = true;
         header.Style.Fill.BackgroundColor = XLColor.FromHtml("#0891b2");
         header.Style.Font.FontColor = XLColor.White;
@@ -377,7 +384,7 @@ public static class MigrasiService
         ws.Column(5).Style.NumberFormat.Format = "#,##0";
         ws.Column(6).Style.NumberFormat.Format = "#,##0";
         ws.SheetView.FreezeRows(1);
-        ws.Columns(1, 6).AdjustToContents();
+        ws.Columns(1, 8).AdjustToContents();
 
         var ws2 = wb.Worksheets.Add("Referensi Kode Akun");
         ws2.Cell(1, 1).Value = "Kode Akun";
@@ -394,14 +401,39 @@ public static class MigrasiService
         }
         ws2.Columns(1, 3).AdjustToContents();
 
+        var ws3 = wb.Worksheets.Add("Referensi Efek Saldo");
+        ws3.Cell(1, 1).Value = "Nilai Kolom \"Efek Saldo Anggota\"";
+        ws3.Cell(1, 2).Value = "Yang Terjadi ke Saldo Anggota";
+        ws3.Range(1, 1, 1, 2).Style.Font.Bold = true;
+        var catatan = new (string, string)[]
+        {
+            ("SetorPokok", "Nominal baris ini (Debit/Kredit, mana yang terisi) ditambahkan ke Simpanan Pokok NIK terkait."),
+            ("SetorWajib", "Ditambahkan ke Simpanan Wajib NIK terkait."),
+            ("TarikWajib", "Dikurangkan dari Simpanan Wajib NIK terkait (saldo harus cukup)."),
+            ("SetorSukarela", "Ditambahkan ke Simpanan Sukarela NIK terkait."),
+            ("TarikSukarela", "Dikurangkan dari Simpanan Sukarela NIK terkait (saldo harus cukup)."),
+            ("AngsuranPinjaman", "Mengurangi Sisa Pokok pinjaman aktif NIK terkait (pinjaman aktif TERLAMA dipakai otomatis) & menandai angsuran berikutnya lunas."),
+            ("(kosong)", "Baris murni akuntansi, tidak menyentuh saldo anggota mana pun (default)."),
+        };
+        var r3 = 2;
+        foreach (var (nilai, ket) in catatan)
+        {
+            ws3.Cell(r3, 1).Value = nilai;
+            ws3.Cell(r3, 2).Value = ket;
+            r3++;
+        }
+        ws3.Columns(1, 2).AdjustToContents();
+
         using var ms = new MemoryStream();
         wb.SaveAs(ms);
         return ms.ToArray();
     }
 
-    public record JurnalHarianBarisParsed(int Baris, string NoBukti, DateTime? Tanggal, string KodeAkun, string? NamaAkun, string? Keterangan, decimal Debit, decimal Kredit, string? Error);
+    public record JurnalHarianBarisParsed(
+        int Baris, string NoBukti, DateTime? Tanggal, string KodeAkun, string? NamaAkun, string? Keterangan,
+        decimal Debit, decimal Kredit, string? Nik, int? PenggunaId, string? EfekSaldo, string? Error);
 
-    public static List<JurnalHarianBarisParsed> ParseJurnalHarian(Stream fileStream, Dictionary<string, AkunAkuntansi> akunByKode)
+    public static List<JurnalHarianBarisParsed> ParseJurnalHarian(Stream fileStream, Dictionary<string, AkunAkuntansi> akunByKode, Dictionary<string, Pengguna> anggotaByNik)
     {
         var hasil = new List<JurnalHarianBarisParsed>();
         using var wb = new XLWorkbook(fileStream);
@@ -444,8 +476,100 @@ public static class MigrasiService
                 if (akun is null) error = $"Kode akun \"{kode}\" tidak ditemukan di bagan akun.";
             }
 
-            hasil.Add(new JurnalHarianBarisParsed(r, noBukti, tanggal, kode, akun?.Nama, keterangan, debit, kredit, error));
+            var nik = ws.Cell(r, 7).GetString().Trim();
+            var efek = ws.Cell(r, 8).GetString().Trim();
+            int? penggunaId = null;
+            if (error is null && !string.IsNullOrWhiteSpace(efek))
+            {
+                if (!EfekSaldoValid.Contains(efek))
+                    error = $"Efek Saldo Anggota \"{efek}\" tidak dikenal — pakai salah satu dari: {string.Join(", ", EfekSaldoValid)}.";
+                else if (string.IsNullOrWhiteSpace(nik))
+                    error = "NIK Anggota wajib diisi kalau Efek Saldo Anggota diisi.";
+                else
+                {
+                    var anggota = anggotaByNik.GetValueOrDefault(nik);
+                    if (anggota is null) error = $"NIK \"{nik}\" tidak ditemukan di daftar anggota aktif.";
+                    else penggunaId = anggota.Id;
+                }
+            }
+
+            hasil.Add(new JurnalHarianBarisParsed(r, noBukti, tanggal, kode, akun?.Nama, keterangan, debit, kredit,
+                string.IsNullOrWhiteSpace(nik) ? null : nik, penggunaId, string.IsNullOrWhiteSpace(efek) ? null : efek, error));
         }
         return hasil;
+    }
+
+    // ═══ Efek saldo per-anggota dari baris Jurnal Harian (Setor/Tarik Simpanan, Angsuran Pinjaman) ═══
+    public static async Task TerapkanSetorAsync(KkcsDbContext db, Dictionary<string, JenisSimpanan> jenisByKode, string kodeJenis, int penggunaId, decimal nominal, DateTime tanggal, string keterangan)
+    {
+        var jenis = jenisByKode.GetValueOrDefault(kodeJenis) ?? throw new InvalidOperationException($"Jenis Simpanan {kodeJenis} belum ada di sistem.");
+        var simpanan = await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
+        if (simpanan is null)
+        {
+            var pengguna = await db.Pengguna.FirstOrDefaultAsync(p => p.Id == penggunaId)
+                ?? throw new InvalidOperationException($"Anggota (Id {penggunaId}) tidak ditemukan.");
+            simpanan = new Simpanan
+            {
+                PenggunaId = penggunaId,
+                JenisSimpananId = jenis.Id,
+                NomorRekening = $"{pengguna.NomorIndukKaryawan}-{kodeJenis}",
+                Saldo = 0,
+                TanggalBuka = tanggal,
+                Aktif = true
+            };
+            db.Simpanan.Add(simpanan);
+        }
+        simpanan.Saldo += nominal;
+        db.MutasiSimpanan.Add(new MutasiSimpanan
+        {
+            Simpanan = simpanan,
+            Jenis = "Setor",
+            Nominal = nominal,
+            SaldoSetelah = simpanan.Saldo,
+            Keterangan = keterangan,
+            TanggalTransaksi = tanggal
+        });
+    }
+
+    public static async Task TerapkanTarikAsync(KkcsDbContext db, Dictionary<string, JenisSimpanan> jenisByKode, string kodeJenis, int penggunaId, decimal nominal, DateTime tanggal, string keterangan)
+    {
+        var jenis = jenisByKode.GetValueOrDefault(kodeJenis) ?? throw new InvalidOperationException($"Jenis Simpanan {kodeJenis} belum ada di sistem.");
+        var simpanan = await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
+        if (simpanan is null || simpanan.Saldo < nominal)
+            throw new InvalidOperationException($"Saldo {kodeJenis} anggota (Id {penggunaId}) tidak cukup untuk penarikan {nominal:N0}.");
+        simpanan.Saldo -= nominal;
+        db.MutasiSimpanan.Add(new MutasiSimpanan
+        {
+            Simpanan = simpanan,
+            Jenis = "Tarik",
+            Nominal = nominal,
+            SaldoSetelah = simpanan.Saldo,
+            Keterangan = keterangan,
+            TanggalTransaksi = tanggal
+        });
+    }
+
+    public static async Task TerapkanAngsuranAsync(KkcsDbContext db, int penggunaId, decimal nominal, DateTime tanggal)
+    {
+        var pinjaman = await db.Pinjaman.Include(p => p.Angsuran)
+            .Where(p => p.PenggunaId == penggunaId && p.Status == "Aktif")
+            .OrderBy(p => p.TanggalMulai)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"Anggota (Id {penggunaId}) tidak punya pinjaman aktif untuk diangsur.");
+
+        pinjaman.SisaPokok = Math.Max(0, pinjaman.SisaPokok - nominal);
+        pinjaman.AngsuranTerbayar += 1;
+        var angsuran = pinjaman.Angsuran.FirstOrDefault(a => a.AngsuranKe == pinjaman.AngsuranTerbayar);
+        if (angsuran is not null)
+        {
+            angsuran.Status = "Dibayar";
+            angsuran.JumlahDibayar = nominal;
+            angsuran.DibayarPada = tanggal;
+        }
+        if (pinjaman.SisaPokok <= 0)
+        {
+            pinjaman.Status = "Lunas";
+            pinjaman.LunasPada = tanggal;
+        }
     }
 }

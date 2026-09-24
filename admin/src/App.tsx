@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
-import { Activity, ArrowRight, BadgeCheck, Banknote, BookOpen, Calculator, Calendar, Check, CheckCircle2, ChevronRight, Clock, Copy, Database, Download, Edit, ExternalLink, Eye, EyeOff, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, Info, KeyRound, LayoutDashboard, Lightbulb, LogOut, Mail, MapPin, Menu, Phone, PiggyBank, PlusCircle, Receipt, RefreshCw, Scale, Search, Send, ShieldCheck, Store, Trash2, TrendingUp, Upload, UserCheck, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
+import { Activity, ArrowRight, BadgeCheck, Banknote, BookOpen, Calculator, Calendar, Check, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Clock, Copy, Database, Download, Edit, ExternalLink, Eye, EyeOff, FileSpreadsheet, FileText, Fingerprint, HandCoins, HelpCircle, Info, KeyRound, Layers, LayoutDashboard, Lightbulb, LogOut, Mail, MapPin, Menu, Phone, PiggyBank, PlusCircle, Receipt, RefreshCw, Scale, Search, Send, ShieldCheck, Store, Trash2, TrendingUp, Upload, UserCheck, UserCog, UserPlus, Users, Vote, Wallet, X, Zap } from 'lucide-react'
 import './App.css'
 import logoKkcs from './assets/logo-kkcs.png'
 
@@ -2203,7 +2203,7 @@ type PinjamanMigrasiBaris = { baris: number; nik: string; nama: string | null; p
 type PinjamanMigrasiPreview = { baris: PinjamanMigrasiBaris[]; totalSisaPokok: number; jumlahValid: number; jumlahError: number }
 type TagihanKreditMigrasiBaris = { baris: number; nik: string; nama: string | null; penggunaId: number | null; keterangan: string; total: number; tenorBulan: number; tanggalMulai: string | null; angsuranSudahDibayar: number; sisaTagihan: number; error: string | null }
 type TagihanKreditMigrasiPreview = { baris: TagihanKreditMigrasiBaris[]; totalSisaTagihan: number; jumlahValid: number; jumlahError: number }
-type JurnalHarianBaris = { baris: number; kodeAkun: string; namaAkun: string | null; debit: number; kredit: number; error: string | null }
+type JurnalHarianBaris = { baris: number; kodeAkun: string; namaAkun: string | null; debit: number; kredit: number; nik: string | null; penggunaId: number | null; efekSaldo: string | null; error: string | null }
 type JurnalHarianVoucher = { noBukti: string; tanggal: string | null; keterangan: string | null; baris: JurnalHarianBaris[]; totalDebit: number; totalKredit: number; balanced: boolean }
 type JurnalHarianPreview = { voucher: JurnalHarianVoucher[]; jumlahValid: number; jumlahError: number; totalVoucher: number }
 
@@ -2218,13 +2218,178 @@ async function unduhTemplate(token: string, url: string, namaFile: string, onExp
   URL.revokeObjectURL(objectUrl)
 }
 
+function MigrasiGuideBox({
+  currentTab,
+  onSelectTab,
+}: {
+  currentTab: 'neraca' | 'simpanan' | 'pinjaman' | 'tagihan' | 'jurnal'
+  onSelectTab: (tab: 'neraca' | 'simpanan' | 'pinjaman' | 'tagihan' | 'jurnal') => void
+}) {
+  const [isOpen, setIsOpen] = useState(true)
+
+  const steps = [
+    {
+      id: 'neraca' as const,
+      num: '1',
+      title: 'Neraca Awal',
+      akun: 'Kas, Bank, Utang, Cadangan',
+      desc: 'Saldo buku besar per tanggal cutover sebelum memasukkan rincian anggota.',
+    },
+    {
+      id: 'simpanan' as const,
+      num: '2',
+      title: 'Simpanan Pokok & Wajib',
+      akun: 'Saldo Pokok & Wajib per NIK',
+      desc: 'Saldo simpanan ekuitas tiap anggota aktif yang dipindahkan dari buku lama.',
+    },
+    {
+      id: 'pinjaman' as const,
+      num: '3',
+      title: 'Pinjaman Aktif',
+      akun: 'Sisa Pokok & Jadwal Angsuran',
+      desc: 'Daftar pinjaman yang masih aktif berjalan beserta sisa pokok pinjamannya.',
+    },
+    {
+      id: 'tagihan' as const,
+      num: '4',
+      title: 'Tagihan Kredit',
+      akun: 'Piutang Belanja Katalog',
+      desc: 'Sisa cicilan kredit produk anggota yang masih harus ditagih ke depan.',
+    },
+    {
+      id: 'jurnal' as const,
+      num: '5',
+      title: 'Jurnal Harian',
+      akun: 'Transaksi Pasca Cutover',
+      desc: 'Mutasi transaksi operasional harian yang terjadi selama masa transisi.',
+    },
+  ]
+
+  if (!isOpen) {
+    return (
+      <div className="migrasi-guide-container">
+        <div className="migrasi-guide-collapsed" onClick={() => setIsOpen(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="migrasi-icon-badge" style={{ width: 26, height: 26 }}>
+              <Lightbulb size={14} />
+            </div>
+            <strong style={{ color: '#92400e', fontSize: 12.5 }}>Alur Rekomendasi Migrasi:</strong>
+            <span className="migrasi-flow-inline">
+              1. Neraca Awal <ChevronRight size={12} /> 2. Simpanan <ChevronRight size={12} /> 3. Pinjaman <ChevronRight size={12} /> 4. Tagihan Kredit <ChevronRight size={12} /> 5. Jurnal Harian · <strong>Akun Kliring: 3-3990 (Target Rp 0)</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="toggle-button"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, fontSize: 11, padding: '0 10px', background: '#fffbeb', borderColor: '#fde68a', color: '#b45309' }}
+            onClick={(e) => { e.stopPropagation(); setIsOpen(true) }}
+          >
+            <ChevronDown size={13} /> Buka Panduan
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="migrasi-guide-container">
+      <div className="migrasi-guide-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="migrasi-icon-badge">
+            <Lightbulb size={18} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#78350f' }}>
+                Panduan Urutan Migrasi &amp; Rekonsiliasi Saldo Awal
+              </h3>
+              <span className="migrasi-guide-pill">5 Langkah Cutover</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: '#92400e', marginTop: 2 }}>
+              Ikuti tahapan berurutan agar posting saldo awal klop dan akun kliring seimbang (Rp 0)
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="toggle-button"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, fontSize: 11, padding: '0 8px', background: '#ffffff', borderColor: '#fde68a', color: '#92400e' }}
+          onClick={() => setIsOpen(false)}
+          title="Sembunyikan panduan"
+        >
+          <ChevronUp size={13} /> Perkecil
+        </button>
+      </div>
+
+      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Steps Grid */}
+        <div className="migrasi-guide-steps">
+          {steps.map((s) => {
+            const isActive = currentTab === s.id
+            return (
+              <div
+                key={s.id}
+                className={`migrasi-step-card ${isActive ? 'active' : ''}`}
+                onClick={() => onSelectTab(s.id)}
+                title={`Klik untuk membuka importer ${s.title}`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="migrasi-step-badge">{s.num}</div>
+                  {isActive && (
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: 4 }}>
+                      Aktif
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: isActive ? '#78350f' : '#92400e', marginTop: 4 }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#b45309', background: 'rgba(254, 243, 199, 0.7)', padding: '2px 5px', borderRadius: 4, width: 'fit-content' }}>
+                  {s.akun}
+                </div>
+                <div style={{ fontSize: 11, color: '#78350f', lineHeight: 1.4, marginTop: 2 }}>
+                  {s.desc}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Callout Kliring */}
+        <div className="migrasi-callout-box">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div className="migrasi-callout-icon">
+              <Scale size={16} />
+            </div>
+            <div style={{ flex: 1, fontSize: 12, lineHeight: 1.5, color: '#166534' }}>
+              <div style={{ fontWeight: 800, fontSize: 12.5, color: '#14532d', marginBottom: 2 }}>
+                Kunci Validasi: Akun Kliring 3-3990 ("Kliring Migrasi Data Lama")
+              </div>
+              <div>
+                Importer <strong>Tahap 1 s.d. 4</strong> otomatis membukukan transaksi tandingan ke akun kliring <strong>3-3990</strong>. Begitu seluruh tahapan selesai diimport, periksa neraca di menu <strong>Akuntansi ▸ Neraca</strong>.
+              </div>
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span className="migrasi-balance-pill">
+                  <CheckCircle2 size={13} /> Target Saldo Akun 3-3990 = Rp 0 (Seimbang)
+                </span>
+                <span style={{ fontSize: 11, color: '#15803d' }}>
+                  Jika saldo sudah Rp 0, seluruh saldo awal dari sistem lama telah 100% klop dan siap digunakan secara resmi.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MigrasiView({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [tab, setTab] = useState<'neraca' | 'simpanan' | 'pinjaman' | 'tagihan' | 'jurnal'>('neraca')
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Migrasi Data Lama</h2><p>Import saldo awal dari sistem lama lewat template Excel — otomatis tercatat sebagai jurnal & tampil di Neraca Saldo.</p></div></section>
-    <div className="alert" style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#92400e', marginBottom: 18 }}>
-      <Lightbulb size={17} /> Urutan yang disarankan: <strong>1) Neraca Awal</strong> (Kas, Bank, Utang, Cadangan, dst) → <strong>2) Simpanan Pokok &amp; Wajib</strong> → <strong>3) Pinjaman Aktif</strong> → <strong>4) Tagihan Kredit</strong> → <strong>5) Jurnal Harian</strong> (transaksi tanggal berjalan setelah cutover). Importer 1-4 posting ke akun kliring <strong>3-3990 "Kliring Migrasi Data Lama"</strong> — cek saldo akun itu di Akuntansi ▸ Neraca Saldo setelah semua selesai; kalau sudah 0, migrasi Anda sudah cocok semua.
-    </div>
+    <MigrasiGuideBox currentTab={tab} onSelectTab={setTab} />
     <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
       <button className={`toggle-button ${tab === 'neraca' ? 'activate' : ''}`} onClick={() => setTab('neraca')}>1. Neraca Awal</button>
       <button className={`toggle-button ${tab === 'simpanan' ? 'activate' : ''}`} onClick={() => setTab('simpanan')}>2. Simpanan Pokok &amp; Wajib</button>
@@ -2567,7 +2732,7 @@ function JurnalHarianMigrasiImporter({ token, onExpired }: { token: string; onEx
       const body = {
         voucher: preview.voucher.filter((v) => v.balanced).map((v) => ({
           noBukti: v.noBukti, tanggal: v.tanggal, keterangan: v.keterangan ?? v.noBukti,
-          baris: v.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit }))
+          baris: v.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit, penggunaId: b.penggunaId, efekSaldo: b.efekSaldo }))
         }))
       }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/jurnal-harian/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -2580,7 +2745,7 @@ function JurnalHarianMigrasiImporter({ token, onExpired }: { token: string; onEx
   }
 
   return <section className="table-panel">
-    <div className="panel-heading"><div><h2>Import Jurnal Harian</h2><p>Banyak transaksi bertanggal beda-beda, dikelompokkan per No Bukti — tiap voucher jadi 1 jurnal terpisah sesuai tanggal aslinya.</p></div>
+    <div className="panel-heading"><div><h2>Import Jurnal Harian</h2><p>Banyak transaksi bertanggal beda-beda, dikelompokkan per No Bukti — tiap voucher jadi 1 jurnal terpisah sesuai tanggal aslinya. Isi kolom NIK Anggota + Efek Saldo (opsional) supaya baris itu juga menggerakkan Simpanan/Pinjaman anggota terkait — cocok dipakai berulang tiap bulan.</p></div>
       <button className="toggle-button" onClick={() => void unduhTemplate(token, '/api/admin/migrasi/jurnal-harian/template', 'Template Jurnal Harian KKCS.xlsx', onExpired)}><Download size={14} /> Download Template</button>
     </div>
     {error && <div className="alert error" style={{ margin: '0 25px 16px' }}><X size={17} />{error}</div>}
@@ -2605,11 +2770,12 @@ function JurnalHarianMigrasiImporter({ token, onExpired }: { token: string; onEx
             <td>{v.balanced ? <span className="status-pill active"><i />Balance</span> : <span className="status-pill inactive"><i />Error</span>}</td>
           </tr>
           {expanded === v.noBukti && <tr><td colSpan={6} style={{ background: '#f8fafc', padding: '10px 20px' }}>
-            <table style={{ width: '100%', fontSize: 12 }}><thead><tr><th style={{ textAlign: 'left' }}>Kode Akun</th><th style={{ textAlign: 'left' }}>Nama Akun</th><th className="align-right">Debit</th><th className="align-right">Kredit</th><th style={{ textAlign: 'left' }}>Error</th></tr></thead><tbody>
+            <table style={{ width: '100%', fontSize: 12 }}><thead><tr><th style={{ textAlign: 'left' }}>Kode Akun</th><th style={{ textAlign: 'left' }}>Nama Akun</th><th className="align-right">Debit</th><th className="align-right">Kredit</th><th style={{ textAlign: 'left' }}>Efek Anggota</th><th style={{ textAlign: 'left' }}>Error</th></tr></thead><tbody>
               {v.baris.map((b) => <tr key={b.baris}>
                 <td>{b.kodeAkun}</td><td>{b.namaAkun ?? '—'}</td>
                 <td className="align-right">{b.debit > 0 ? rupiah(b.debit) : '—'}</td>
                 <td className="align-right">{b.kredit > 0 ? rupiah(b.kredit) : '—'}</td>
+                <td>{b.efekSaldo ? <span className="role-pill mini tosca">{b.efekSaldo} · {b.nik}</span> : '—'}</td>
                 <td>{b.error && <span style={{ color: '#dc2626' }}>{b.error}</span>}</td>
               </tr>)}
             </tbody></table>
@@ -2821,6 +2987,377 @@ function DbAuditLogPanel({ token, onExpired }: { token: string; onExpired: () =>
   )
 }
 
+function LoanDetailModal({ loan, onClose }: { loan: Loan; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+
+  const progressPercent = Math.min(100, Math.round((loan.angsuranTerbayar / Math.max(1, loan.tenorBulan)) * 100))
+  const totalJasaEstimasi = loan.jasaPerBulan * loan.tenorBulan
+  const totalKewajibanPenuh = loan.angsuranPerBulan * loan.tenorBulan
+
+  const totalPokokDibayar = loan.angsuran.filter((r) => r.status === 'Dibayar').reduce((sum, r) => sum + r.pokok, 0)
+  const totalJasaDibayar = loan.angsuran.filter((r) => r.status === 'Dibayar').reduce((sum, r) => sum + r.jasa, 0)
+  const totalKasDiterima = loan.angsuran.filter((r) => r.status === 'Dibayar').reduce((sum, r) => sum + (r.jumlahDibayar ?? r.total), 0)
+
+  const copyNomor = () => {
+    void navigator.clipboard.writeText(loan.nomorPinjaman)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card wide" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 880 }}>
+        <div className="modal-profile-header">
+          <div className="modal-profile-info">
+            <span
+              className="modal-avatar"
+              style={{
+                background: loan.status === 'Lunas'
+                  ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+                  : 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+              }}
+            >
+              {loan.namaAnggota.charAt(0).toUpperCase()}
+            </span>
+            <div className="modal-profile-text">
+              <h2>{loan.namaAnggota}</h2>
+              <div className="modal-chips-row">
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    background: '#f1f5f9',
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Wallet size={12} style={{ color: '#0891b2' }} /> {loan.nomorPinjaman}
+                </span>
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    fontWeight: 600,
+                  }}
+                >
+                  NIK {loan.nomorIndukKaryawan}
+                </span>
+                <span className={`status-pill ${loan.status === 'Aktif' ? 'active' : loan.status === 'Lunas' ? 'lunas' : 'inactive'}`}>
+                  <i />{loan.status}
+                </span>
+                <span className="role-pill">
+                  <Calendar size={11} /> Tenor {loan.tenorBulan} Bln
+                </span>
+                <span className="role-pill teal">
+                  <TrendingUp size={11} /> Jasa {(loan.bungaTahunan * 100).toFixed(2)}%/th
+                </span>
+              </div>
+              <div className="modal-contacts-row">
+                <span className="modal-contact-item">
+                  <Clock size={13} /> Tanggal Mulai: {tanggal(loan.tanggalMulai)}
+                </span>
+                {loan.lunasPada && (
+                  <span className="modal-contact-item" style={{ color: '#059669', fontWeight: 600 }}>
+                    <CheckCircle2 size={13} /> Lunas Pada: {tanggal(loan.lunasPada)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="toggle-button"
+              onClick={copyNomor}
+              title="Salin nomor pinjaman"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              {copied ? <Check size={13} style={{ color: '#059669' }} /> : <Copy size={13} />}
+              {copied ? 'Tersalin' : 'Salin No.'}
+            </button>
+            <button type="button" className="icon-button" onClick={onClose} title="Tutup">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="modal-body">
+          <div className="modal-section-title">
+            <Banknote size={16} /> Rincian Finansial Pinjaman
+          </div>
+          <div className="audit-detail-grid" style={{ marginBottom: 18 }}>
+            <div className="audit-meta-card">
+              <span className="audit-meta-label">Plafon Pinjaman (Pokok)</span>
+              <span className="audit-meta-val" style={{ fontSize: 15 }}>{rupiah(loan.pokok)}</span>
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>Nominal pencairan awal</span>
+            </div>
+            <div
+              className="audit-meta-card"
+              style={{
+                background: loan.sisaPokok > 0 ? '#ecfeff' : '#f0fdf4',
+                borderColor: loan.sisaPokok > 0 ? '#a5f3fc' : '#bbf7d0',
+              }}
+            >
+              <span className="audit-meta-label">Sisa Pokok Pinjaman</span>
+              <span
+                className="audit-meta-val"
+                style={{ fontSize: 15, color: loan.sisaPokok > 0 ? '#0891b2' : '#059669' }}
+              >
+                {rupiah(loan.sisaPokok)}
+              </span>
+              <span style={{ fontSize: 10.5, color: loan.sisaPokok > 0 ? '#0e7490' : '#15803d' }}>
+                {loan.sisaPokok > 0 ? 'Kewajiban pokok tersisa' : 'Lunas tanpa tunggakan'}
+              </span>
+            </div>
+            <div className="audit-meta-card">
+              <span className="audit-meta-label">Cicilan / Bulan</span>
+              <span className="audit-meta-val" style={{ fontSize: 15 }}>{rupiah(loan.angsuranPerBulan)}</span>
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>
+                Pokok {rupiah(loan.pokokPerBulan)} + Jasa {rupiah(loan.jasaPerBulan)}
+              </span>
+            </div>
+            <div className="audit-meta-card">
+              <span className="audit-meta-label">Total Jasa Pinjaman</span>
+              <span className="audit-meta-val" style={{ fontSize: 15 }}>{rupiah(totalJasaEstimasi)}</span>
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>
+                Tarif {(loan.bungaTahunan * 100).toFixed(2)}%/th ({loan.tenorBulan} bulan)
+              </span>
+            </div>
+            <div className="audit-meta-card">
+              <span className="audit-meta-label">Total Kewajiban (Pokok + Jasa)</span>
+              <span className="audit-meta-val" style={{ fontSize: 15 }}>{rupiah(totalKewajibanPenuh)}</span>
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>Jika dibayar hingga tenor berakhir</span>
+            </div>
+            <div className="audit-meta-card">
+              <span className="audit-meta-label">Progres Angsuran</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span className="audit-meta-val" style={{ fontSize: 15 }}>
+                  {loan.angsuranTerbayar} / {loan.tenorBulan}
+                </span>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>({progressPercent}%)</span>
+              </div>
+              <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${progressPercent}%`,
+                    height: '100%',
+                    background: loan.status === 'Lunas' ? '#10b981' : '#0891b2',
+                    borderRadius: 99,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {loan.status === 'Aktif' ? (
+            <div
+              style={{
+                background: '#ecfeff',
+                border: '1px solid #a5f3fc',
+                borderRadius: 10,
+                padding: '14px 18px',
+                marginBottom: 20,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'flex-start',
+              }}
+            >
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: '#0891b2',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Zap size={18} />
+              </div>
+              <div style={{ flex: 1, fontSize: 12.5, color: '#083344', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Simulasi Pelunasan Dipercepat</span>
+                  <span style={{ fontSize: 10.5, background: '#cffafe', color: '#0e7490', padding: '1px 8px', borderRadius: 99, fontWeight: 700 }}>
+                    Bebas Jasa Sisa
+                  </span>
+                </div>
+                <div>
+                  Jika anggota melunasi sekarang, anggota cukup membayar sisa pokok{' '}
+                  <strong style={{ color: '#0891b2', fontSize: 13.5 }}>{rupiah(loan.nilaiPelunasanDipercepat)}</strong>.
+                  Sisa jasa sebesar <strong style={{ color: '#059669' }}>{rupiah(loan.jasaDibebaskan)}</strong> otomatis dibebaskan 100%.
+                </div>
+                <div style={{ fontSize: 11, color: '#0e7490', marginTop: 4 }}>
+                  Anggota dapat mengajukan pelunasan dipercepat lewat KKCS Mobile dan diverifikasi pada panel &quot;Pengajuan pembayaran&quot;.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: 10,
+                padding: '14px 18px',
+                marginBottom: 20,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: '#16a34a',
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <BadgeCheck size={18} />
+              </div>
+              <div style={{ flex: 1, fontSize: 12.5, color: '#14532d', lineHeight: 1.5 }}>
+                <strong style={{ fontSize: 13, display: 'block' }}>Pinjaman Lunas Sepenuhnya</strong>
+                <div>
+                  Pinjaman ini telah dinyatakan lunas pada <strong>{loan.lunasPada ? tanggal(loan.lunasPada) : 'waktu yang ditentukan'}</strong>.
+                  {loan.jasaDibebaskan > 0 && (
+                    <> Melalui pelunasan dipercepat dengan jasa yang dibebaskan sebesar <strong>{rupiah(loan.jasaDibebaskan)}</strong>.</>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+            <div className="modal-section-title" style={{ margin: 0 }}>
+              <Clock size={16} /> Jadwal &amp; Riwayat Angsuran ({loan.angsuran.length} Baris)
+            </div>
+            <div style={{ display: 'flex', gap: 8, fontSize: 11 }}>
+              <span className="status-pill active" style={{ fontSize: 10, padding: '1px 7px' }}>
+                <i /> {loan.angsuran.filter((r) => r.status === 'Dibayar').length} Dibayar
+              </span>
+              <span className="status-pill waiting" style={{ fontSize: 10, padding: '1px 7px' }}>
+                <i /> {loan.angsuran.filter((r) => r.status === 'Menunggu').length} Menunggu
+              </span>
+              {loan.angsuran.some((r) => r.status === 'Dibatalkan') && (
+                <span className="status-pill inactive" style={{ fontSize: 10, padding: '1px 7px' }}>
+                  <i /> {loan.angsuran.filter((r) => r.status === 'Dibatalkan').length} Dibatalkan
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="table-scroll table-compact" style={{ maxHeight: 330, border: '1px solid var(--line)', borderRadius: 10 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 45 }}>#</th>
+                  <th>Jatuh Tempo</th>
+                  <th>Pokok</th>
+                  <th>Jasa</th>
+                  <th>Total Tagihan</th>
+                  <th>Status</th>
+                  <th>Tanggal Bayar</th>
+                  <th>Nominal Dibayar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loan.angsuran.map((row) => (
+                  <tr
+                    key={row.angsuranKe}
+                    style={{
+                      background: row.status === 'Dibayar' ? '#f8fafc' : row.jenis === 'Pelunasan' ? '#ecfeff' : undefined,
+                    }}
+                  >
+                    <td>
+                      {row.jenis === 'Pelunasan' ? (
+                        <span style={{ color: '#0891b2', fontWeight: 800, fontSize: 11 }}>⚡ Lunas</span>
+                      ) : (
+                        <span className="mono" style={{ fontWeight: 700, color: '#475569' }}>#{row.angsuranKe}</span>
+                      )}
+                    </td>
+                    <td>{tanggal(row.jatuhTempo)}</td>
+                    <td className="mono">{rupiah(row.pokok)}</td>
+                    <td className="mono">
+                      {row.jasa === 0 ? (
+                        <span style={{ color: 'var(--muted)', fontStyle: 'italic', fontSize: 11 }}>— (Bebas)</span>
+                      ) : (
+                        rupiah(row.jasa)
+                      )}
+                    </td>
+                    <td className="mono" style={{ fontWeight: 700, color: 'var(--ink)' }}>{rupiah(row.total)}</td>
+                    <td>
+                      <span
+                        className={`status-pill ${row.status === 'Dibayar' ? 'active' : row.status === 'Dibatalkan' ? 'inactive' : 'waiting'}`}
+                        style={{ padding: '2px 8px', fontSize: 10.5 }}
+                      >
+                        <i />{row.status}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: 11.5 }}>
+                      {row.dibayarPada ? tanggal(row.dibayarPada) : <span style={{ color: 'var(--muted)' }}>—</span>}
+                    </td>
+                    <td className="mono" style={{ fontWeight: row.jumlahDibayar ? 600 : 400, color: row.jumlahDibayar ? '#059669' : 'var(--muted)' }}>
+                      {row.jumlahDibayar ? rupiah(row.jumlahDibayar) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              padding: '12px 16px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+              fontSize: 12,
+            }}
+          >
+            <div>
+              <span style={{ color: '#64748b' }}>Pokok Diterima: </span>
+              <strong style={{ color: '#083344' }}>{rupiah(totalPokokDibayar)}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#64748b' }}>Jasa Diterima: </span>
+              <strong style={{ color: '#0891b2' }}>{rupiah(totalJasaDibayar)}</strong>
+            </div>
+            <div>
+              <span style={{ color: '#64748b' }}>Total Kas Diterima: </span>
+              <strong style={{ color: '#059669', fontSize: 13 }}>{rupiah(totalKasDiterima)}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '14px 28px', borderTop: '1px solid var(--line)', background: '#fafafa', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <button type="button" className="toggle-button" onClick={onClose} style={{ padding: '6px 18px', fontSize: 12.5 }}>
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function LoansView({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [applications, setApplications] = useState<LoanApplication[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
@@ -2829,7 +3366,11 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   const [busyId, setBusyId] = useState<string>('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [expanded, setExpanded] = useState<number | null>(null)
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
+  const [loanQuery, setLoanQuery] = useState('')
+  const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'Aktif' | 'Lunas'>('all')
+  const [tertutup, setTertutup] = useState<Record<string, boolean>>({})
+  const toggleBox = (key: string) => setTertutup((t) => ({ ...t, [key]: !t[key] }))
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
 
@@ -2890,6 +3431,25 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   const activeLoans = loans.filter((item) => item.status === 'Aktif')
   const totalSisaPokok = activeLoans.reduce((sum, item) => sum + item.sisaPokok, 0)
 
+  useEffect(() => {
+    if (selectedLoan) {
+      const refreshed = loans.find((l) => l.id === selectedLoan.id)
+      if (refreshed) setSelectedLoan(refreshed)
+    }
+  }, [loans, selectedLoan])
+
+  const filteredLoans = useMemo(() => {
+    return loans.filter((loan) => {
+      const q = loanQuery.trim().toLowerCase()
+      const matchQuery = !q ||
+        loan.namaAnggota.toLowerCase().includes(q) ||
+        loan.nomorIndukKaryawan.toLowerCase().includes(q) ||
+        loan.nomorPinjaman.toLowerCase().includes(q)
+      const matchStatus = loanStatusFilter === 'all' || loan.status === loanStatusFilter
+      return matchQuery && matchStatus
+    })
+  }, [loans, loanQuery, loanStatusFilter])
+
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Persetujuan pinjaman & pembayaran</h2><p>Anggota mengajukan pinjaman, pembayaran angsuran, dan pelunasan dipercepat dari aplikasi — pengurus menyetujui di sini.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
     {error && <div className="alert error"><X size={17} />{error}</div>}
@@ -2902,28 +3462,13 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading"><div><h2>Pengajuan pinjaman</h2><p>Menyetujui akan otomatis membuat pinjaman aktif beserta jadwal angsuran pokok + jasa.</p></div><span className="record-count">{pending.length} menunggu</span></div>
-      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {applications.map((item) => <tr key={item.id}>
-          <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
-          <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
-          <td>{rupiah(item.estimasiCicilanBulanan)}<br /><small style={{ color: 'var(--muted)' }}>jasa {(item.bungaTahunan * 100).toFixed(2)}%/th</small></td>
-          <td>{rupiah(item.estimasiTotalJasa)}</td>
-          <td style={{ whiteSpace: 'normal', maxWidth: 180 }}>{item.tujuan}</td>
-          <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
-          <td className="align-right">{item.status === 'Diajukan'
-            ? <span style={{ display: 'inline-flex', gap: 6 }}>
-                <button className="toggle-button activate" disabled={busyId === `app-${item.id}`} onClick={() => void decide(item, true)}>Setujui</button>
-                <button className="toggle-button deactivate" disabled={busyId === `app-${item.id}`} onClick={() => void decide(item, false)}>Tolak</button>
-              </span>
-            : <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}</td>
-        </tr>)}
-      </tbody></table>{!loading && applications.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pinjaman.</div></div>}</div>
-    </section>
-
-    <section className="table-panel" style={{ marginBottom: 22 }}>
-      <div className="panel-heading"><div><h2>Pengajuan pembayaran</h2><p>Menyetujui pembayaran angsuran menandai 1 angsuran lunas; menyetujui pelunasan dipercepat menagih sisa pokok saja dan membebaskan jasa.</p></div><span className="record-count">{pendingPayments.length} menunggu</span></div>
-      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="panel-heading"><div><h2>Pengajuan pembayaran</h2><p>Menyetujui pembayaran angsuran menandai 1 angsuran lunas; menyetujui pelunasan dipercepat menagih sisa pokok saja dan membebaskan jasa.</p></div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span className="record-count">{pendingPayments.length} menunggu</span>
+          <button className="icon-button" title={tertutup.pembayaran ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pembayaran')}>{tertutup.pembayaran ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
+        </span>
+      </div>
+      {!tertutup.pembayaran && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {payments.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td className="mono">{item.nomorPinjaman}</td>
@@ -2938,58 +3483,470 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
               </span>
             : <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && payments.length === 0 && <div className="empty-state"><Zap size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pembayaran dari anggota.</div></div>}</div>
+      </tbody></table>{!loading && payments.length === 0 && <div className="empty-state"><Zap size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pembayaran dari anggota.</div></div>}</div>}
+    </section>
+
+    <section className="table-panel" style={{ marginBottom: 22 }}>
+      <div className="panel-heading"><div><h2>Pinjaman aktif &amp; lunas</h2><p>Pantau progres angsuran pinjaman anggota. Klik baris data untuk membuka rincian lengkap &amp; riwayat angsuran.</p></div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span className="record-count">{filteredLoans.length} pinjaman</span>
+          <button className="icon-button" title={tertutup.pinjaman ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pinjaman')}>{tertutup.pinjaman ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
+        </span>
+      </div>
+      {!tertutup.pinjaman && (
+        <>
+          <div className="filters">
+            <label className="search-box">
+              <Search size={17} />
+              <input
+                value={loanQuery}
+                onChange={(event) => setLoanQuery(event.target.value)}
+                placeholder="Cari peminjam, NIK, atau nomor pinjaman..."
+              />
+            </label>
+            <select
+              value={loanStatusFilter}
+              onChange={(event) => setLoanStatusFilter(event.target.value as 'all' | 'Aktif' | 'Lunas')}
+            >
+              <option value="all">Semua status ({loans.length})</option>
+              <option value="Aktif">Aktif ({loans.filter((l) => l.status === 'Aktif').length})</option>
+              <option value="Lunas">Lunas ({loans.filter((l) => l.status === 'Lunas').length})</option>
+            </select>
+          </div>
+
+          <div className="table-scroll table-compact">
+            <table>
+              <thead>
+                <tr>
+                  <th>Peminjam &amp; No. Pinjaman</th>
+                  <th>Plafon Pokok</th>
+                  <th>Sisa Pokok</th>
+                  <th>Progres</th>
+                  <th>Status</th>
+                  <th className="align-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLoans.map((loan) => (
+                  <tr
+                    key={loan.id}
+                    className="clickable-row"
+                    onClick={() => setSelectedLoan(loan)}
+                  >
+                    <td>
+                      <div className="user-cell">
+                        <span className="avatar tosca-avatar">{loan.namaAnggota.charAt(0).toUpperCase()}</span>
+                        <div>
+                          <strong>{loan.namaAnggota}</strong>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, marginTop: 2 }}>
+                            <span className="mono" style={{ color: 'var(--muted)' }}>{loan.nomorIndukKaryawan}</span>
+                            <span style={{ color: '#cbd5e1' }}>•</span>
+                            <span className="mono" style={{ color: '#0891b2', fontWeight: 600 }}>{loan.nomorPinjaman}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{rupiah(loan.pokok)}</td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: loan.sisaPokok > 0 ? '#0891b2' : '#059669' }}>
+                        {rupiah(loan.sisaPokok)}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 90, maxWidth: 130 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600 }}>
+                          <span>{loan.angsuranTerbayar}/{loan.tenorBulan} bln</span>
+                          <span style={{ color: 'var(--muted)', fontSize: 10.5 }}>
+                            {Math.round((loan.angsuranTerbayar / Math.max(1, loan.tenorBulan)) * 100)}%
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${Math.min(100, Math.round((loan.angsuranTerbayar / Math.max(1, loan.tenorBulan)) * 100))}%`,
+                              height: '100%',
+                              background: loan.status === 'Lunas' ? '#10b981' : '#0891b2',
+                              borderRadius: 99,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-pill ${loan.status === 'Aktif' ? 'active' : loan.status === 'Lunas' ? 'lunas' : 'inactive'}`}>
+                        <i />{loan.status}
+                      </span>
+                    </td>
+                    <td className="align-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="toggle-button"
+                        onClick={() => setSelectedLoan(loan)}
+                        title="Lihat rincian lengkap pinjaman"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                      >
+                        <Eye size={12} /> Detail
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loading && filteredLoans.length === 0 && (
+              <div className="empty-state">
+                <Wallet size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} />
+                <div>{loans.length === 0 ? 'Belum ada pinjaman aktif atau lunas.' : 'Tidak ada pinjaman yang cocok dengan filter pencarian.'}</div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </section>
 
     <section className="table-panel">
-      <div className="panel-heading"><div><h2>Pinjaman aktif & lunas</h2><p>Pantau progres angsuran. Pembayaran diproses lewat panel "Pengajuan pembayaran" di atas.</p></div><span className="record-count">{loans.length} pinjaman</span></div>
-      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nomor</th><th>Pokok</th><th>Cicilan/bln</th><th>Progres</th><th>Sisa pokok</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {loans.map((loan) => [
-          <tr key={loan.id}>
-            <td><div className="user-cell"><span className="avatar tosca-avatar">{loan.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{loan.namaAnggota}</strong><small className="mono">{loan.nomorIndukKaryawan}</small></div></div></td>
-            <td className="mono">{loan.nomorPinjaman}</td>
-            <td>{rupiah(loan.pokok)}</td>
-            <td>{rupiah(loan.angsuranPerBulan)}<br /><small style={{ color: 'var(--muted)' }}>pokok {rupiah(loan.pokokPerBulan)} + jasa {rupiah(loan.jasaPerBulan)}</small></td>
-            <td>{loan.angsuranTerbayar}/{loan.tenorBulan}</td>
-            <td>{rupiah(loan.sisaPokok)}</td>
-            <td><span className={`status-pill ${loan.status === 'Aktif' ? 'active' : 'inactive'}`}><i />{loan.status}</span></td>
-            <td className="align-right">
-              <button className="toggle-button" onClick={() => setExpanded(expanded === loan.id ? null : loan.id)}>{expanded === loan.id ? 'Tutup' : 'Detail'}</button>
-            </td>
-          </tr>,
-          expanded === loan.id && <tr key={`${loan.id}-detail`}><td colSpan={8} style={{ background: '#f8fafc', padding: '14px 18px' }}>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-              {loan.status === 'Aktif' && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 8, marginBottom: 14, color: '#083344', fontSize: 12.5 }}>
-                <Zap size={16} style={{ color: '#0891b2', flexShrink: 0 }} />
-                <div>
-                  <strong>Pelunasan dipercepat sekarang:</strong> anggota cukup bayar sisa pokok <strong>{rupiah(loan.nilaiPelunasanDipercepat)}</strong> — jasa <strong>{rupiah(loan.jasaDibebaskan)}</strong> dibebaskan.
-                </div>
-              </div>}
-              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#083344', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Clock size={15} style={{ color: '#0891b2' }} />
-                Jadwal & Riwayat Angsuran ({loan.nomorPinjaman})
-              </div>
-              <table className="table-compact" style={{ minWidth: 0 }}><thead><tr><th>#</th><th>Jatuh tempo</th><th>Pokok</th><th>Jasa</th><th>Total</th><th>Status</th><th>Dibayar</th></tr></thead><tbody>
-                {loan.angsuran.map((row) => <tr key={row.angsuranKe}>
-                  <td>{row.jenis === 'Pelunasan' ? <span style={{ color: '#0891b2', fontWeight: 700 }}>⚡ Pelunasan</span> : row.angsuranKe}</td>
-                  <td>{tanggal(row.jatuhTempo)}</td>
-                  <td>{rupiah(row.pokok)}</td>
-                  <td>{row.jasa === 0 ? '—' : rupiah(row.jasa)}</td>
-                  <td style={{ fontWeight: 600 }}>{rupiah(row.total)}</td>
-                  <td>
-                    <span className={`status-pill ${row.status === 'Dibayar' ? 'active' : row.status === 'Dibatalkan' ? 'inactive' : 'waiting'}`} style={{ padding: '2px 7px', fontSize: 10 }}>
-                      <i />{row.status}
-                    </span>
-                  </td>
-                  <td>{row.dibayarPada ? tanggal(row.dibayarPada) : '—'}</td>
-                </tr>)}
-              </tbody></table>
-            </div>
-          </td></tr>,
-        ])}
-      </tbody></table>{!loading && loans.length === 0 && <div className="empty-state"><Wallet size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pinjaman aktif.</div></div>}</div>
+      <div className="panel-heading"><div><h2>Pengajuan pinjaman</h2><p>Menyetujui akan otomatis membuat pinjaman aktif beserta jadwal angsuran pokok + jasa.</p></div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span className="record-count">{pending.length} menunggu</span>
+          <button className="icon-button" title={tertutup.pengajuan ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pengajuan')}>{tertutup.pengajuan ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
+        </span>
+      </div>
+      {!tertutup.pengajuan && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {applications.map((item) => <tr key={item.id}>
+          <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
+          <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
+          <td>{rupiah(item.estimasiCicilanBulanan)}<br /><small style={{ color: 'var(--muted)' }}>jasa {(item.bungaTahunan * 100).toFixed(2)}%/th</small></td>
+          <td>{rupiah(item.estimasiTotalJasa)}</td>
+          <td style={{ whiteSpace: 'normal', maxWidth: 180 }}>{item.tujuan}</td>
+          <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
+          <td className="align-right">{item.status === 'Diajukan'
+            ? <span style={{ display: 'inline-flex', gap: 6 }}>
+                <button className="toggle-button activate" disabled={busyId === `app-${item.id}`} onClick={() => void decide(item, true)}>Setujui</button>
+                <button className="toggle-button deactivate" disabled={busyId === `app-${item.id}`} onClick={() => void decide(item, false)}>Tolak</button>
+              </span>
+            : <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}</td>
+        </tr>)}
+      </tbody></table>{!loading && applications.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pinjaman.</div></div>}</div>}
     </section>
+
+    {selectedLoan && (
+      <LoanDetailModal loan={selectedLoan} onClose={() => setSelectedLoan(null)} />
+    )}
   </div>
+}
+
+function BungaSimpananGuide({ konfigurasi }: { konfigurasi: Konfigurasi | null }) {
+  const [isOpen, setIsOpen] = useState(true)
+  const [tab, setTab] = useState<'rumus' | 'simulasi'>('rumus')
+
+  const bungaSukarela = konfigurasi?.bungaSukarelaTahunan ?? 0.025
+  const bungaDeposito = konfigurasi?.bungaDepositoTahunan ?? 0.04
+  const pphTarif = konfigurasi?.tarifPph ?? 0.20
+
+  // Simulasi Nyata — Sukarela pakai contoh 3-segmen (saldo berubah di tengah bulan lewat setor/tarik),
+  // supaya kelihatan kenapa metodenya disebut "saldo harian", bukan cuma 1 saldo tetap sepanjang bulan.
+  // Total 31 hari (mis. bulan Agustus): 1–9 saldo awal, 10–19 setelah setor, 20–31 setelah tarik.
+  const segmenSukarela = [
+    { label: '1–9 (saldo awal)', hari: 9, saldo: 5_000_000, peristiwa: null as string | null },
+    { label: '10–19 (setelah setor)', hari: 10, saldo: 8_000_000, peristiwa: 'Setor Rp3.000.000 tgl 10' },
+    { label: '20–31 (setelah tarik)', hari: 12, saldo: 6_000_000, peristiwa: 'Tarik Rp2.000.000 tgl 20' },
+  ].map((s) => ({ ...s, bunga: (s.saldo * bungaSukarela * s.hari) / 365 }))
+  const totalHariSukarela = segmenSukarela.reduce((s, x) => s + x.hari, 0)
+  const bungaBrutoSukarela = segmenSukarela.reduce((s, x) => s + x.bunga, 0)
+  const pphSukarela = bungaBrutoSukarela * pphTarif
+  const netoSukarela = bungaBrutoSukarela - pphSukarela
+
+  const contohNominalDeposito = 5_000_000
+  const contohTenor = 3
+  const bungaPerBulanDeposito = (contohNominalDeposito * bungaDeposito) / 12
+  const segmenDeposito = [
+    { label: 'Bulan Ke-1', bulan: 1, nominal: contohNominalDeposito, bunga: bungaPerBulanDeposito, catatan: null as string | null },
+    { label: 'Bulan Ke-2', bulan: 1, nominal: contohNominalDeposito, bunga: bungaPerBulanDeposito, catatan: null as string | null },
+    { label: 'Bulan Ke-3', bulan: 1, nominal: contohNominalDeposito, bunga: bungaPerBulanDeposito, catatan: 'Jatuh tempo pencairan' },
+  ]
+  const bungaBrutoDeposito = (contohNominalDeposito * bungaDeposito * contohTenor) / 12
+  const pphDeposito = bungaBrutoDeposito * pphTarif
+  const netoDeposito = bungaBrutoDeposito - pphDeposito
+
+  if (!isOpen) {
+    return (
+      <div className="bunga-guide-container">
+        <div className="bunga-guide-collapsed" onClick={() => setIsOpen(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="bunga-guide-icon-badge" style={{ width: 26, height: 26 }}>
+              <BookOpen size={14} />
+            </div>
+            <strong style={{ color: '#083344', fontSize: 12.5 }}>Rumus Bunga Simpanan:</strong>
+            <span className="bunga-flow-inline">
+              Sukarela (Saldo Harian × {(bungaSukarela * 100).toFixed(2)}%/th ÷ 365) · Deposito (Nominal × {(bungaDeposito * 100).toFixed(2)}%/th × Tenor ÷ 12) · PPh ({(pphTarif * 100).toFixed(0)}%)
+            </span>
+          </div>
+          <button
+            type="button"
+            className="toggle-button activate"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, fontSize: 11, padding: '0 10px' }}
+            onClick={(e) => { e.stopPropagation(); setIsOpen(true) }}
+          >
+            <ChevronDown size={13} /> Buka Panduan Bunga
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bunga-guide-container">
+      <div className="bunga-guide-header">
+        <div className="bunga-guide-title-box">
+          <div className="bunga-guide-icon-badge">
+            <BookOpen size={17} />
+          </div>
+          <div>
+            <div className="bunga-guide-title">
+              Panduan Rumus Bunga Simpanan Sukarela &amp; Berjangka (Deposito)
+              <span className="bunga-guide-pill">Konfigurasi Otomatis</span>
+            </div>
+            <div className="bunga-guide-subtitle">
+              Sistem perhitungan bagi hasil simpanan akurat dengan pemotongan PPh resmi
+            </div>
+          </div>
+        </div>
+
+        <div className="bunga-guide-controls">
+          <div className="bunga-guide-chips">
+            <span className="bunga-guide-chip sukarela" title="Bunga Sukarela Tahunan Aktif">
+              Sukarela: <strong>{(bungaSukarela * 100).toFixed(2)}%</strong>/th
+            </span>
+            <span className="bunga-guide-chip deposito" title="Bunga Deposito Tahunan Aktif">
+              Deposito: <strong>{(bungaDeposito * 100).toFixed(2)}%</strong>/th
+            </span>
+            <span className="bunga-guide-chip pph" title="Tarif PPh Bunga Aktif">
+              PPh: <strong>{(pphTarif * 100).toFixed(0)}%</strong>
+            </span>
+          </div>
+
+          <div className="bunga-guide-tabs">
+            <button
+              type="button"
+              className={`bunga-guide-tab-btn ${tab === 'rumus' ? 'active' : ''}`}
+              onClick={() => setTab('rumus')}
+            >
+              <Layers size={13} /> Struktur Rumus
+            </button>
+            <button
+              type="button"
+              className={`bunga-guide-tab-btn ${tab === 'simulasi' ? 'active' : ''}`}
+              onClick={() => setTab('simulasi')}
+            >
+              <Calculator size={13} /> Contoh Nyata
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="toggle-button"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, fontSize: 11, padding: '0 8px' }}
+            onClick={() => setIsOpen(false)}
+            title="Sembunyikan panduan bunga"
+          >
+            <ChevronUp size={13} /> Perkecil
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {tab === 'rumus' ? (
+          <>
+            <div className="bunga-guide-grid">
+              {/* Card 1: Sukarela */}
+              <div className="bunga-card sukarela">
+                <div className="bunga-card-header">
+                  <div className="bunga-card-title">
+                    <HandCoins size={16} style={{ color: '#0891b2' }} />
+                    <span>Simpanan Sukarela</span>
+                  </div>
+                  <span className="bunga-card-badge sukarela">Metode Saldo Harian</span>
+                </div>
+
+                <div className="bunga-math-box">
+                  <div className="bunga-math-row">
+                    <span className="bunga-math-var">Bunga Harian =</span>
+                    <span className="bunga-math-op">Saldo Hari Ini ×</span>
+                    <div className="bunga-math-fraction">
+                      <div className="bunga-math-num">Suku Bunga Tahunan ({(bungaSukarela * 100).toFixed(2)}%)</div>
+                      <div className="bunga-math-bar" />
+                      <div className="bunga-math-den">365 Hari</div>
+                    </div>
+                  </div>
+                  <div className="bunga-math-subrow">
+                    <span className="bunga-math-op">• Bunga Bulanan (Bruto) = <strong>Σ Akumulasi Bunga Tiap Hari</strong> dalam bulan berjalan</span>
+                  </div>
+                  <div className="bunga-math-subrow">
+                    <span className="bunga-math-op">• Bunga Bersih (Neto) = <strong>Bunga Bruto − (PPh {(pphTarif * 100).toFixed(0)}% × Bunga Bruto)</strong></span>
+                  </div>
+                </div>
+
+                <ul className="bunga-notes-list">
+                  <li><span><strong>Keadilan Mutasi:</strong> setor lebih awal = bunga harian lebih besar.</span></li>
+                  <li><span><strong>Penutupan Buku:</strong> bunga dibukukan tiap akhir bulan; bulan berjalan belum final.</span></li>
+                </ul>
+              </div>
+
+              {/* Card 2: Deposito */}
+              <div className="bunga-card deposito">
+                <div className="bunga-card-header">
+                  <div className="bunga-card-title">
+                    <PiggyBank size={16} style={{ color: '#0e7490' }} />
+                    <span>Simpanan Berjangka (Deposito)</span>
+                  </div>
+                  <span className="bunga-card-badge deposito">Flat Tenor Perjanjian</span>
+                </div>
+
+                <div className="bunga-math-box">
+                  <div className="bunga-math-row">
+                    <span className="bunga-math-var">Bunga Bruto =</span>
+                    <span className="bunga-math-op">Nominal × {(bungaDeposito * 100).toFixed(2)}%/th ×</span>
+                    <div className="bunga-math-fraction">
+                      <div className="bunga-math-num">Tenor (Bulan)</div>
+                      <div className="bunga-math-bar" />
+                      <div className="bunga-math-den">12 Bulan</div>
+                    </div>
+                  </div>
+                  <div className="bunga-math-subrow">
+                    <span className="bunga-math-op">• Bunga Bersih (Neto) = <strong>Bunga Bruto − (PPh {(pphTarif * 100).toFixed(0)}% × Bunga Bruto)</strong></span>
+                  </div>
+                  <div className="bunga-math-subrow" style={{ color: '#b91c1c' }}>
+                    <span className="bunga-math-op">• <strong>Penalti:</strong> cair sebelum jatuh tempo = bunga hangus 100% (hanya pokok kembali).</span>
+                  </div>
+                </div>
+
+                <ul className="bunga-notes-list">
+                  <li><span><strong>Paket Berjangka:</strong> nominal & tenor tetap (misal 3, 6, atau 12 bulan).</span></li>
+                  <li><span><strong>Pencairan:</strong> pokok + bunga neto langsung ke anggota setelah disetujui pengurus.</span></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Callout Pajak */}
+            <div className="bunga-tax-callout">
+              <Receipt size={16} style={{ color: '#0891b2', flexShrink: 0 }} />
+              <div>
+                <strong>Ketentuan Pajak PPh:</strong> Pemotongan PPh Bunga sebesar <strong>{(pphTarif * 100).toFixed(0)}%</strong> dilakukan secara otomatis saat bunga dibukukan. Rincian nilai bunga kotor (bruto), potongan pajak, dan bunga bersih (neto) tercatat transparan di mutasi rekening anggota.
+              </div>
+            </div>
+          </>
+        ) : (
+          /* TAB CONTOH SIMULASI NYATA */
+          <div className="bunga-simulasi-grid">
+            {/* Simulasi Sukarela */}
+            <div className="bunga-simulasi-card sukarela">
+              <div className="bunga-simulasi-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#083344', fontSize: 13 }}>
+                  <HandCoins size={15} style={{ color: '#0891b2' }} />
+                  Kasus 1: Saldo Berubah-ubah ({totalHariSukarela} Hari)
+                </div>
+                <span className="bunga-card-badge sukarela">Bunga {(bungaSukarela * 100).toFixed(2)}%/th</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+                Saldo anggota berubah karena setor/tarik di tengah bulan — bunga dihitung per segmen hari, bukan cuma 1 saldo rata-rata:
+              </div>
+              <div className="bunga-mini-table-wrap">
+                <table className="bunga-mini-table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', width: '28%' }}>Periode</th>
+                      <th style={{ textAlign: 'center', width: '10%' }}>Hari</th>
+                      <th style={{ textAlign: 'left', width: '42%' }}>Perhitungan</th>
+                      <th style={{ textAlign: 'right', width: '20%' }}>Bunga</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {segmenSukarela.map((s) => (
+                      <tr key={s.label}>
+                        <td>
+                          <span>Hari {s.label}</span>
+                          {s.peristiwa && <div className="bunga-mini-table-note">{s.peristiwa}</div>}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>{s.hari}</td>
+                        <td className="bunga-mini-table-formula">{rupiah(s.saldo)} × {(bungaSukarela * 100).toFixed(2)}% × {s.hari}/365</td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><strong>{rupiah(s.bunga)}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3}>Total Bunga Bruto</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><strong>{rupiah(bungaBrutoSukarela)}</strong></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} style={{ borderTop: 'none', paddingTop: 2, color: '#64748b', fontWeight: 600 }}>Potongan PPh ({(pphTarif * 100).toFixed(0)}%)</td>
+                      <td style={{ textAlign: 'right', borderTop: 'none', paddingTop: 2, color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>−{rupiah(pphSukarela)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="bunga-simulasi-result sukarela">
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', fontWeight: 800, color: '#0e7490' }}>Bunga Bersih Masuk Rekening (Neto):</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#083344', marginTop: 2 }}>{rupiah(netoSukarela)}</div>
+              </div>
+            </div>
+
+            {/* Simulasi Deposito */}
+            <div className="bunga-simulasi-card deposito">
+              <div className="bunga-simulasi-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, color: '#083344', fontSize: 13 }}>
+                  <PiggyBank size={15} style={{ color: '#0e7490' }} />
+                  Kasus 2: Deposito Rp 5 Juta ({contohTenor} Bulan)
+                </div>
+                <span className="bunga-card-badge deposito">Bunga {(bungaDeposito * 100).toFixed(2)}%/th</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.6 }}>
+                Penempatan sertifikat deposito tenor tetap — bunga dihitung proporsional per bulan dan dicairkan saat jatuh tempo:
+              </div>
+              <div className="bunga-mini-table-wrap">
+                <table className="bunga-mini-table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', width: '28%' }}>Periode</th>
+                      <th style={{ textAlign: 'center', width: '10%' }}>Bln</th>
+                      <th style={{ textAlign: 'left', width: '42%' }}>Perhitungan</th>
+                      <th style={{ textAlign: 'right', width: '20%' }}>Bunga</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {segmenDeposito.map((s) => (
+                      <tr key={s.label}>
+                        <td>
+                          <span>{s.label}</span>
+                          {s.catatan && <div className="bunga-mini-table-note">{s.catatan}</div>}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>{s.bulan}</td>
+                        <td className="bunga-mini-table-formula">{rupiah(s.nominal)} × {(bungaDeposito * 100).toFixed(2)}% × 1/12</td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><strong>{rupiah(s.bunga)}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3}>Total Bunga Bruto</td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><strong>{rupiah(bungaBrutoDeposito)}</strong></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} style={{ borderTop: 'none', paddingTop: 2, color: '#64748b', fontWeight: 600 }}>Potongan PPh ({(pphTarif * 100).toFixed(0)}%)</td>
+                      <td style={{ textAlign: 'right', borderTop: 'none', paddingTop: 2, color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>−{rupiah(pphDeposito)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="bunga-simulasi-result deposito">
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', fontWeight: 800, color: '#0891b2' }}>Bunga Bersih Cair saat Jatuh Tempo:</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#083344', marginTop: 2 }}>{rupiah(netoDeposito)} <span style={{ fontSize: 11.5, fontWeight: 500, color: '#475569' }}>(Total cair: {rupiah(contohNominalDeposito + netoDeposito)})</span></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: () => void; isAdmin: boolean }) {
@@ -3007,7 +3964,6 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
   const [bungaSukarelaInput, setBungaSukarelaInput] = useState('')
   const [bungaDepositoInput, setBungaDepositoInput] = useState('')
   const [pphInput, setPphInput] = useState('')
-  const [pphShuInput, setPphShuInput] = useState('')
   const [produkNama, setProdukNama] = useState('')
   const [produkNominal, setProdukNominal] = useState('')
   const [produkTenor, setProdukTenor] = useState('12')
@@ -3031,7 +3987,6 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
       setKonfigurasi(k); setPokokInput(String(k.simpananPokokNominal)); setWajibInput(String(k.simpananWajibNominal))
       setBungaSukarelaInput((k.bungaSukarelaTahunan * 100).toString()); setBungaDepositoInput((k.bungaDepositoTahunan * 100).toString())
       setPphInput((k.tarifPph * 100).toString())
-      setPphShuInput((k.tarifPphShu * 100).toString())
       setWajib(w); setSukarela(s); setBerjangka(b); setProduk(p)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
@@ -3064,7 +4019,9 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
     bungaSukarelaTahunan: (Number(bungaSukarelaInput) || 0) / 100,
     bungaDepositoTahunan: (Number(bungaDepositoInput) || 0) / 100,
     tarifPph: (Number(pphInput) || 0) / 100,
-    tarifPphShu: (Number(pphShuInput) || 0) / 100,
+    // Tarif PPh SHU sekarang diatur di halaman Akuntansi > SHU (bukan di sini) — kirim apa adanya
+    // supaya tidak tertimpa jadi 0 saat menyimpan konfigurasi simpanan lain.
+    tarifPphShu: konfigurasi?.tarifPphShu ?? 0.15,
   })
   const createProduk = () => {
     if (!produkNama.trim() || !(Number(produkNominal) > 0) || !(Number(produkTenor) > 0)) { setError('Nama, nominal, dan tenor produk wajib diisi.'); return }
@@ -3112,10 +4069,6 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
           <label className="config-field-label">Tarif PPh Bunga & Deposito (%)</label>
           <input type="number" step="0.1" className="config-field-input" disabled={!isAdmin} value={pphInput} onChange={(e) => setPphInput(e.target.value)} placeholder="0.0" />
         </div>
-        <div className="config-field-box">
-          <label className="config-field-label">Tarif PPh SHU (%)</label>
-          <input type="number" step="0.1" className="config-field-input" disabled={!isAdmin} value={pphShuInput} onChange={(e) => setPphShuInput(e.target.value)} placeholder="0.0" />
-        </div>
         {isAdmin && (
           <button className="submit-button" style={{ alignSelf: 'end', height: 38, padding: '0 20px', marginBottom: 2 }} disabled={busyId === 'konfig'} onClick={saveKonfigurasi}>
             Simpan Perubahan
@@ -3147,6 +4100,8 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
         </tr>)}
       </tbody></table>{!loading && wajib.length === 0 && <div className="empty-state"><Receipt size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada tagihan wajib. Klik "Buat tagihan bulan ini".</div></div>}</div>
     </section>
+
+    <BungaSimpananGuide konfigurasi={konfigurasi} />
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading">
@@ -4378,16 +5333,21 @@ function startOfYearISO() { return `${new Date().getFullYear()}-01-01` }
 const inputStyle: CSSProperties = { height: 38, padding: '0 10px', border: '1px solid var(--line)', borderRadius: 8 }
 const labelStyle: CSSProperties = { display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#526763' }
 
-function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) {
+function AkunTable({ items, title, tanggal, dari, token, onExpired }: { items: SaldoAkunItem[]; title: string; tanggal?: string; dari?: string; token?: string; onExpired?: () => void }) {
   // Sengaja tidak pakai elemen <table> di sini — CSS global untuk tabel data admin (table{min-width:760px})
   // memaksa ringkasan kecil ini melebar dan tumpang tindih dengan kolom sebelahnya saat disusun berdampingan.
   const total = items.reduce((s, a) => s + a.saldo, 0)
+  const [dipilih, setDipilih] = useState<string | null>(null)
+  const bisaDiklik = Boolean(tanggal && token && onExpired)
   return <div style={{ flex: 1, minWidth: 260, maxWidth: '100%', background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column' }}>
     <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: '#083344', marginBottom: 10, paddingBottom: 8, borderBottom: '2px solid #0891b2' }}>{title}</div>
     <div style={{ flex: 1 }}>
-      {items.map((a) => <div key={a.kode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderTop: '1px solid #e2e8f0', fontSize: 12 }}>
+      {items.map((a) => <div key={a.kode} onClick={bisaDiklik ? () => setDipilih(a.kode) : undefined}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderTop: '1px solid #e2e8f0', fontSize: 12, cursor: bisaDiklik ? 'pointer' : undefined, borderRadius: 4 }}
+        onMouseEnter={bisaDiklik ? (e) => { e.currentTarget.style.background = '#e0f2fe' } : undefined}
+        onMouseLeave={bisaDiklik ? (e) => { e.currentTarget.style.background = 'transparent' } : undefined}>
         <span style={{ display: 'flex', gap: 8, minWidth: 0 }}>
-          <span className="mono" style={{ color: 'var(--muted)', fontSize: 11, flexShrink: 0 }}>{a.kode}</span>
+          <span className="mono" style={{ color: bisaDiklik ? '#0891b2' : 'var(--muted)', fontSize: 11, flexShrink: 0, textDecoration: bisaDiklik ? 'underline' : undefined, textDecorationStyle: 'dotted' }}>{a.kode}</span>
           <span style={{ wordBreak: 'break-word', color: 'var(--ink)' }}>{a.nama}</span>
         </span>
         <span style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap', fontWeight: 600 }}>{rupiah(a.saldo)}</span>
@@ -4396,6 +5356,71 @@ function AkunTable({ items, title }: { items: SaldoAkunItem[]; title: string }) 
     </div>
     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #cbd5e1', fontWeight: 800, paddingTop: 8, marginTop: 6, fontSize: 12.5, color: '#083344' }}>
       <span>Total</span><span>{rupiah(total)}</span>
+    </div>
+    {dipilih && token && tanggal && onExpired && <AkunRincianModal kode={dipilih} tanggal={tanggal} dari={dari} token={token} onExpired={onExpired} onClose={() => setDipilih(null)} />}
+  </div>
+}
+
+type AkunRincian = { kode: string; nama: string; tipe: string; saldo: number; totalTransaksi: number; terbaru: { tanggal: string; nomorJurnal: string; keterangan: string; debit: number; kredit: number }[] }
+
+function AkunRincianModal({ kode, tanggal: sampaiTgl, dari, token, onExpired, onClose }: { kode: string; tanggal: string; dari?: string; token: string; onExpired: () => void; onClose: () => void }) {
+  const [data, setData] = useState<AkunRincian | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let batal = false
+    setLoading(true); setError('')
+    const query = new URLSearchParams({ sampai: sampaiTgl })
+    if (dari) query.set('dari', dari)
+    fetch(`${API_BASE}/api/admin/akuntansi/akun/${encodeURIComponent(kode)}/rincian?${query.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => {
+        if (response.status === 401) { onExpired(); return null }
+        if (!response.ok) throw new Error('Gagal memuat rincian akun.')
+        return response.json()
+      })
+      .then((result) => { if (!batal && result) setData(result) })
+      .catch((e) => { if (!batal) setError(e instanceof Error ? e.message : 'Terjadi kesalahan.') })
+      .finally(() => { if (!batal) setLoading(false) })
+    return () => { batal = true }
+  }, [kode, sampaiTgl, dari, token, onExpired])
+
+  return <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,51,68,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }} onClick={onClose}>
+    <div style={{ background: '#fff', borderRadius: 14, width: 480, maxWidth: '100%', maxHeight: '85vh', overflow: 'auto', padding: 22 }} onClick={(e) => e.stopPropagation()}>
+      {loading && <div style={{ textAlign: 'center', padding: 20, color: 'var(--muted)' }}>Memuat...</div>}
+      {error && <div className="alert error"><X size={17} />{error}</div>}
+      {data && <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 4 }}>
+          <div>
+            <div className="mono" style={{ fontSize: 12, color: '#0891b2', fontWeight: 700 }}>{data.kode}</div>
+            <h3 style={{ margin: '2px 0 0', fontSize: 16 }}>{data.nama}</h3>
+          </div>
+          <button className="icon-button" onClick={onClose}><X size={16} /></button>
+        </div>
+        <span className="role-pill mini tosca" style={{ marginTop: 4, display: 'inline-block' }}>{data.tipe}</span>
+        <div style={{ marginTop: 14, padding: '12px 16px', background: '#f0fdfa', border: '1px solid #a5f3fc', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#0891b2', textTransform: 'uppercase' }}>
+              {dari ? `Total periode ${dari.split('-').reverse().join('/')} – ${sampaiTgl.split('-').reverse().join('/')}` : `Saldo per ${sampaiTgl ? sampaiTgl.split('-').reverse().join('/') : ''}`}
+            </div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: '#083344' }}>{rupiah(data.saldo)}</div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--muted)' }}>{data.totalTransaksi} transaksi tercatat</div>
+        </div>
+        <div style={{ marginTop: 16, fontSize: 11.5, fontWeight: 700, color: '#526763', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+          Transaksi Terbaru{data.totalTransaksi > data.terbaru.length ? ` (${data.terbaru.length} dari ${data.totalTransaksi})` : ''}
+        </div>
+        <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+          {data.terbaru.map((b, i) => <div key={i} style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+              <span style={{ color: 'var(--muted)' }}>{tanggal(b.tanggal)}</span>
+              <span style={{ fontWeight: 700, color: b.debit > 0 ? '#0891b2' : '#ad6a16' }}>{b.debit > 0 ? `D ${rupiah(b.debit)}` : `K ${rupiah(b.kredit)}`}</span>
+            </div>
+            <div style={{ color: 'var(--ink)' }}>{b.keterangan}</div>
+          </div>)}
+          {data.terbaru.length === 0 && <div style={{ padding: 10, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Belum ada transaksi.</div>}
+        </div>
+      </>}
     </div>
   </div>
 }
@@ -4749,10 +5774,10 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
       </div>
       <div style={{ padding: '18px 25px 25px' }}>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
-          <AkunTable items={neraca.aset} title={`ASET — ${rupiah(neraca.totalAset)}`} />
+          <AkunTable items={neraca.aset} title={`ASET — ${rupiah(neraca.totalAset)}`} tanggal={tanggalNeraca} token={token} onExpired={onExpired} />
           <div style={{ flex: 1, minWidth: 260, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <AkunTable items={neraca.liabilitas} title={`LIABILITAS — ${rupiah(neraca.totalLiabilitas)}`} />
-            <AkunTable items={[...neraca.ekuitas, { kode: '3-3999', nama: 'SHU Tahun Berjalan', saldo: neraca.shuBerjalan }]} title={`EKUITAS — ${rupiah(neraca.totalEkuitas)}`} />
+            <AkunTable items={neraca.liabilitas} title={`LIABILITAS — ${rupiah(neraca.totalLiabilitas)}`} tanggal={tanggalNeraca} token={token} onExpired={onExpired} />
+            <AkunTable items={[...neraca.ekuitas, { kode: '3-3999', nama: 'SHU Tahun Berjalan (belum difinalisasi)', saldo: neraca.shuBerjalan }]} title={`EKUITAS — ${rupiah(neraca.totalEkuitas)}`} tanggal={tanggalNeraca} token={token} onExpired={onExpired} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
@@ -4790,8 +5815,8 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
       </div>
       <div style={{ padding: '18px 25px 25px' }}>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
-          <AkunTable items={labaRugi.pendapatan} title={`PENDAPATAN — ${rupiah(labaRugi.totalPendapatan)}`} />
-          <AkunTable items={labaRugi.beban} title={`BEBAN — ${rupiah(labaRugi.totalBeban)}`} />
+          <AkunTable items={labaRugi.pendapatan} title={`PENDAPATAN — ${rupiah(labaRugi.totalPendapatan)}`} tanggal={sampaiRugi} dari={dariRugi} token={token} onExpired={onExpired} />
+          <AkunTable items={labaRugi.beban} title={`BEBAN — ${rupiah(labaRugi.totalBeban)}`} tanggal={sampaiRugi} dari={dariRugi} token={token} onExpired={onExpired} />
         </div>
         <div className={`alert ${labaRugi.labaBersih >= 0 ? 'success' : 'error'}`} style={{ marginBottom: 0, padding: '14px 18px' }}>
           <TrendingUp size={20} />
@@ -4865,6 +5890,424 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
   </div>
 }
 
+function ShuRumusGuide({
+  totalShu,
+  persenAnggota,
+  persenPengurus,
+  persenCadangan,
+  persenModal,
+  persenUsaha,
+  pphShuInput,
+}: {
+  totalShu: string
+  persenAnggota: string
+  persenPengurus: string
+  persenCadangan: string
+  persenModal: string
+  persenUsaha: string
+  pphShuInput: string
+}) {
+  const [isOpen, setIsOpen] = useState(true)
+  const [tab, setTab] = useState<'rumus' | 'simulasi'>('rumus')
+
+  const numTotalShu = Math.max(0, Number(totalShu) || 0)
+  const pAnggota = Number(persenAnggota) || 0
+  const pPengurus = Number(persenPengurus) || 0
+  const pCadangan = Number(persenCadangan) || 0
+  const pModal = Number(persenModal) || 0
+  const pUsaha = Number(persenUsaha) || 0
+  const pPph = Number(pphShuInput) || 0
+
+  // Estimasi dinamis untuk Lapis 1 jika total SHU diisi
+  const poolAnggota = Math.round(numTotalShu * (pAnggota / 100))
+  const poolPengurus = Math.round(numTotalShu * (pPengurus / 100))
+  const poolCadangan = Math.round(numTotalShu * (pCadangan / 100))
+  const poolJma = Math.round(poolAnggota * (pModal / 100))
+  const poolJua = Math.round(poolAnggota * (pUsaha / 100))
+
+  // Data angka simulasi percontohan (Pak Budi)
+  const simTotalShu = numTotalShu > 0 ? numTotalShu : 100000000
+  const simPoolAnggota = Math.round(simTotalShu * (pAnggota / 100))
+  const simPoolJma = Math.round(simPoolAnggota * (pModal / 100))
+  const simPoolJua = Math.round(simPoolAnggota * (pUsaha / 100))
+  const simTotalSimpanan = 200000000
+  const simTotalTransaksi = 80000000
+  const budiSimpanan = 10000000 // 5% dari total simpanan
+  const budiTransaksi = 4000000 // 5% dari total transaksi
+  const budiJma = Math.round((budiSimpanan / simTotalSimpanan) * (pModal / 100) * simPoolAnggota)
+  const budiJua = Math.round((budiTransaksi / simTotalTransaksi) * (pUsaha / 100) * simPoolAnggota)
+  const budiBruto = budiJma + budiJua
+  const budiPph = Math.round(budiBruto * (pPph / 100))
+  const budiNeto = budiBruto - budiPph
+
+  if (!isOpen) {
+    return (
+      <div className="shu-guide-container" style={{ margin: '0 25px 14px' }}>
+        <div className="shu-guide-collapsed" onClick={() => setIsOpen(true)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="shu-guide-icon-badge" style={{ width: 26, height: 26 }}>
+              <BookOpen size={14} />
+            </div>
+            <strong style={{ color: '#083344', fontSize: 12.5 }}>Rumus Pembagian SHU (2 Lapis):</strong>
+            <span className="shu-flow-inline">
+              Total SHU
+              <ChevronRight size={12} /> Lapis 1 (Anggota {persenAnggota}% · Pengurus {persenPengurus}% · Cadangan {persenCadangan}%)
+              <ChevronRight size={12} /> Lapis 2 (JMA {persenModal}% · JUA {persenUsaha}%)
+              <ChevronRight size={12} /> PPh ({pphShuInput || '15'}%)
+              <ChevronRight size={12} /> SHU Neto
+            </span>
+          </div>
+          <button
+            type="button"
+            className="toggle-button activate"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, fontSize: 11, padding: '0 10px' }}
+            onClick={(e) => { e.stopPropagation(); setIsOpen(true) }}
+          >
+            <ChevronDown size={13} /> Pelajari Rumus
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="shu-guide-container" style={{ margin: '0 25px 14px' }}>
+      <div className="shu-guide-header">
+        <div className="shu-guide-title-box">
+          <div className="shu-guide-icon-badge">
+            <BookOpen size={17} />
+          </div>
+          <div>
+            <div className="shu-guide-title">
+              Tata Cara & Rumus Perhitungan SHU (2 Lapis RAT)
+              <span className="shu-guide-pill">Sesuai AD/ART</span>
+            </div>
+            <div className="shu-guide-subtitle">
+              Sistem kalkulasi pembagian transparan, proporsional, dan adil untuk seluruh anggota
+            </div>
+          </div>
+        </div>
+
+        <div className="shu-guide-controls">
+          <div className="shu-guide-tabs">
+            <button
+              type="button"
+              className={`shu-guide-tab-btn ${tab === 'rumus' ? 'active' : ''}`}
+              onClick={() => setTab('rumus')}
+            >
+              <Layers size={13} /> Bagan Rumus
+            </button>
+            <button
+              type="button"
+              className={`shu-guide-tab-btn ${tab === 'simulasi' ? 'active' : ''}`}
+              onClick={() => setTab('simulasi')}
+            >
+              <Calculator size={13} /> Contoh Nyata
+            </button>
+          </div>
+          <button
+            type="button"
+            className="toggle-button"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 28, fontSize: 11, padding: '0 8px' }}
+            onClick={() => setIsOpen(false)}
+            title="Sembunyikan panduan rumus"
+          >
+            <ChevronUp size={13} /> Perkecil
+          </button>
+        </div>
+      </div>
+
+      <div className="shu-guide-body">
+        {tab === 'rumus' ? (
+          <>
+            {/* TAHAP 1: LAPIS 1 */}
+            <div>
+              <div className="shu-step-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="shu-step-tag step1">Langkah 1</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Lapis 1 — Pembagian Total SHU (Wajib 100%)</strong>
+                </div>
+                <span className="shu-step-desc">Total SHU (Hasil Usaha Bersih) dialokasikan ke 3 pos kebijakan RAT</span>
+              </div>
+
+              <div className="shu-lapis1-grid">
+                {/* Pilar 1: Pool Anggota */}
+                <div className="shu-pillar-card anggota">
+                  <div className="shu-pillar-head">
+                    <span className="shu-pillar-title">
+                      <Users size={15} style={{ color: '#0891b2' }} /> Pool Anggota
+                    </span>
+                    <span className="shu-guide-pill" style={{ background: '#cffafe', borderColor: '#67e8f9' }}>{pAnggota}%</span>
+                  </div>
+                  <div className="shu-pillar-formula">
+                    Pool Anggota = {pAnggota}% × Total SHU
+                  </div>
+                  <div className="shu-pillar-desc">
+                    Dana bersama yang dibagikan kembali kepada seluruh anggota aktif berdasarkan JMA & JUA di Lapis 2.
+                  </div>
+                  {numTotalShu > 0 && (
+                    <div className="shu-pillar-live">
+                      <span style={{ color: '#0e7490', fontWeight: 600 }}>Porsi saat ini:</span>
+                      <strong style={{ color: '#083344' }}>{rupiah(poolAnggota)}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pilar 2: Jasa Pengurus */}
+                <div className="shu-pillar-card pengurus">
+                  <div className="shu-pillar-head">
+                    <span className="shu-pillar-title">
+                      <BadgeCheck size={15} style={{ color: '#d97706' }} /> Jasa Pengurus
+                    </span>
+                    <span className="shu-guide-pill" style={{ background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>{pPengurus}%</span>
+                  </div>
+                  <div className="shu-pillar-formula">
+                    Jasa Pengurus = {pPengurus}% × Total SHU
+                  </div>
+                  <div className="shu-pillar-desc">
+                    Insentif manajemen dan pengawas atas kinerja tahun berjalan. Dikelola & dibagikan mandiri di luar sistem.
+                  </div>
+                  {numTotalShu > 0 && (
+                    <div className="shu-pillar-live">
+                      <span style={{ color: '#b45309', fontWeight: 600 }}>Porsi saat ini:</span>
+                      <strong style={{ color: '#083344' }}>{rupiah(poolPengurus)}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pilar 3: Dana Cadangan */}
+                <div className="shu-pillar-card cadangan">
+                  <div className="shu-pillar-head">
+                    <span className="shu-pillar-title">
+                      <PiggyBank size={15} style={{ color: '#475569' }} /> Cadangan Koperasi
+                    </span>
+                    <span className="shu-guide-pill" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#cbd5e1' }}>{pCadangan}%</span>
+                  </div>
+                  <div className="shu-pillar-formula">
+                    Dana Cadangan = {pCadangan}% × Total SHU
+                  </div>
+                  <div className="shu-pillar-desc">
+                    Ditahan permanen sebagai modal pemupukan & perlindungan risiko koperasi. Tidak dibagikan & bebas PPh.
+                  </div>
+                  {numTotalShu > 0 && (
+                    <div className="shu-pillar-live">
+                      <span style={{ color: '#475569', fontWeight: 600 }}>Porsi saat ini:</span>
+                      <strong style={{ color: '#083344' }}>{rupiah(poolCadangan)}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TAHAP 2: LAPIS 2 */}
+            <div>
+              <div className="shu-step-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="shu-step-tag step2">Langkah 2</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Lapis 2 — Alokasi Pool Anggota per Anggota (JMA & JUA)</strong>
+                </div>
+                <span className="shu-step-desc">Pool Anggota dipecah proporsional sesuai partisipasi modal & partisipasi usaha</span>
+              </div>
+
+              <div className="shu-lapis2-grid">
+                {/* Card JMA */}
+                <div className="shu-formula-card jma">
+                  <div className="shu-formula-card-head">
+                    <span className="shu-formula-card-title">
+                      <Wallet size={16} style={{ color: '#0891b2' }} />
+                      JMA (Jasa Modal Anggota)
+                    </span>
+                    <span className="shu-guide-pill" style={{ background: '#ecfeff', borderColor: '#67e8f9' }}>
+                      Porsi {pModal}%
+                    </span>
+                  </div>
+
+                  {/* Mathematical Fraction */}
+                  <div className="shu-math-box">
+                    <span className="shu-math-var">JMA<sub>i</sub> =</span>
+                    <div className="shu-math-fraction">
+                      <div className="shu-math-num">Simpanan (Pokok + Wajib) Anggota <i>i</i></div>
+                      <div className="shu-math-bar" />
+                      <div className="shu-math-den">Total Simpanan (Pokok + Wajib) Seluruh Anggota Aktif</div>
+                    </div>
+                    <span className="shu-math-op">× {pModal}% × Pool Anggota</span>
+                  </div>
+
+                  <ul className="shu-formula-details">
+                    <li><strong>Dasar:</strong> Saldo akhir Simpanan Pokok + Simpanan Wajib per akhir tahun buku.</li>
+                    <li><strong>Pengecualian:</strong> Simpanan Sukarela & Berjangka (deposito) tidak dimasukkan karena sudah memperoleh bagi hasil bunga rutin bulanan.</li>
+                    <li><strong>Makna:</strong> Mengapresiasi komitmen modal ekuitas anggota dalam memperkuat neraca koperasi.</li>
+                  </ul>
+                  {numTotalShu > 0 && (
+                    <div style={{ fontSize: 11.5, color: '#0e7490', background: '#ecfeff', padding: '6px 10px', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Total Pool JMA Tahun Ini:</span>
+                      <strong>{rupiah(poolJma)}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card JUA */}
+                <div className="shu-formula-card jua">
+                  <div className="shu-formula-card-head">
+                    <span className="shu-formula-card-title">
+                      <TrendingUp size={16} style={{ color: '#b45309' }} />
+                      JUA (Jasa Usaha Anggota)
+                    </span>
+                    <span className="shu-guide-pill" style={{ background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>
+                      Porsi {pUsaha}%
+                    </span>
+                  </div>
+
+                  {/* Mathematical Fraction */}
+                  <div className="shu-math-box">
+                    <span className="shu-math-var">JUA<sub>i</sub> =</span>
+                    <div className="shu-math-fraction">
+                      <div className="shu-math-num" style={{ color: '#b45309' }}>Jasa Pinjaman Lunas + Belanja Toko Anggota <i>i</i></div>
+                      <div className="shu-math-bar" style={{ background: '#d97706' }} />
+                      <div className="shu-math-den">Total Transaksi (Jasa + Belanja) Seluruh Anggota Aktif</div>
+                    </div>
+                    <span className="shu-math-op">× {pUsaha}% × Pool Anggota</span>
+                  </div>
+
+                  <ul className="shu-formula-details">
+                    <li><strong>Dasar:</strong> Jasa/bunga pinjaman yang benar-benar telah dilunasi anggota + total belanja produk katalog sepanjang tahun buku.</li>
+                    <li><strong>Pengecualian:</strong> Pengembalian pokok pinjaman tidak dihitung karena bukan pendapatan riil koperasi.</li>
+                    <li><strong>Makna:</strong> Mengapresiasi kontribusi perputaran roda usaha dan transaksi ekonomi anggota.</li>
+                  </ul>
+                  {numTotalShu > 0 && (
+                    <div style={{ fontSize: 11.5, color: '#92400e', background: '#fef3c7', padding: '6px 10px', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Total Pool JUA Tahun Ini:</span>
+                      <strong>{rupiah(poolJua)}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* TAHAP 3: PPH & NETO */}
+            <div>
+              <div className="shu-step-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="shu-step-tag step3">Langkah 3</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Hasil Akhir — Potongan PPh & SHU Bersih (Neto)</strong>
+                </div>
+                <span className="shu-step-desc">Kompensasi bersih yang diterima anggota setelah dipotong pajak penghasilan dividen</span>
+              </div>
+
+              <div className="shu-neto-card">
+                <div className="shu-neto-flow">
+                  <div className="shu-neto-item">
+                    <div className="shu-neto-lbl">1. SHU Bruto (i)</div>
+                    <div className="shu-neto-val">JMA<sub>i</sub> + JUA<sub>i</sub></div>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#94a3b8' }}>−</div>
+                  <div className="shu-neto-item">
+                    <div className="shu-neto-lbl">2. PPh SHU ({pPph}%)</div>
+                    <div className="shu-neto-val red">{pPph}% × Bruto</div>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#94a3b8' }}>=</div>
+                  <div className="shu-neto-item highlight">
+                    <div className="shu-neto-lbl" style={{ color: '#166534' }}>3. SHU Neto Diterima (i)</div>
+                    <div className="shu-neto-val green">Bruto − PPh SHU</div>
+                  </div>
+                </div>
+
+                <div className="shu-neto-callout">
+                  <CheckCircle2 size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+                  <div>
+                    <strong>SHU Neto</strong> inilah nominal hak dividen bersih yang menjadi kewajiban utang koperasi ke anggota. Begitu tombol <em>"Finalisasi"</em> diklik, rincian ini langsung muncul secara otomatis di aplikasi mobile masing-masing anggota (menu <strong>SHU Saya</strong>).
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* TAB CONTOH SIMULASI NYATA */
+          <div className="shu-simulasi-container">
+            <div className="shu-simulasi-head">
+              <div>
+                <strong>Simulasi Nyata Kasus Perhitungan Anggota</strong>
+                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
+                  Menggunakan asumsi Total SHU {rupiah(simTotalShu)} dan profil contoh <strong>"Pak Budi"</strong>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span className="shu-guide-pill" style={{ background: '#ecfeff', borderColor: '#a5f3fc' }}>Anggota: {pAnggota}%</span>
+                <span className="shu-guide-pill" style={{ background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>JMA: {pModal}% / JUA: {pUsaha}%</span>
+                <span className="shu-guide-pill" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#cbd5e1' }}>PPh: {pPph}%</span>
+              </div>
+            </div>
+
+            <div className="shu-simulasi-steps">
+              {/* Box 1 */}
+              <div className="shu-simulasi-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#0891b2' }}>
+                  <Scale size={15} /> 1. Alokasi Total SHU (Lapis 1)
+                </div>
+                <div style={{ color: '#475569' }}>
+                  Dari laba bersih koperasi {rupiah(simTotalShu)}:
+                </div>
+                <div>• <strong>Pool Anggota ({pAnggota}%):</strong> {rupiah(simPoolAnggota)}</div>
+                <div>• <strong>Jasa Pengurus ({pPengurus}%):</strong> {rupiah(Math.round(simTotalShu * pPengurus / 100))}</div>
+                <div>• <strong>Cadangan Koperasi ({pCadangan}%):</strong> {rupiah(Math.round(simTotalShu * pCadangan / 100))}</div>
+                <div className="shu-simulasi-res">
+                  Dana Anggota siap dibagi: {rupiah(simPoolAnggota)}
+                </div>
+              </div>
+
+              {/* Box 2 */}
+              <div className="shu-simulasi-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#0891b2' }}>
+                  <Wallet size={15} /> 2. Hitung JMA Pak Budi
+                </div>
+                <div style={{ color: '#475569' }}>
+                  Simpanan Budi: <strong>{rupiah(budiSimpanan)}</strong> dari total seluruh anggota <strong>{rupiah(simTotalSimpanan)}</strong> (porsi {((budiSimpanan / simTotalSimpanan) * 100).toFixed(1)}%).
+                </div>
+                <div>• Pool Modal ({pModal}% × {rupiah(simPoolAnggota)}) = {rupiah(simPoolJma)}</div>
+                <div>• JMA Budi = {((budiSimpanan / simTotalSimpanan) * 100).toFixed(1)}% × {rupiah(simPoolJma)}</div>
+                <div className="shu-simulasi-res">
+                  JMA Budi = {rupiah(budiJma)}
+                </div>
+              </div>
+
+              {/* Box 3 */}
+              <div className="shu-simulasi-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#b45309' }}>
+                  <TrendingUp size={15} /> 3. Hitung JUA Pak Budi
+                </div>
+                <div style={{ color: '#475569' }}>
+                  Transaksi Budi (jasa pinjaman + belanja): <strong>{rupiah(budiTransaksi)}</strong> dari total koperasi <strong>{rupiah(simTotalTransaksi)}</strong> (porsi {((budiTransaksi / simTotalTransaksi) * 100).toFixed(1)}%).
+                </div>
+                <div>• Pool Usaha ({pUsaha}% × {rupiah(simPoolAnggota)}) = {rupiah(simPoolJua)}</div>
+                <div>• JUA Budi = {((budiTransaksi / simTotalTransaksi) * 100).toFixed(1)}% × {rupiah(simPoolJua)}</div>
+                <div className="shu-simulasi-res" style={{ color: '#b45309' }}>
+                  JUA Budi = {rupiah(budiJua)}
+                </div>
+              </div>
+
+              {/* Box 4 */}
+              <div className="shu-simulasi-card" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#166534' }}>
+                  <Receipt size={15} /> 4. Pajak & SHU Bersih Diterima
+                </div>
+                <div>• <strong>SHU Bruto:</strong> {rupiah(budiJma)} + {rupiah(budiJua)} = <strong>{rupiah(budiBruto)}</strong></div>
+                <div>• <strong>Potongan PPh ({pPph}%):</strong> −{rupiah(budiPph)}</div>
+                <div style={{ borderTop: '1px dashed #86efac', paddingTop: 6, marginTop: 4 }}>
+                  <span style={{ fontSize: 11, color: '#166534', textTransform: 'uppercase', fontWeight: 800 }}>Uang Bersih Masuk ke Budi:</span>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: '#15803d', marginTop: 2 }}>{rupiah(budiNeto)}</div>
+                </div>
+                <div className="shu-simulasi-res" style={{ background: '#dcfce7', color: '#15803d' }}>
+                  Tercatat di aplikasi: {rupiah(budiNeto)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [riwayat, setRiwayat] = useState<ShuRiwayat[]>([])
   const [hasil, setHasil] = useState<ShuHitung | null>(null)
@@ -4873,6 +6316,9 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+
+  const [konfigurasi, setKonfigurasi] = useState<Konfigurasi | null>(null)
+  const [pphShuInput, setPphShuInput] = useState('')
 
   const [tahun, setTahun] = useState(new Date().getFullYear())
   const [totalShu, setTotalShu] = useState('')
@@ -4892,14 +6338,43 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
   const loadRiwayat = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const response = await fetch(`${API_BASE}/api/admin/shu/riwayat`, { headers })
-      if (response.status === 401) { onExpired(); return }
-      if (!response.ok) throw new Error(response.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat riwayat SHU.')
-      setRiwayat(await response.json())
+      const [rResponse, kResponse] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/shu/riwayat`, { headers }),
+        fetch(`${API_BASE}/api/admin/konfigurasi`, { headers }),
+      ])
+      if (rResponse.status === 401 || kResponse.status === 401) { onExpired(); return }
+      if (!rResponse.ok) throw new Error(rResponse.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat riwayat SHU.')
+      setRiwayat(await rResponse.json())
+      if (kResponse.ok) {
+        const k: Konfigurasi = await kResponse.json()
+        setKonfigurasi(k)
+        setPphShuInput((k.tarifPphShu * 100).toString())
+      }
     } catch (e) { setError(e instanceof Error ? e.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
   }, [headers, onExpired])
   useEffect(() => { void loadRiwayat() }, [loadRiwayat])
+
+  const simpanPphShu = async () => {
+    if (!konfigurasi) return
+    setBusyId('pph-shu'); setError('')
+    try {
+      const body = {
+        simpananPokokNominal: konfigurasi.simpananPokokNominal,
+        simpananWajibNominal: konfigurasi.simpananWajibNominal,
+        bungaSukarelaTahunan: konfigurasi.bungaSukarelaTahunan,
+        bungaDepositoTahunan: konfigurasi.bungaDepositoTahunan,
+        tarifPph: konfigurasi.tarifPph,
+        tarifPphShu: (Number(pphShuInput) || 0) / 100,
+      }
+      const response = await fetch(`${API_BASE}/api/admin/konfigurasi`, { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(body) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal menyimpan Tarif PPh SHU.')
+      flash('Tarif PPh SHU disimpan.')
+      await loadRiwayat()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal menyimpan Tarif PPh SHU.') }
+    finally { setBusyId('') }
+  }
 
   const ambilDariLabaRugi = async () => {
     setBusyId('ambil-lr'); setError('')
@@ -4968,7 +6443,7 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading">
-        <div style={{ flex: '1 1 320px' }}><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (pinjaman + belanja) setiap anggota aktif. PPh (lihat Tarif PPh di Konfigurasi Simpanan) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div>
+        <div style={{ flex: '1 1 320px' }}><h2>Kalkulator SHU (Sisa Hasil Usaha)</h2><p>SHU Anggota = Jasa Modal Anggota (JMA) + Jasa Usaha Anggota (JUA), dihitung dari simpanan pokok+wajib dan volume transaksi (jasa pinjaman dibayar + belanja) setiap anggota aktif. Tarif PPh SHU (di bawah) dipotong dari SHU bruto tiap anggota sebelum dibagikan.</p></div>
         <div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void loadRiwayat()} title="Muat ulang"><RefreshCw size={16} /></button></div>
       </div>
       <div className="panel-heading" style={{ paddingTop: 0 }}><div><h2 style={{ fontSize: 15 }}>Hitung & tayangkan SHU</h2><p>Pratinjau dulu (tidak tersimpan), lalu finalisasi untuk mengirim estimasi ke aplikasi anggota. Pembagian dua lapis sesuai kebijakan RAT.</p></div></div>
@@ -4978,7 +6453,19 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
         <button className="toggle-button activate" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={busyId === 'ambil-lr'} onClick={() => void ambilDariLabaRugi()}>
           <Calculator size={14} /> Ambil dari Hasil Usaha
         </button>
+        <label style={labelStyle}>Tarif PPh SHU (%)<input type="number" step="0.1" value={pphShuInput} onChange={(e) => setPphShuInput(e.target.value)} style={{ ...inputStyle, width: 100, background: '#fff' }} placeholder="15.0" /></label>
+        <button className="toggle-button" disabled={busyId === 'pph-shu' || !konfigurasi} onClick={() => void simpanPphShu()}>Simpan Tarif PPh</button>
       </div>
+
+      <ShuRumusGuide
+        totalShu={totalShu}
+        persenAnggota={persenAnggota}
+        persenPengurus={persenPengurus}
+        persenCadangan={persenCadangan}
+        persenModal={persenModal}
+        persenUsaha={persenUsaha}
+        pphShuInput={pphShuInput}
+      />
 
       <div style={{ margin: '10px 25px 0', padding: '14px 18px', border: '1px solid #a5f3fc', borderRadius: 10, background: '#f0fdfa' }}>
         <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.04em', color: '#083344', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -5119,7 +6606,7 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
       kategori: 'operasional',
       ringkasan: 'Jantung operasional koperasi — kelola simpanan anggota dan proses pinjaman, dalam dua tab.',
       poin: [
-        'Tab "Simpanan" bagian Konfigurasi — atur nominal Simpanan Pokok & Wajib, suku bunga tahunan Sukarela/Deposito, serta dua tarif PPh terpisah: Tarif PPh Bunga (untuk Sukarela & Deposito) dan Tarif PPh SHU (khusus SHU, defaultnya 15%, beda dari PPh bunga).',
+        'Tab "Simpanan" bagian Konfigurasi — atur nominal Simpanan Pokok & Wajib, suku bunga tahunan Sukarela/Deposito, serta Tarif PPh Bunga (untuk Sukarela & Deposito). Tarif PPh khusus SHU diatur terpisah di halaman Akuntansi ▸ SHU (defaultnya 15%, beda dari PPh bunga).',
         'Simpanan Wajib ditagih otomatis tiap bulan pada tanggal yang Anda atur — setujui satu-satu atau pakai "Setujui semua periode ini" untuk memproses sekaligus.',
         'Simpanan Sukarela: setoran/penarikan anggota disetujui di sini. Bunga dihitung metode saldo harian (per hari: saldo × suku bunga ÷ 365) dan hanya bisa ditutup untuk BULAN YANG SUDAH LEWAT — klik "Hitung bunga bulan lalu" untuk memicunya. Bunga bulan berjalan sengaja tidak bisa dihitung karena saldo hariannya belum final (anggota masih bisa setor/tarik lagi).',
         'Simpanan Berjangka (deposito): buat paket (nominal + tenor) di panel "Paket Simpanan Berjangka", lalu setujui pengajuan anggota untuk mengaktifkannya. Saat jatuh tempo, cairkan untuk memberi pokok + bunga neto (dipotong PPh). Kalau anggota minta cair LEBIH CEPAT dari jatuh tempo, anggota hanya menerima pokok — bunga hangus sepenuhnya sebagai konsekuensi pencairan dipercepat.',
