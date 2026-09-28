@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(KkcsDbContext))]
-    partial class KkcsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260925013930_TambahRincianTransaksiShuAnggota")]
+    partial class TambahRincianTransaksiShuAnggota
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -406,17 +409,6 @@ namespace backend.Migrations
                             SaldoNormal = "Debit",
                             Sistem = false,
                             Tipe = "Beban"
-                        },
-                        new
-                        {
-                            Id = 32,
-                            Aktif = true,
-                            DibuatPada = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Kode = "2-2450",
-                            Nama = "Utang Pajak",
-                            SaldoNormal = "Kredit",
-                            Sistem = false,
-                            Tipe = "Liabilitas"
                         });
                 });
 

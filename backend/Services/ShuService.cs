@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-public record ShuBarisHasil(int PenggunaId, string Nama, string NomorIndukKaryawan, decimal SimpananAnggota, decimal TransaksiAnggota, decimal Jma, decimal Jua, decimal TotalShu, decimal Pajak, decimal TotalShuNeto);
+public record ShuBarisHasil(int PenggunaId, string Nama, string NomorIndukKaryawan, decimal SimpananAnggota, decimal TransaksiAnggota, decimal Jma, decimal Jua, decimal TotalShu, decimal Pajak, decimal TotalShuNeto, decimal JasaPinjaman = 0, decimal Belanja = 0);
 public record ShuHitungResult(
     int Tahun, decimal TotalShu, decimal PersenAnggota, decimal PersenJasaModal, decimal PersenJasaUsaha, decimal PersenPengurus, decimal PersenCadangan,
     decimal TarifPph, decimal TotalPajak, decimal TotalShuNeto, decimal AnggotaPool, decimal JasaPengurusPool, decimal CadanganAmount,
@@ -68,8 +68,11 @@ public static class ShuService
             .GroupBy(x => x.PenggunaId)
             .Select(g => new { PenggunaId = g.Key, Total = g.Sum(x => x.Jasa) })
             .ToListAsync();
+        var jasaPerAnggota = new Dictionary<int, decimal>();
+        var belanjaPerAnggota = new Dictionary<int, decimal>();
         foreach (var item in jasaDibayarTahunIni)
         {
+            jasaPerAnggota[item.PenggunaId] = item.Total;
             transaksiPerAnggota[item.PenggunaId] = transaksiPerAnggota.GetValueOrDefault(item.PenggunaId) + item.Total;
         }
 
@@ -81,6 +84,7 @@ public static class ShuService
             .ToListAsync();
         foreach (var item in pembelianTahunIni)
         {
+            belanjaPerAnggota[item.PembeliId] = item.Total;
             transaksiPerAnggota[item.PembeliId] = transaksiPerAnggota.GetValueOrDefault(item.PembeliId) + item.Total;
         }
 
@@ -97,7 +101,7 @@ public static class ShuService
             var bruto = jma + jua;
             var pajak = bruto > 0 ? Math.Round(bruto * tarifPph, 2, MidpointRounding.AwayFromZero) : 0;
             var neto = bruto - pajak;
-            return new ShuBarisHasil(p.Id, p.NamaLengkap, p.NomorIndukKaryawan, simpanan, transaksi, jma, jua, bruto, pajak, neto);
+            return new ShuBarisHasil(p.Id, p.NamaLengkap, p.NomorIndukKaryawan, simpanan, transaksi, jma, jua, bruto, pajak, neto, jasaPerAnggota.GetValueOrDefault(p.Id), belanjaPerAnggota.GetValueOrDefault(p.Id));
         })
         .OrderByDescending(r => r.TotalShu)
         .ToList();

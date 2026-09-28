@@ -82,7 +82,7 @@ type LaporanRat = {
 type ArusKasBaris = { tanggal: string; nomorJurnal: string; keterangan: string; modul: string | null; masuk: number; keluar: number }
 type ArusKas = { dari: string; sampai: string; saldoAwal: number; totalMasuk: number; totalKeluar: number; saldoAkhir: number; baris: ArusKasBaris[] }
 type ShuRiwayat = { tahun: number; totalShu: number; totalPajak: number; totalShuNeto: number; persenAnggota: number; persenJasaModal: number; persenJasaUsaha: number; persenPengurus: number; persenCadangan: number; jasaPengurusPool: number; cadanganAmount: number; jumlahAnggota: number; difinalisasiPada: string }
-type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number; pajak: number; totalShuNeto: number }
+type ShuBaris = { penggunaId: number; nama: string; nomorIndukKaryawan: string; simpananAnggota: number; transaksiAnggota: number; jma: number; jua: number; totalShu: number; pajak: number; totalShuNeto: number; jasaPinjaman?: number; belanja?: number }
 type ShuHitung = { tahun: number; totalShu: number; persenAnggota: number; persenJasaModal: number; persenJasaUsaha: number; persenPengurus: number; persenCadangan: number; tarifPph: number; totalPajak: number; totalShuNeto: number; anggotaPool: number; jasaPengurusPool: number; cadanganAmount: number; totalSimpananSemuaAnggota: number; totalTransaksiSemuaAnggota: number; rincian: ShuBaris[] }
 type LoanApplication = {
   id: number; nomorPengajuan: string; namaAnggota: string; nomorIndukKaryawan: string
@@ -5425,6 +5425,475 @@ function AkunRincianModal({ kode, tanggal: sampaiTgl, dari, token, onExpired, on
   </div>
 }
 
+type ShuAnggotaDetail = {
+  nama: string; nomorIndukKaryawan?: string | null
+  simpananAnggota?: number; transaksiAnggota?: number; jasaPinjaman?: number; belanja?: number
+  jma: number; jua: number; totalShu: number; pajak: number; totalShuNeto: number
+}
+type ShuKonteks = {
+  tahun?: number
+  tarifPph: number
+  totalSimpanan: number
+  totalTransaksi: number
+  anggotaPool: number
+  persenJasaModal: number
+  persenJasaUsaha: number
+  isFinal?: boolean
+}
+
+function ShuAnggotaModal({ data, konteks, onClose }: { data: ShuAnggotaDetail; konteks?: ShuKonteks; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const pct = (v: number) => `${(v * 100).toFixed(2).replace(/\.?0+$/, '')}%`
+
+  const tarifPph = konteks?.tarifPph ?? (data.totalShu > 0 ? data.pajak / data.totalShu : 0.15)
+  const persenModal = konteks?.persenJasaModal ?? 0.3
+  const persenUsaha = konteks?.persenJasaUsaha ?? 0.7
+  const anggotaPool = konteks?.anggotaPool ?? (data.totalShu / (persenModal + persenUsaha || 1))
+  const poolJma = Math.round(anggotaPool * persenModal)
+  const poolJua = Math.round(anggotaPool * persenUsaha)
+
+  const punyaRincianTransaksi = data.jasaPinjaman !== undefined && data.belanja !== undefined && (data.jasaPinjaman > 0 || data.belanja > 0)
+
+  const salinSlip = () => {
+    const teks = `=== SLIP PEMBAGIAN SHU ${konteks?.tahun ? `TAHUN BUKU ${konteks.tahun}` : ''} ===
+Nama Anggota : ${data.nama}
+NIK          : ${data.nomorIndukKaryawan || '—'}
+Simpanan P+W : ${rupiah(data.simpananAnggota ?? 0)}
+Transaksi    : ${rupiah(data.transaksiAnggota ?? 0)}
+---------------------------------------------
+Jasa Modal (JMA)  : ${rupiah(data.jma)}
+Jasa Usaha (JUA)  : ${rupiah(data.jua)}
+Total SHU (Bruto) : ${rupiah(data.totalShu)}
+Potongan PPh Final: −${rupiah(data.pajak)} (${pct(tarifPph)})
+---------------------------------------------
+SHU BERSIH DITERIMA (NETO): ${rupiah(data.totalShuNeto)}
+Koperasi Karyawan Citra Sejahtera (KKCS)`
+    void navigator.clipboard.writeText(teks)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2400)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card shu-modal-card" onClick={(e) => e.stopPropagation()}>
+        {/* Profile Header */}
+        <div className="modal-profile-header">
+          <div className="modal-profile-info">
+            <span className="modal-avatar">{data.nama.charAt(0).toUpperCase()}</span>
+            <div className="modal-profile-text">
+              <h2>{data.nama}</h2>
+              <div className="modal-chips-row">
+                <span className="mono shu-chip-nik">NIK {data.nomorIndukKaryawan || '—'}</span>
+                <span className="role-pill mini tosca"><BadgeCheck size={11} /> Anggota Aktif</span>
+                {konteks?.tahun && (
+                  <span className="role-pill mini admin"><Calendar size={11} /> Tahun Buku {konteks.tahun}</span>
+                )}
+                {konteks?.isFinal ? (
+                  <span className="role-pill mini tosca"><CheckCircle2 size={11} /> Difinalisasi</span>
+                ) : (
+                  <span className="role-pill mini yellow"><Calculator size={11} /> Pratinjau Kalkulasi</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button className="icon-button" onClick={onClose} title="Tutup Modal"><X size={18} /></button>
+        </div>
+
+        <div className="modal-body shu-modal-body">
+          {/* Hero Banner / Slip Voucher */}
+          <div className="shu-modal-hero">
+            <div className="shu-modal-hero-top">
+              <div className="shu-modal-hero-badge">
+                <BadgeCheck size={15} /> HAK SHU BERSIH (NETO) DITERIMA
+              </div>
+              <div className="shu-modal-hero-amount">
+                {rupiah(data.totalShuNeto)}
+              </div>
+            </div>
+            <div className="shu-modal-hero-formula">
+              <div className="shu-modal-hero-step">
+                <span className="shu-modal-hero-step-lbl">1. SHU Bruto</span>
+                <span className="shu-modal-hero-step-val">{rupiah(data.totalShu)}</span>
+              </div>
+              <span className="shu-modal-hero-op">−</span>
+              <div className="shu-modal-hero-step">
+                <span className="shu-modal-hero-step-lbl">2. PPh Final ({pct(tarifPph)})</span>
+                <span className="shu-modal-hero-step-val red">−{rupiah(data.pajak)}</span>
+              </div>
+              <span className="shu-modal-hero-op">=</span>
+              <div className="shu-modal-hero-step highlight">
+                <span className="shu-modal-hero-step-lbl">3. Neto Diterima</span>
+                <span className="shu-modal-hero-step-val green">{rupiah(data.totalShuNeto)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 1: Dasar Partisipasi Anggota */}
+          <div className="modal-section-title">
+            <Scale size={15} /> 1. Data Partisipasi Anggota (Dasar Pembagian)
+          </div>
+          <div className="shu-modal-partisipasi-grid">
+            {/* Card Modal / Simpanan */}
+            <div className="shu-modal-part-card jma">
+              <div className="shu-modal-part-head">
+                <div className="shu-modal-part-icon jma"><Wallet size={16} /></div>
+                <div>
+                  <div className="shu-modal-part-title">Simpanan Anggota (Dasar JMA)</div>
+                  <div className="shu-modal-part-sub">Saldo Simpanan Pokok + Wajib per akhir tahun</div>
+                </div>
+              </div>
+              <div className="shu-modal-part-val">{rupiah(data.simpananAnggota ?? 0)}</div>
+              {konteks && konteks.totalSimpanan > 0 && (
+                <div className="shu-modal-part-footer">
+                  <span>Porsi Kepemilikan Modal:</span>
+                  <strong style={{ color: '#0891b2' }}>{pct((data.simpananAnggota ?? 0) / konteks.totalSimpanan)}</strong>
+                  <span className="shu-modal-part-total">(dari total {rupiah(konteks.totalSimpanan)})</span>
+                </div>
+              )}
+            </div>
+
+            {/* Card Usaha / Transaksi */}
+            <div className="shu-modal-part-card jua">
+              <div className="shu-modal-part-head">
+                <div className="shu-modal-part-icon jua"><TrendingUp size={16} /></div>
+                <div>
+                  <div className="shu-modal-part-title">Aktivitas Usaha (Dasar JUA)</div>
+                  <div className="shu-modal-part-sub">Jasa pinjaman lunas + Belanja produk</div>
+                </div>
+              </div>
+              <div className="shu-modal-part-val">{rupiah(data.transaksiAnggota ?? 0)}</div>
+              {punyaRincianTransaksi && (
+                <div className="shu-modal-part-breakdown">
+                  <span>Bunga Pinjaman: <b>{rupiah(data.jasaPinjaman!)}</b></span>
+                  <span>·</span>
+                  <span>Belanja Toko: <b>{rupiah(data.belanja!)}</b></span>
+                </div>
+              )}
+              {konteks && konteks.totalTransaksi > 0 && (
+                <div className="shu-modal-part-footer">
+                  <span>Porsi Partisipasi Usaha:</span>
+                  <strong style={{ color: '#b45309' }}>{pct((data.transaksiAnggota ?? 0) / konteks.totalTransaksi)}</strong>
+                  <span className="shu-modal-part-total">(dari total {rupiah(konteks.totalTransaksi)})</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 2: Transparansi Rumus & Perhitungan */}
+          <div className="modal-section-title" style={{ marginTop: 18 }}>
+            <Calculator size={15} /> 2. Rincian & Rumus Perhitungan SHU
+          </div>
+          <div className="shu-modal-calc-container">
+            {/* Card JMA */}
+            <div className="shu-modal-calc-card jma">
+              <div className="shu-modal-calc-head">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="shu-step-tag step1" style={{ fontSize: 10, padding: '2px 7px' }}>JMA</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Jasa Modal Anggota</strong>
+                </div>
+                <span className="shu-guide-pill" style={{ background: '#ecfeff', borderColor: '#a5f3fc', color: '#0891b2' }}>
+                  Porsi {pct(persenModal)} Pool Anggota
+                </span>
+              </div>
+              <div className="shu-math-box" style={{ margin: '8px 0' }}>
+                <span className="shu-math-var">JMA =</span>
+                <div className="shu-math-fraction">
+                  <div className="shu-math-num">{rupiah(data.simpananAnggota ?? 0)}</div>
+                  <div className="shu-math-bar" />
+                  <div className="shu-math-den">{rupiah(konteks?.totalSimpanan ?? 0)}</div>
+                </div>
+                <span className="shu-math-op">× {rupiah(poolJma)}</span>
+                <span className="shu-math-op">=</span>
+                <strong className="shu-modal-math-result jma">{rupiah(data.jma)}</strong>
+              </div>
+              <div className="shu-modal-calc-sub">
+                Hak imbal jasa modal atas komitmen simpanan pokok dan simpanan wajib anggota dalam memperkuat neraca permodalan koperasi.
+              </div>
+            </div>
+
+            {/* Card JUA */}
+            <div className="shu-modal-calc-card jua">
+              <div className="shu-modal-calc-head">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="shu-step-tag step2" style={{ fontSize: 10, padding: '2px 7px' }}>JUA</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Jasa Usaha Anggota</strong>
+                </div>
+                <span className="shu-guide-pill" style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a' }}>
+                  Porsi {pct(persenUsaha)} Pool Anggota
+                </span>
+              </div>
+              <div className="shu-math-box" style={{ margin: '8px 0' }}>
+                <span className="shu-math-var">JUA =</span>
+                <div className="shu-math-fraction">
+                  <div className="shu-math-num" style={{ color: '#b45309' }}>{rupiah(data.transaksiAnggota ?? 0)}</div>
+                  <div className="shu-math-bar" style={{ background: '#d97706' }} />
+                  <div className="shu-math-den">{rupiah(konteks?.totalTransaksi ?? 0)}</div>
+                </div>
+                <span className="shu-math-op">× {rupiah(poolJua)}</span>
+                <span className="shu-math-op">=</span>
+                <strong className="shu-modal-math-result jua">{rupiah(data.jua)}</strong>
+              </div>
+              <div className="shu-modal-calc-sub">
+                Hak imbal jasa usaha atas transaksi ekonomi anggota (pelunasan bunga pinjaman dan belanja barang kebutuhan di koperasi).
+              </div>
+            </div>
+
+            {/* Card PPh */}
+            <div className="shu-modal-calc-card pajak">
+              <div className="shu-modal-calc-head">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="shu-step-tag step3" style={{ fontSize: 10, padding: '2px 7px', background: '#fef2f2', color: '#991b1b', borderColor: '#fecaca' }}>PPH</span>
+                  <strong style={{ fontSize: 13, color: '#083344' }}>Potongan PPh Final SHU</strong>
+                </div>
+                <span className="shu-guide-pill" style={{ background: '#fef2f2', color: '#991b1b', borderColor: '#fecaca' }}>
+                  Tarif {pct(tarifPph)}
+                </span>
+              </div>
+              <div className="shu-modal-calc-pajak-row">
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  Total SHU Bruto ({rupiah(data.totalShu)}) × {pct(tarifPph)} =
+                </div>
+                <strong style={{ color: '#dc2626', fontSize: 14 }}>−{rupiah(data.pajak)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer (Pinned at bottom) */}
+        <div className="shu-modal-footer">
+          <div className="shu-modal-footer-note">
+            <Info size={15} style={{ color: '#0891b2', flexShrink: 0 }} />
+            <span>Dihitung otomatis dan transparan sesuai regulasi AD/ART & keputusan RAT KKCS.</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="toggle-button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={salinSlip}
+            >
+              {copied ? <Check size={14} style={{ color: '#16a34a' }} /> : <Copy size={14} />}
+              <span>{copied ? 'Tersalin!' : 'Salin Ringkasan'}</span>
+            </button>
+            <button type="button" className="toggle-button activate" onClick={onClose} style={{ minWidth: 90 }}>
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ShuTabelRincian({
+  rincian,
+  konteks,
+  tahun,
+  isFinal,
+  onSelectAnggota,
+  onEksporCsv,
+}: {
+  rincian: ShuBaris[]
+  konteks?: ShuKonteks
+  tahun?: number
+  isFinal?: boolean
+  totalSimpanan?: number
+  totalTransaksi?: number
+  onSelectAnggota: (baris: ShuBaris, konteks?: ShuKonteks) => void
+  onEksporCsv?: () => void
+}) {
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return rincian
+    const q = search.toLowerCase().trim()
+    return rincian.filter((r) =>
+      r.nama.toLowerCase().includes(q) ||
+      (r.nomorIndukKaryawan && r.nomorIndukKaryawan.toLowerCase().includes(q))
+    )
+  }, [rincian, search])
+
+  const totals = useMemo(() => {
+    return filtered.reduce(
+      (acc, r) => ({
+        simpanan: acc.simpanan + (r.simpananAnggota ?? 0),
+        transaksi: acc.transaksi + (r.transaksiAnggota ?? 0),
+        jma: acc.jma + r.jma,
+        jua: acc.jua + r.jua,
+        totalShu: acc.totalShu + r.totalShu,
+        pajak: acc.pajak + r.pajak,
+        totalShuNeto: acc.totalShuNeto + r.totalShuNeto,
+      }),
+      { simpanan: 0, transaksi: 0, jma: 0, jua: 0, totalShu: 0, pajak: 0, totalShuNeto: 0 }
+    )
+  }, [filtered])
+
+  return (
+    <div className="shu-table-wrapper">
+      <div className="shu-table-toolbar">
+        <div className="shu-table-title-area">
+          <h3 className="shu-table-heading">
+            <Users size={15} style={{ color: '#0891b2' }} />
+            Rincian Pembagian per Anggota
+          </h3>
+          <span className="role-pill mini" style={{ background: '#f1f5f9', color: '#334155', fontSize: 10.5, padding: '2px 6px' }}>
+            {filtered.length} dari {rincian.length} Anggota
+          </span>
+          {isFinal ? (
+            <span className="role-pill mini tosca" style={{ fontSize: 10.5, padding: '2px 6px' }}>
+              <CheckCircle2 size={11} /> Difinalisasi {tahun ? `Tahun ${tahun}` : ''}
+            </span>
+          ) : (
+            <span className="role-pill mini yellow" style={{ fontSize: 10.5, padding: '2px 6px' }}>
+              <Calculator size={11} /> Pratinjau
+            </span>
+          )}
+        </div>
+
+        <div className="shu-table-controls">
+          <div className="shu-search-box">
+            <Search size={13} className="shu-search-icon" />
+            <input
+              type="text"
+              className="shu-search-input"
+              placeholder="Cari nama atau NIK..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                className="shu-search-clear"
+                onClick={() => setSearch('')}
+                title="Hapus pencarian"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          {onEksporCsv && (
+            <button
+              type="button"
+              className="toggle-button activate"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 28, fontSize: 11, padding: '0 9px' }}
+              onClick={onEksporCsv}
+            >
+              <Download size={12} /> Ekspor CSV
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="shu-table-scroll">
+        <table className="shu-modern-table">
+          <thead>
+            <tr>
+              <th style={{ width: 28, textAlign: 'center' }}>#</th>
+              <th>Anggota</th>
+              <th className="align-right" title="Simpanan Pokok + Wajib akhir tahun, dan Jasa Modal Anggota (JMA)">Simpanan / JMA</th>
+              <th className="align-right" title="Bunga Pinjaman + Belanja Toko, dan Jasa Usaha Anggota (JUA)">Bunga & Belanja / JUA</th>
+              <th className="align-right" title="SHU Bruto (JMA + JUA), dan potongan PPh Final">Bruto / PPh</th>
+              <th className="align-right" title="SHU Bersih yang Diterima">SHU Neto</th>
+              <th style={{ width: 58, textAlign: 'center' }}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r, idx) => {
+              return (
+                <tr
+                  key={r.penggunaId}
+                  onClick={() => onSelectAnggota(r, konteks)}
+                  title="Klik untuk melihat rincian rumus & slip SHU anggota ini"
+                >
+                  <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: 10.5, padding: '5px 4px' }}>
+                    {idx + 1}
+                  </td>
+                  <td style={{ padding: '5px 6px' }}>
+                    <div className="user-cell" style={{ gap: 6 }}>
+                      <span className="avatar tosca-avatar" style={{ width: 24, height: 24, fontSize: 10, flexShrink: 0, borderRadius: 5 }}>
+                        {r.nama.charAt(0).toUpperCase()}
+                      </span>
+                      <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+                        <strong style={{ fontSize: 12, color: '#083344', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {r.nama}
+                        </strong>
+                        <small className="mono" style={{ color: 'var(--muted)', fontSize: 10 }}>
+                          {r.nomorIndukKaryawan || '—'}
+                        </small>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="align-right" style={{ padding: '5px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>{rupiah(r.simpananAnggota ?? 0)}</span>
+                    <br /><small><span className="shu-col-jma">JMA {rupiah(r.jma)}</span></small>
+                  </td>
+                  <td className="align-right" style={{ padding: '5px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                    <span style={{ fontWeight: 600, color: '#334155' }}>{rupiah(r.transaksiAnggota ?? 0)}</span>
+                    <br /><small><span className="shu-col-jua">JUA {rupiah(r.jua)}</span></small>
+                  </td>
+                  <td className="align-right" style={{ padding: '5px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                    <span style={{ fontWeight: 700, color: '#1e293b' }}>{rupiah(r.totalShu)}</span>
+                    <br /><small style={{ color: '#dc2626', fontWeight: 600 }}>PPh −{rupiah(r.pajak)}</small>
+                  </td>
+                  <td className="align-right" style={{ padding: '5px 6px', whiteSpace: 'nowrap' }}>
+                    <span className="shu-col-neto">{rupiah(r.totalShuNeto)}</span>
+                  </td>
+                  <td style={{ textAlign: 'center', padding: '5px 4px', whiteSpace: 'nowrap' }}>
+                    <button
+                      type="button"
+                      className="shu-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onSelectAnggota(r, konteks)
+                      }}
+                      title="Lihat rincian lengkap & slip SHU"
+                    >
+                      <Eye size={11} /> Detail
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--muted)' }}>
+                  <Search size={20} style={{ margin: '0 auto 6px', opacity: 0.4, display: 'block' }} />
+                  <div>Tidak ada data anggota yang cocok dengan kata kunci &quot;{search}&quot;.</div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+          {filtered.length > 0 && (
+            <tfoot>
+              <tr>
+                <td colSpan={2} style={{ fontWeight: 800, color: '#083344', fontSize: 11, padding: '6px 6px' }}>
+                  TOTAL ({filtered.length})
+                </td>
+                <td className="align-right" style={{ padding: '6px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>{rupiah(totals.simpanan)}</span>
+                  <br /><small><span className="shu-col-jma">JMA {rupiah(totals.jma)}</span></small>
+                </td>
+                <td className="align-right" style={{ padding: '6px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>{rupiah(totals.transaksi)}</span>
+                  <br /><small><span className="shu-col-jua">JUA {rupiah(totals.jua)}</span></small>
+                </td>
+                <td className="align-right" style={{ padding: '6px 6px', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                  <span style={{ fontWeight: 800, color: '#1e293b' }}>{rupiah(totals.totalShu)}</span>
+                  <br /><small style={{ color: '#dc2626', fontWeight: 800 }}>PPh −{rupiah(totals.pajak)}</small>
+                </td>
+                <td className="align-right" style={{ padding: '6px 6px', whiteSpace: 'nowrap' }}>
+                  <span className="shu-col-neto">{rupiah(totals.totalShuNeto)}</span>
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function ringkasNamaAkun(list: { namaAkun: string }[], maks = 1) {
   if (list.length === 0) return '—'
   if (list.length <= maks) return list.map((x) => x.namaAkun).join(', ')
@@ -5558,6 +6027,12 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
   const [dariKas, setDariKas] = useState(startOfYearISO())
   const [sampaiKas, setSampaiKas] = useState(todayISO())
 
+  const [jurnalPage, setJurnalPage] = useState(1)
+  const JURNAL_PER_PAGE = 15
+  const jurnalTotalPages = Math.max(1, Math.ceil(jurnal.length / JURNAL_PER_PAGE))
+  const jurnalPageSafe = Math.min(jurnalPage, jurnalTotalPages)
+  const jurnalHalaman = jurnal.slice((jurnalPageSafe - 1) * JURNAL_PER_PAGE, jurnalPageSafe * JURNAL_PER_PAGE)
+
   const [jTanggal, setJTanggal] = useState(todayISO())
   const [jKeterangan, setJKeterangan] = useState('')
   const [jBaris, setJBaris] = useState<{ akunId: string; debit: string; kredit: string }[]>([{ akunId: '', debit: '', kredit: '' }, { akunId: '', debit: '', kredit: '' }])
@@ -5580,7 +6055,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
   const loadJurnal = useCallback(async () => {
     const response = await fetch(`${API_BASE}/api/admin/akuntansi/jurnal`, { headers })
     if (response.status === 401) { onExpired(); return }
-    if (response.ok) setJurnal(await response.json())
+    if (response.ok) { setJurnal(await response.json()); setJurnalPage(1) }
   }, [headers, onExpired])
 
   const loadNeraca = useCallback(async () => {
@@ -5737,7 +6212,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
           <th style={{ width: 'auto', minWidth: 330 }}>Rincian Aliran Dana</th>
           <th className="align-right" style={{ width: 30 }}>Aksi</th>
         </tr></thead><tbody>
-          {jurnal.map((j) => <tr key={j.id} onClick={() => setDetailJurnal(j)} style={{ cursor: 'pointer' }}>
+          {jurnalHalaman.map((j) => <tr key={j.id} onClick={() => setDetailJurnal(j)} style={{ cursor: 'pointer' }}>
             <td>
               <div className="jurnal-meta-cell">
                 <div className="jurnal-meta-top">
@@ -5760,6 +6235,13 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
             <td className="align-right">{j.sumber === 'Manual' && <button className="icon-button" style={{ color: '#dc2626', padding: 5, width: 26, height: 26 }} disabled={busyId === `hapus-${j.id}`} title="Hapus jurnal" onClick={(e) => { e.stopPropagation(); void hapusJurnal(j) }}><Trash2 size={14} /></button>}</td>
           </tr>)}
         </tbody></table>{!loading && jurnal.length === 0 && <div className="empty-state"><BookOpen size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada jurnal tercatat.</div></div>}</div>
+        {jurnal.length > 0 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--line)', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Halaman {jurnalPageSafe} dari {jurnalTotalPages} · {jurnal.length} entri</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="toggle-button" disabled={jurnalPageSafe <= 1} onClick={() => setJurnalPage((p) => Math.max(1, p - 1))}>Sebelumnya</button>
+            <button className="toggle-button" disabled={jurnalPageSafe >= jurnalTotalPages} onClick={() => setJurnalPage((p) => Math.min(jurnalTotalPages, p + 1))}>Berikutnya</button>
+          </div>
+        </div>}
       </section>
       {detailJurnal && <JurnalDetailModal jurnal={detailJurnal} onClose={() => setDetailJurnal(null)} />}
     </>}
@@ -6308,10 +6790,29 @@ function ShuRumusGuide({
   )
 }
 
+type ShuDetailExpanded = {
+  tahun: number
+  totalShu: number
+  totalPajak: number
+  totalShuNeto: number
+  persenAnggota: number
+  persenJasaModal: number
+  persenJasaUsaha: number
+  persenPengurus: number
+  persenCadangan: number
+  jasaPengurusPool: number
+  cadanganAmount: number
+  totalSimpananSemuaAnggota: number
+  totalTransaksiSemuaAnggota: number
+  difinalisasiPada: string
+  rincian: ShuBaris[]
+}
+
 function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [riwayat, setRiwayat] = useState<ShuRiwayat[]>([])
   const [hasil, setHasil] = useState<ShuHitung | null>(null)
-  const [expanded, setExpanded] = useState<{ tahun: number; rincian: ShuBaris[] } | null>(null)
+  const [expanded, setExpanded] = useState<ShuDetailExpanded | null>(null)
+  const [detailShu, setDetailShu] = useState<{ data: ShuAnggotaDetail; konteks?: ShuKonteks } | null>(null)
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
@@ -6421,8 +6922,8 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
     if (expanded?.tahun === tahunLihat) { setExpanded(null); return }
     const response = await fetch(`${API_BASE}/api/admin/shu/${tahunLihat}`, { headers })
     if (response.ok) {
-      const data = await response.json()
-      setExpanded({ tahun: tahunLihat, rincian: data.rincian })
+      const data: ShuDetailExpanded = await response.json()
+      setExpanded(data)
     }
   }
 
@@ -6510,20 +7011,26 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
           <StatCard label="Total ke anggota (neto)" value={hasil.totalShuNeto} icon={<BadgeCheck size={18} />} tone="teal" money />
           <StatCard label="PPh anggota" value={hasil.totalPajak} icon={<Receipt size={18} />} tone="blue" money />
         </div>
-        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 14px' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total transaksi: {rupiah(hasil.totalTransaksiSemuaAnggota)} · Tarif PPh {(hasil.tarifPph * 100).toFixed(0)}%</p>
-        <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan</th><th>Transaksi</th><th>JMA</th><th>JUA</th><th>Total SHU (Bruto)</th><th>PPh</th><th>Total SHU (Neto)</th></tr></thead><tbody>
-          {hasil.rincian.map((r) => <tr key={r.penggunaId}>
-            <td><div className="user-cell"><span className="avatar tosca-avatar">{r.nama.charAt(0).toUpperCase()}</span><strong>{r.nama}</strong></div></td>
-            <td className="mono">{r.nomorIndukKaryawan || '—'}</td>
-            <td>{rupiah(r.simpananAnggota)}</td>
-            <td>{rupiah(r.transaksiAnggota)}</td>
-            <td>{rupiah(r.jma)}</td>
-            <td>{rupiah(r.jua)}</td>
-            <td>{rupiah(r.totalShu)}</td>
-            <td style={{ color: '#dc2626', fontWeight: 600 }}>−{rupiah(r.pajak)}</td>
-            <td style={{ fontWeight: 800, color: '#0891b2' }}>{rupiah(r.totalShuNeto)}</td>
-          </tr>)}
-        </tbody></table></div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '6px 0 14px' }}>Total simpanan semua anggota aktif: {rupiah(hasil.totalSimpananSemuaAnggota)} · Total bunga pinjaman & belanja: {rupiah(hasil.totalTransaksiSemuaAnggota)} · Tarif PPh {(hasil.tarifPph * 100).toFixed(0)}%</p>
+
+        <ShuTabelRincian
+          rincian={hasil.rincian}
+          konteks={{
+            tahun,
+            tarifPph: hasil.tarifPph,
+            totalSimpanan: hasil.totalSimpananSemuaAnggota,
+            totalTransaksi: hasil.totalTransaksiSemuaAnggota,
+            anggotaPool: hasil.anggotaPool,
+            persenJasaModal: hasil.persenJasaModal,
+            persenJasaUsaha: hasil.persenJasaUsaha,
+            isFinal: false,
+          }}
+          tahun={tahun}
+          isFinal={false}
+          totalSimpanan={hasil.totalSimpananSemuaAnggota}
+          totalTransaksi={hasil.totalTransaksiSemuaAnggota}
+          onSelectAnggota={(baris, ctx) => setDetailShu({ data: baris, konteks: ctx })}
+        />
       </div>}
     </section>
 
@@ -6542,20 +7049,62 @@ function ShuPanel({ token, onExpired }: { token: string; onExpired: () => void }
               <button className="toggle-button activate" onClick={() => void eksporCsv(r.tahun)}>Ekspor CSV</button>
             </span></td>
           </tr>,
-          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={6} style={{ background: '#f8fafc', padding: '14px 18px' }}>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#083344', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Calculator size={15} style={{ color: '#0891b2' }} />
-                Rincian Pembagian SHU Anggota Tahun {r.tahun}
+          expanded?.tahun === r.tahun && <tr key={`${r.tahun}-d`}><td colSpan={6} style={{ background: '#f8fafc', padding: '8px 10px' }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', boxShadow: '0 3px 12px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#083344', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Calculator size={16} style={{ color: '#0891b2' }} />
+                  Data Final Pembagian SHU Anggota Tahun {expanded.tahun}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span className="role-pill mini tosca">
+                    <BadgeCheck size={12} /> Difinalisasi {tanggal(expanded.difinalisasiPada)}
+                  </span>
+                  <button className="toggle-button activate" onClick={() => void eksporCsv(expanded.tahun)}>
+                    <Download size={13} /> Ekspor CSV
+                  </button>
+                </div>
               </div>
-              <table className="table-compact" style={{ minWidth: 0 }}><thead><tr><th>Anggota</th><th>NIK</th><th>JMA</th><th>JUA</th><th>Bruto</th><th>PPh</th><th>Neto</th></tr></thead><tbody>
-                {expanded.rincian.map((x) => <tr key={x.penggunaId}><td><strong>{x.nama}</strong></td><td className="mono">{x.nomorIndukKaryawan}</td><td>{rupiah(x.jma)}</td><td>{rupiah(x.jua)}</td><td>{rupiah(x.totalShu)}</td><td style={{ color: '#dc2626', fontWeight: 600 }}>−{rupiah(x.pajak)}</td><td style={{ fontWeight: 700, color: '#0891b2' }}>{rupiah(x.totalShuNeto)}</td></tr>)}
-              </tbody></table>
+
+              {/* Mini Stat Cards matching preview */}
+              <div className="stat-grid" style={{ marginBottom: 12 }}>
+                <StatCard label="Cadangan (permanen)" value={expanded.cadanganAmount} icon={<PiggyBank size={18} />} tone="blue" money />
+                <StatCard label="Jasa Pengurus" value={expanded.jasaPengurusPool} icon={<Users size={18} />} tone="amber" money />
+                <StatCard label="Total ke Anggota (Neto)" value={expanded.totalShuNeto} icon={<BadgeCheck size={18} />} tone="teal" money />
+                <StatCard label="PPh Anggota" value={expanded.totalPajak} icon={<Receipt size={18} />} tone="blue" money />
+              </div>
+
+              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 12px' }}>
+                Total simpanan anggota: {rupiah(expanded.totalSimpananSemuaAnggota)} · Total transaksi anggota: {rupiah(expanded.totalTransaksiSemuaAnggota)} · Pembagian Lapis 1 (Anggota {(expanded.persenAnggota * 100).toFixed(0)}% · Pengurus {(expanded.persenPengurus * 100).toFixed(0)}% · Cadangan {(expanded.persenCadangan * 100).toFixed(0)}%) · Lapis 2 (JMA {(expanded.persenJasaModal * 100).toFixed(0)}% · JUA {(expanded.persenJasaUsaha * 100).toFixed(0)}%)
+              </p>
+
+              <ShuTabelRincian
+                rincian={expanded.rincian}
+                konteks={{
+                  tahun: expanded.tahun,
+                  tarifPph: (expanded.totalShuNeto + expanded.totalPajak > 0)
+                    ? (expanded.totalPajak / (expanded.totalShuNeto + expanded.totalPajak))
+                    : (konfigurasi?.tarifPphShu ?? 0.15),
+                  totalSimpanan: expanded.totalSimpananSemuaAnggota,
+                  totalTransaksi: expanded.totalTransaksiSemuaAnggota,
+                  anggotaPool: expanded.totalShu * expanded.persenAnggota,
+                  persenJasaModal: expanded.persenJasaModal,
+                  persenJasaUsaha: expanded.persenJasaUsaha,
+                  isFinal: true,
+                }}
+                tahun={expanded.tahun}
+                isFinal={true}
+                totalSimpanan={expanded.totalSimpananSemuaAnggota}
+                totalTransaksi={expanded.totalTransaksiSemuaAnggota}
+                onSelectAnggota={(baris, ctx) => setDetailShu({ data: baris, konteks: ctx })}
+                onEksporCsv={() => void eksporCsv(expanded.tahun)}
+              />
             </div>
           </td></tr>,
         ])}
       </tbody></table>{!loading && riwayat.length === 0 && <div className="empty-state"><Calculator size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada SHU yang difinalisasi.</div></div>}</div>
     </section>
+    {detailShu && <ShuAnggotaModal data={detailShu.data} konteks={detailShu.konteks} onClose={() => setDetailShu(null)} />}
   </>
 }
 

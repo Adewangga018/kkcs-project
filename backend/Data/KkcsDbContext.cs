@@ -394,7 +394,8 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			new AkunAkuntansi { Id = 28, Kode = "2-2650", Nama = "Utang Lain-lain", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
 			new AkunAkuntansi { Id = 29, Kode = "2-2660", Nama = "Biaya Yang Masih Harus Dibayar", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
 			new AkunAkuntansi { Id = 30, Kode = "5-5400", Nama = "Beban Pokok Pinjaman (HPP)", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
-			new AkunAkuntansi { Id = 31, Kode = "5-5930", Nama = "Beban di Luar Usaha", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
+			new AkunAkuntansi { Id = 31, Kode = "5-5930", Nama = "Beban di Luar Usaha", Tipe = "Beban", SaldoNormal = "Debit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) },
+			new AkunAkuntansi { Id = 32, Kode = "2-2450", Nama = "Utang Pajak", Tipe = "Liabilitas", SaldoNormal = "Kredit", Sistem = false, DibuatPada = new DateTime(2026, 1, 1) });
 		});
 
 		modelBuilder.Entity<JurnalEntri>(entity =>
@@ -449,6 +450,8 @@ public class KkcsDbContext(DbContextOptions<KkcsDbContext> options) : DbContext(
 			entity.HasIndex(item => new { item.ShuRunId, item.PenggunaId }).IsUnique();
 			entity.Property(item => item.SimpananAnggota).HasPrecision(18, 2);
 			entity.Property(item => item.TransaksiAnggota).HasPrecision(18, 2);
+			entity.Property(item => item.JasaPinjamanAnggota).HasPrecision(18, 2);
+			entity.Property(item => item.BelanjaAnggota).HasPrecision(18, 2);
 			entity.Property(item => item.Jma).HasPrecision(18, 2);
 			entity.Property(item => item.Jua).HasPrecision(18, 2);
 			entity.Property(item => item.TotalShu).HasPrecision(18, 2);

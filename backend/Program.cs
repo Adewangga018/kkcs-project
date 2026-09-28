@@ -1683,6 +1683,8 @@ app.MapPost("/api/admin/shu/finalisasi", async (ShuHitungRequest request, Claims
         PenggunaId = r.PenggunaId,
         SimpananAnggota = r.SimpananAnggota,
         TransaksiAnggota = r.TransaksiAnggota,
+        JasaPinjamanAnggota = r.JasaPinjaman,
+        BelanjaAnggota = r.Belanja,
         Jma = r.Jma,
         Jua = r.Jua,
         TotalShu = r.TotalShu,
@@ -1741,7 +1743,7 @@ app.MapGet("/api/admin/shu/{tahun:int}", async (int tahun, KkcsDbContext db) =>
         run.TotalTransaksiSemuaAnggota,
         run.DifinalisasiPada,
         Rincian = run.Rincian.OrderByDescending(r => r.TotalShu).Select(r => new ShuBarisHasil(
-            r.PenggunaId, r.Pengguna.NamaLengkap, r.Pengguna.NomorIndukKaryawan, r.SimpananAnggota, r.TransaksiAnggota, r.Jma, r.Jua, r.TotalShu, r.Pajak, r.TotalShuNeto))
+            r.PenggunaId, r.Pengguna.NamaLengkap, r.Pengguna.NomorIndukKaryawan, r.SimpananAnggota, r.TransaksiAnggota, r.Jma, r.Jua, r.TotalShu, r.Pajak, r.TotalShuNeto, r.JasaPinjamanAnggota, r.BelanjaAnggota))
     });
 }).RequireAuthorization("Pengurus");
 

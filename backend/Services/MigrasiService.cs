@@ -503,7 +503,13 @@ public static class MigrasiService
     public static async Task TerapkanSetorAsync(KkcsDbContext db, Dictionary<string, JenisSimpanan> jenisByKode, string kodeJenis, int penggunaId, decimal nominal, DateTime tanggal, string keterangan)
     {
         var jenis = jenisByKode.GetValueOrDefault(kodeJenis) ?? throw new InvalidOperationException($"Jenis Simpanan {kodeJenis} belum ada di sistem.");
-        var simpanan = await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
+        // Cek entri yang sudah ditambahkan (tapi belum tersimpan) di batch yang sama dulu, sebelum query
+        // ke DB — supaya anggota yang baru pertama kali punya rekening jenis ini tidak dibuatkan dobel
+        // ketika baris efeknya muncul berkali-kali (mis. beberapa bulan sekaligus) dalam satu komit.
+        var simpanan = db.ChangeTracker.Entries<Simpanan>()
+            .Select(e => e.Entity)
+            .FirstOrDefault(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id)
+            ?? await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
         if (simpanan is null)
         {
             var pengguna = await db.Pengguna.FirstOrDefaultAsync(p => p.Id == penggunaId)
@@ -534,7 +540,10 @@ public static class MigrasiService
     public static async Task TerapkanTarikAsync(KkcsDbContext db, Dictionary<string, JenisSimpanan> jenisByKode, string kodeJenis, int penggunaId, decimal nominal, DateTime tanggal, string keterangan)
     {
         var jenis = jenisByKode.GetValueOrDefault(kodeJenis) ?? throw new InvalidOperationException($"Jenis Simpanan {kodeJenis} belum ada di sistem.");
-        var simpanan = await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
+        var simpanan = db.ChangeTracker.Entries<Simpanan>()
+            .Select(e => e.Entity)
+            .FirstOrDefault(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id)
+            ?? await db.Simpanan.FirstOrDefaultAsync(s => s.PenggunaId == penggunaId && s.JenisSimpananId == jenis.Id);
         if (simpanan is null || simpanan.Saldo < nominal)
             throw new InvalidOperationException($"Saldo {kodeJenis} anggota (Id {penggunaId}) tidak cukup untuk penarikan {nominal:N0}.");
         simpanan.Saldo -= nominal;

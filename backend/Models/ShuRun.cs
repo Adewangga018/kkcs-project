@@ -65,6 +65,10 @@ public class ShuAnggota
 
     public decimal TransaksiAnggota { get; set; }
 
+    public decimal JasaPinjamanAnggota { get; set; }
+
+    public decimal BelanjaAnggota { get; set; }
+
     public decimal Jma { get; set; }
 
     public decimal Jua { get; set; }

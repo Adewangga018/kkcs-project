@@ -695,6 +695,7 @@ h1, h2, p { margin: 0; } h1, h2 { font-family: 'Space Grotesk', sans-serif; colo
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
   animation: fadeInModal 0.18s ease-out;
 }
 @keyframes fadeInModal {
@@ -2497,5 +2498,538 @@ h1, h2, p { margin: 0; } h1, h2 { font-family: 'Space Grotesk', sans-serif; colo
   border-color: #99f6e4;
 }
 
+/* ========================================================
+   MODERN SHU TABLE & DETAIL POP-UP (PREVIEW & FINALISASI)
+   ======================================================== */
+.shu-table-wrapper {
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(8, 51, 68, 0.04);
+}
 
+.shu-table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--line);
+}
 
+.shu-table-title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shu-table-heading {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #083344;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.shu-table-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shu-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 190px;
+}
+
+.shu-search-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 24px 0 26px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 11.5px;
+  color: var(--ink);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.shu-search-input:focus {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.12);
+}
+
+.shu-search-icon {
+  position: absolute;
+  left: 8px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.shu-search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.shu-search-clear:hover {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.shu-table-scroll {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 960px) {
+  .shu-table-scroll {
+    overflow-x: auto;
+  }
+}
+
+.shu-modern-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  table-layout: auto;
+}
+
+.shu-modern-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 7px 6px;
+  border-bottom: 1.5px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.shu-modern-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.shu-modern-table tbody tr {
+  transition: background-color 0.1s ease;
+  cursor: pointer;
+}
+
+.shu-modern-table tbody tr:hover {
+  background-color: #f0fdfa;
+}
+
+.shu-modern-table tfoot tr {
+  background: #f8fafc;
+  border-top: 2px solid #cbd5e1;
+  font-weight: 700;
+}
+
+.shu-modern-table tfoot td {
+  padding: 7px 6px;
+  color: #083344;
+  font-size: 11.5px;
+  border-bottom: none;
+}
+
+.shu-col-jma {
+  display: inline-block;
+  font-weight: 700;
+  color: #0e7490;
+  background: #ecfeff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #cffafe;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.shu-col-jua {
+  display: inline-block;
+  font-weight: 700;
+  color: #b45309;
+  background: #fffbeb;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #fef3c7;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.shu-col-neto {
+  display: inline-block;
+  font-weight: 800;
+  color: #083344;
+  background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #67e8f9;
+  font-size: 11.5px;
+  box-shadow: 0 1px 2px rgba(8, 145, 178, 0.1);
+  white-space: nowrap;
+}
+
+.shu-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0891b2;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.shu-action-btn:hover {
+  background: #0891b2;
+  color: #ffffff;
+  border-color: #0891b2;
+}
+
+/* Modal Popup SHU Styling */
+.shu-modal-card {
+  width: min(680px, 100%);
+  max-height: 88vh;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(8, 51, 68, 0.25);
+  background: #ffffff;
+}
+
+.shu-modal-card .modal-profile-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.shu-modal-body {
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 20px 24px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shu-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.shu-modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.shu-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.shu-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.shu-chip-nik {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 700;
+}
+
+.shu-modal-hero {
+  background: linear-gradient(135deg, #083344 0%, #0e7490 100%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(8, 51, 68, 0.16);
+}
+
+.shu-modal-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.shu-modal-hero-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #67e8f9;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shu-modal-hero-amount {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.shu-modal-hero-formula {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 11.5px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.shu-modal-hero-step {
+  display: flex;
+  flex-direction: column;
+}
+
+.shu-modal-hero-step-lbl {
+  font-size: 10px;
+  color: #a5f3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.shu-modal-hero-step-val {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.shu-modal-hero-step-val.red {
+  color: #fca5a5;
+}
+
+.shu-modal-hero-step-val.green {
+  color: #6ee7b7;
+  font-weight: 800;
+}
+
+.shu-modal-hero-op {
+  font-size: 16px;
+  font-weight: 800;
+  color: #a5f3fc;
+}
+
+.shu-modal-partisipasi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.shu-modal-part-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shu-modal-part-card.jma {
+  border-color: #a5f3fc;
+  background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 60%);
+}
+
+.shu-modal-part-card.jua {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 60%);
+}
+
+.shu-modal-part-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shu-modal-part-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.shu-modal-part-icon.jma {
+  background: #ecfeff;
+  color: #0891b2;
+}
+
+.shu-modal-part-icon.jua {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.shu-modal-part-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #083344;
+}
+
+.shu-modal-part-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.shu-modal-part-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: #083344;
+}
+
+.shu-modal-part-breakdown {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.shu-modal-part-footer {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 8px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.shu-modal-part-total {
+  color: #94a3b8;
+  font-size: 10.5px;
+}
+
+.shu-modal-calc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shu-modal-calc-card {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.shu-modal-calc-card.jma {
+  border-left: 4px solid #0891b2;
+}
+
+.shu-modal-calc-card.jua {
+  border-left: 4px solid #d97706;
+}
+
+.shu-modal-calc-card.pajak {
+  border-left: 4px solid #ef4444;
+  background: #fffaf9;
+}
+
+.shu-modal-calc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shu-modal-calc-sub {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.shu-modal-math-result {
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.shu-modal-math-result.jma {
+  color: #0891b2;
+  background: #ecfeff;
+}
+
+.shu-modal-math-result.jua {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.shu-modal-calc-pajak-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+
+.shu-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.shu-modal-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
