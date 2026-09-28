@@ -49,6 +49,10 @@ public class JurnalService(KkcsDbContext db)
         {
             throw new InvalidOperationException("Jurnal minimal memiliki 2 baris (debit dan kredit).");
         }
+        if (barisValid.Any(item => item.Debit < 0 || item.Kredit < 0))
+        {
+            throw new InvalidOperationException("Nominal debit/kredit tidak boleh negatif.");
+        }
 
         var totalDebit = Math.Round(barisValid.Sum(item => item.Debit), 2, MidpointRounding.AwayFromZero);
         var totalKredit = Math.Round(barisValid.Sum(item => item.Kredit), 2, MidpointRounding.AwayFromZero);
@@ -68,9 +72,11 @@ public class JurnalService(KkcsDbContext db)
             DicatatOlehId = dicatatOlehId
         };
 
+        var kodeUnik = barisValid.Select(item => item.KodeAkun).Distinct().ToList();
+        var akunByKode = await db.AkunAkuntansi.Where(a => kodeUnik.Contains(a.Kode)).ToDictionaryAsync(a => a.Kode);
         foreach (var item in barisValid)
         {
-            var akun = await db.AkunAkuntansi.FirstOrDefaultAsync(a => a.Kode == item.KodeAkun)
+            var akun = akunByKode.GetValueOrDefault(item.KodeAkun)
                 ?? throw new InvalidOperationException($"Akun dengan kode {item.KodeAkun} tidak ditemukan.");
             entri.Baris.Add(new JurnalBaris { AkunId = akun.Id, Debit = item.Debit, Kredit = item.Kredit });
         }

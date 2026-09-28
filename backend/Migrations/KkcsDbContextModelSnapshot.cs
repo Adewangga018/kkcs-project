@@ -1084,6 +1084,10 @@ namespace backend.Migrations
                     b.Property<int?>("AngsuranKe")
                         .HasColumnType("int");
 
+                    b.Property<string>("BuktiTransferUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<string>("Catatan")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1249,6 +1253,10 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SuratRekomendasiUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("TenorBulan")
                         .HasColumnType("int");
@@ -1945,6 +1953,10 @@ namespace backend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("BuktiTransferUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<decimal?>("BungaDibayar")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -2014,6 +2026,50 @@ namespace backend.Migrations
                     b.ToTable("SimpananBerjangka");
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                });
+
+            modelBuilder.Entity("SukarelaRutin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CatatanReview")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("DiajukanPada")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DiputuskanPada")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Nominal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PenggunaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TanggalSetor")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TerakhirDijalankanPeriode")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PenggunaId", "Status");
+
+                    b.ToTable("SukarelaRutin");
                 });
 
             modelBuilder.Entity("TagihanKredit", b =>
@@ -2119,6 +2175,10 @@ namespace backend.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BuktiTransferUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Catatan")
                         .HasMaxLength(500)
@@ -2412,6 +2472,17 @@ namespace backend.Migrations
                     b.Navigation("Pengguna");
 
                     b.Navigation("Produk");
+                });
+
+            modelBuilder.Entity("SukarelaRutin", b =>
+                {
+                    b.HasOne("Pengguna", "Pengguna")
+                        .WithMany()
+                        .HasForeignKey("PenggunaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pengguna");
                 });
 
             modelBuilder.Entity("TagihanKredit", b =>

@@ -12,6 +12,9 @@ public class SimpananBerjangka
 
     public int TenorBulan { get; set; }
 
+    // Bukti transfer anggota ke koperasi saat pengajuan (wajib).
+    public string? BuktiTransferUrl { get; set; }
+
     // Diajukan | Aktif | Ditolak | JatuhTempo | Dicairkan
     public string Status { get; set; } = "Diajukan";
 

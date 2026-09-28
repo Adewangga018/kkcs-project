@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -485,13 +489,43 @@ class AuthService {
   }
 
   /// [jenis] = 'Angsuran' atau 'Pelunasan'. Diajukan anggota, disetujui pengurus.
-  Future<void> requestLoanPayment({required int loanId, required String jenis}) async {
+  /// Unduh draft pengajuan pinjaman (PDF) lalu buka dengan viewer PDF bawaan perangkat.
+  Future<void> downloadAndOpenLoanDraft({required int pengajuanId, required String nomorPengajuan}) async {
     final token = await _getToken();
-    final response = await _sendRequest(() => http.post(
-          Uri.parse('$baseUrl/api/pinjaman/$loanId/pembayaran'),
-          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-          body: jsonEncode({'jenis': jenis}),
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/pinjaman/$pengajuanId/draft/pdf'),
+          headers: {'Authorization': 'Bearer $token'},
         ));
+    _ensureSuccess(response);
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/Draft-Pinjaman-$nomorPengajuan.pdf');
+    await file.writeAsBytes(response.bodyBytes);
+    final result = await OpenFilex.open(file.path);
+    if (result.type != ResultType.done) {
+      throw Exception('Tidak bisa membuka PDF: ${result.message}');
+    }
+  }
+
+  Future<void> uploadLoanRecommendation({required int pengajuanId, required PlatformFile file}) async {
+    final token = await _getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/pinjaman/$pengajuanId/rekomendasi'))
+      ..headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', file.bytes!,
+        filename: file.name, contentType: _buktiMediaType(file.name)));
+    final response = await http.Response.fromStream(await request.send());
+    _ensureSuccess(response);
+  }
+
+  Future<void> requestLoanPayment({required int loanId, required String jenis, PlatformFile? bukti}) async {
+    final token = await _getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/pinjaman/$loanId/pembayaran'))
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['jenis'] = jenis;
+    if (bukti != null) {
+      request.files.add(http.MultipartFile.fromBytes('bukti', bukti.bytes!,
+          filename: bukti.name, contentType: _buktiMediaType(bukti.name)));
+    }
+    final response = await http.Response.fromStream(await request.send());
     _ensureSuccess(response);
   }
 
@@ -537,24 +571,59 @@ class AuthService {
         .toList();
   }
 
-  /// [jenis] = 'Setor' atau 'Tarik'.
-  Future<void> requestSukarela({required String jenis, required double nominal}) async {
+  /// [jenis] = 'Setor' atau 'Tarik'. [bukti] wajib diisi untuk Setor.
+  Future<void> requestSukarela({required String jenis, required double nominal, PlatformFile? bukti}) async {
+    final token = await _getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/simpanan/sukarela'))
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['jenis'] = jenis
+      ..fields['nominal'] = nominal.toString();
+    if (bukti != null) {
+      request.files.add(http.MultipartFile.fromBytes('bukti', bukti.bytes!,
+          filename: bukti.name, contentType: _buktiMediaType(bukti.name)));
+    }
+    final response = await http.Response.fromStream(await request.send());
+    _ensureSuccess(response);
+  }
+
+  Future<SukarelaRutinInfo?> fetchSukarelaRutin() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/simpanan/sukarela-rutin/saya'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    if (response.body == 'null' || response.body.isEmpty) return null;
+    return SukarelaRutinInfo.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> submitSukarelaRutin({required double nominal, required int tanggalSetor}) async {
     final token = await _getToken();
     final response = await _sendRequest(() => http.post(
-          Uri.parse('$baseUrl/api/simpanan/sukarela'),
+          Uri.parse('$baseUrl/api/simpanan/sukarela-rutin'),
           headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-          body: jsonEncode({'jenis': jenis, 'nominal': nominal}),
+          body: jsonEncode({'nominal': nominal, 'tanggalSetor': tanggalSetor}),
         ));
     _ensureSuccess(response);
   }
 
-  Future<void> requestBerjangka({required int produkId}) async {
+  Future<void> stopSukarelaRutin(int id) async {
     final token = await _getToken();
     final response = await _sendRequest(() => http.post(
-          Uri.parse('$baseUrl/api/simpanan/berjangka'),
-          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
-          body: jsonEncode({'produkBerjangkaId': produkId}),
+          Uri.parse('$baseUrl/api/simpanan/sukarela-rutin/$id/berhenti'),
+          headers: {'Authorization': 'Bearer $token'},
         ));
+    _ensureSuccess(response);
+  }
+
+  Future<void> requestBerjangka({required int produkId, required PlatformFile bukti}) async {
+    final token = await _getToken();
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/simpanan/berjangka'))
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['produkBerjangkaId'] = produkId.toString();
+    request.files.add(http.MultipartFile.fromBytes('bukti', bukti.bytes!,
+        filename: bukti.name, contentType: _buktiMediaType(bukti.name)));
+    final response = await http.Response.fromStream(await request.send());
     _ensureSuccess(response);
   }
 
@@ -617,6 +686,16 @@ class AuthService {
     final response = await http.Response.fromStream(await request.send());
     _ensureSuccess(response);
     return AuthUser.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  MediaType _buktiMediaType(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    return switch (extension) {
+      'jpg' || 'jpeg' => MediaType('image', 'jpeg'),
+      'png' => MediaType('image', 'png'),
+      'pdf' => MediaType('application', 'pdf'),
+      _ => MediaType('application', 'octet-stream'),
+    };
   }
 
   MediaType _photoMediaType(XFile photo) {
@@ -4844,9 +4923,16 @@ class _LoanTabState extends State<LoanTab> {
     );
     if (confirmed != true) return;
 
+    PlatformFile? bukti;
+    if (isPayoff) {
+      if (!mounted) return;
+      bukti = await pickBuktiTransfer(context);
+      if (bukti == null) return;
+    }
+
     setState(() => _paymentBusyLoanId = loan.id);
     try {
-      await AuthService().requestLoanPayment(loanId: loan.id, jenis: jenis);
+      await AuthService().requestLoanPayment(loanId: loan.id, jenis: jenis, bukti: bukti);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pengajuan terkirim. Menunggu persetujuan pengurus.')),
@@ -4874,7 +4960,7 @@ class _LoanTabState extends State<LoanTab> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pengajuan pinjaman berhasil dikirim. Menunggu persetujuan pengurus.')),
+        const SnackBar(content: Text('Draft pengajuan pinjaman tersimpan. Cetak draft dan lampirkan saat meminta surat rekomendasi ke SDM.')),
       );
       _purposeController.clear();
       await _loadLoans();
@@ -4894,7 +4980,7 @@ class _LoanTabState extends State<LoanTab> {
     final overview = _overview;
     final activeLoans = overview?.pinjaman.where((loan) => !loan.lunas).toList() ?? const <Loan>[];
     final settledLoans = overview?.pinjaman.where((loan) => loan.lunas).toList() ?? const <Loan>[];
-    final pendingApplications = overview?.pengajuan.where((item) => item.status == 'Diajukan').toList() ?? const <LoanApplication>[];
+    final pendingApplications = overview?.pengajuan.where((item) => item.status == 'Draft' || item.status == 'Diajukan').toList() ?? const <LoanApplication>[];
 
     return RefreshIndicator(
           onRefresh: _loadLoans,
@@ -4942,7 +5028,7 @@ class _LoanTabState extends State<LoanTab> {
                 const SizedBox(height: 16),
               ],
               for (final application in pendingApplications) ...[
-                _PendingApplicationCard(application: application),
+                _PendingApplicationCard(application: application, onChanged: _loadLoans),
                 const SizedBox(height: 16),
               ],
               _AccountSectionCard(
@@ -5053,8 +5139,8 @@ class _LoanTabState extends State<LoanTab> {
                     ),
                     icon: _submittingLoan
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send_outlined, size: 18),
-                    label: Text(_submittingLoan ? 'Mengirim...' : 'Ajukan pinjaman', style: const TextStyle(fontWeight: FontWeight.w700)),
+                        : const Icon(Icons.save_outlined, size: 18),
+                    label: Text(_submittingLoan ? 'Menyimpan...' : 'Simpan sebagai Draft', style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -5099,13 +5185,57 @@ class _LoanTabState extends State<LoanTab> {
   }
 }
 
-class _PendingApplicationCard extends StatelessWidget {
-  const _PendingApplicationCard({required this.application});
+class _PendingApplicationCard extends StatefulWidget {
+  const _PendingApplicationCard({required this.application, required this.onChanged});
 
   final LoanApplication application;
+  final Future<void> Function() onChanged;
+
+  @override
+  State<_PendingApplicationCard> createState() => _PendingApplicationCardState();
+}
+
+class _PendingApplicationCardState extends State<_PendingApplicationCard> {
+  bool _busy = false;
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message.replaceFirst('Exception: ', ''))));
+  }
+
+  Future<void> _cetakDraft() async {
+    setState(() => _busy = true);
+    try {
+      await AuthService().downloadAndOpenLoanDraft(
+        pengajuanId: widget.application.id,
+        nomorPengajuan: widget.application.nomorPengajuan,
+      );
+    } catch (error) {
+      _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _uploadRekomendasi() async {
+    final file = await pickBuktiTransfer(context);
+    if (file == null) return;
+    setState(() => _busy = true);
+    try {
+      await AuthService().uploadLoanRecommendation(pengajuanId: widget.application.id, file: file);
+      _toast('Surat rekomendasi terunggah. Pengajuan pinjaman terkirim ke pengurus.');
+      await widget.onChanged();
+    } catch (error) {
+      _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final application = widget.application;
+    final isDraft = application.status == 'Draft';
     return Container(
       decoration: BoxDecoration(
         color: KkcsColors.warningBg,
@@ -5124,16 +5254,20 @@ class _PendingApplicationCard extends StatelessWidget {
                   color: KkcsColors.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.hourglass_top_outlined, size: 18, color: KkcsColors.warning),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Pengajuan Pinjaman Tertunda',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF92400E)),
+                child: Icon(
+                  isDraft ? Icons.description_outlined : Icons.hourglass_top_outlined,
+                  size: 18,
+                  color: KkcsColors.warning,
                 ),
               ),
-              const _StatusBadge(status: 'Diajukan'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isDraft ? 'Draft Pengajuan Pinjaman' : 'Pengajuan Pinjaman Tertunda',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF92400E)),
+                ),
+              ),
+              _StatusBadge(status: application.status),
             ],
           ),
           const SizedBox(height: 12),
@@ -5141,6 +5275,34 @@ class _PendingApplicationCard extends StatelessWidget {
           _InfoRow(label: 'Nominal diajukan', value: formatRupiah(application.nominal)),
           _InfoRow(label: 'Tenor pinjaman', value: '${application.tenorBulan} bulan'),
           _InfoRow(label: 'Estimasi cicilan / bulan', value: formatRupiah(application.estimasiCicilanBulanan)),
+          if (isDraft) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Cetak draft ini, lampirkan saat meminta surat rekomendasi ke SDM, lalu unggah surat '
+              'rekomendasinya di sini supaya pengajuan diteruskan ke pengurus.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF92400E), height: 1.4),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _cetakDraft,
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('Cetak Draft'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _busy ? null : _uploadRekomendasi,
+                    icon: const Icon(Icons.upload_file_outlined, size: 16),
+                    label: const Text('Unggah Rekomendasi'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -6417,6 +6579,36 @@ String formatRupiah(num value) {
   return 'Rp $withDots';
 }
 
+/// Minta anggota memilih 1 file bukti transfer (JPG/PNG/PDF, maks 10MB) dan kembalikan sebagai
+/// [PlatformFile] siap-unggah (bytes sudah dimuat). Null kalau anggota membatalkan pemilihan.
+/// Menampilkan snackbar error kalau file terlalu besar atau gagal dibaca.
+Future<PlatformFile?> pickBuktiTransfer(BuildContext context) async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    withData: true,
+  );
+  if (result == null || result.files.isEmpty) return null;
+  final file = result.files.single;
+  if (file.bytes == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membaca file yang dipilih. Coba lagi.')),
+      );
+    }
+    return null;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ukuran file maksimal 10MB.')),
+      );
+    }
+    return null;
+  }
+  return file;
+}
+
 /// Rincian satu angsuran: pokok (inti) + jasa (bunga).
 class LoanInstallmentBreakdown {
   const LoanInstallmentBreakdown({
@@ -6459,6 +6651,7 @@ class LoanApplication {
     required this.tujuan,
     required this.status,
     this.catatanReview,
+    this.suratRekomendasiUrl,
   });
 
   final int id;
@@ -6471,6 +6664,7 @@ class LoanApplication {
   final String tujuan;
   final String status;
   final String? catatanReview;
+  final String? suratRekomendasiUrl;
 
   factory LoanApplication.fromJson(Map<String, dynamic> json) => LoanApplication(
         id: json['id'] as int,
@@ -6483,6 +6677,7 @@ class LoanApplication {
         tujuan: json['tujuan'] as String,
         status: json['status'] as String,
         catatanReview: json['catatanReview'] as String?,
+        suratRekomendasiUrl: json['suratRekomendasiUrl'] as String?,
       );
 }
 
@@ -6881,6 +7076,33 @@ class SavingsOverview {
       );
 }
 
+class SukarelaRutinInfo {
+  const SukarelaRutinInfo({
+    required this.id,
+    required this.nominal,
+    required this.tanggalSetor,
+    required this.status,
+    this.catatanReview,
+    this.terakhirDijalankanPeriode,
+  });
+
+  final int id;
+  final double nominal;
+  final int tanggalSetor;
+  final String status;
+  final String? catatanReview;
+  final String? terakhirDijalankanPeriode;
+
+  factory SukarelaRutinInfo.fromJson(Map<String, dynamic> json) => SukarelaRutinInfo(
+        id: json['id'] as int,
+        nominal: (json['nominal'] as num).toDouble(),
+        tanggalSetor: json['tanggalSetor'] as int,
+        status: json['status'] as String,
+        catatanReview: json['catatanReview'] as String?,
+        terakhirDijalankanPeriode: json['terakhirDijalankanPeriode'] as String?,
+      );
+}
+
 // ── Arus kas pribadi ─────────────────────────────────────────────────────────
 class CashFlowItem {
   const CashFlowItem({required this.tanggal, required this.kategori, required this.keterangan, required this.masuk, required this.nominal});
@@ -7075,6 +7297,7 @@ class _SavingsTabState extends State<SavingsTab> {
   String? _error;
   bool _busy = false;
   SavingsOverview? _data;
+  SukarelaRutinInfo? _rutin;
 
   @override
   void initState() {
@@ -7088,13 +7311,99 @@ class _SavingsTabState extends State<SavingsTab> {
       _error = null;
     });
     try {
-      final data = await AuthService().fetchSavings();
+      final results = await Future.wait([AuthService().fetchSavings(), AuthService().fetchSukarelaRutin()]);
       if (!mounted) return;
-      setState(() => _data = data);
+      setState(() {
+        _data = results[0] as SavingsOverview;
+        _rutin = results[1] as SukarelaRutinInfo?;
+      });
     } catch (error) {
       if (mounted) setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submitSukarelaRutin() async {
+    final nominalController = TextEditingController();
+    var tanggalSetor = 1;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Ajukan Sukarela Rutin'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Sistem akan menyetor otomatis tiap bulan sampai Anda mengajukan berhenti dan disetujui pengurus.',
+                style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nominalController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Nominal per bulan', prefixText: 'Rp '),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: tanggalSetor,
+                decoration: const InputDecoration(labelText: 'Tanggal setor tiap bulan'),
+                items: [for (var d = 1; d <= 28; d++) DropdownMenuItem(value: d, child: Text('Tanggal $d'))],
+                onChanged: (value) => setDialogState(() => tanggalSetor = value ?? 1),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ajukan')),
+          ],
+        ),
+      ),
+    );
+    if (result != true) return;
+    final nominal = double.tryParse(nominalController.text.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+    if (nominal <= 0) return;
+
+    setState(() => _busy = true);
+    try {
+      await AuthService().submitSukarelaRutin(nominal: nominal, tanggalSetor: tanggalSetor);
+      if (!mounted) return;
+      _toast('Pengajuan Sukarela Rutin terkirim. Menunggu persetujuan pengurus.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _stopSukarelaRutin(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ajukan berhenti Sukarela Rutin'),
+        content: const Text('Setoran otomatis bulanan akan dihentikan setelah pengurus menyetujui pengajuan ini.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Ajukan Berhenti')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _busy = true);
+    try {
+      await AuthService().stopSukarelaRutin(id);
+      if (!mounted) return;
+      _toast('Pengajuan berhenti terkirim. Menunggu persetujuan pengurus.');
+      await _load();
+    } catch (error) {
+      if (mounted) _toast(error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -7127,9 +7436,17 @@ class _SavingsTabState extends State<SavingsTab> {
       ),
     );
     if (nominal == null || nominal <= 0) return;
+
+    PlatformFile? bukti;
+    if (jenis == 'Setor') {
+      if (!mounted) return;
+      bukti = await pickBuktiTransfer(context);
+      if (bukti == null) return;
+    }
+
     setState(() => _busy = true);
     try {
-      await AuthService().requestSukarela(jenis: jenis, nominal: nominal);
+      await AuthService().requestSukarela(jenis: jenis, nominal: nominal, bukti: bukti);
       if (!mounted) return;
       _toast('Pengajuan terkirim. Menunggu persetujuan pengurus.');
       await _load();
@@ -7156,9 +7473,13 @@ class _SavingsTabState extends State<SavingsTab> {
       ),
     );
     if (ok != true) return;
+    if (!mounted) return;
+    final bukti = await pickBuktiTransfer(context);
+    if (bukti == null) return;
+
     setState(() => _busy = true);
     try {
-      await AuthService().requestBerjangka(produkId: produk.id);
+      await AuthService().requestBerjangka(produkId: produk.id, bukti: bukti);
       if (!mounted) return;
       _toast('Pengajuan simpanan berjangka terkirim.');
       await _load();
@@ -7382,6 +7703,62 @@ class _SavingsTabState extends State<SavingsTab> {
                           ],
                         ),
                       )),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            _AccountSectionCard(
+              icon: Icons.autorenew_outlined,
+              title: 'Sukarela Rutin',
+              subtitle: 'Setoran sukarela otomatis tiap bulan, tidak perlu diajukan manual setiap kali.',
+              children: [
+                if (_rutin == null) ...[
+                  const Text(
+                    'Belum ada instruksi Sukarela Rutin. Ajukan sekali, sistem akan menyetor otomatis tiap bulan.',
+                    style: TextStyle(fontSize: 12.5, color: KkcsColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _busy ? null : _submitSukarelaRutin,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KkcsColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Ajukan Sukarela Rutin', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(child: _InfoRow(label: 'Nominal per bulan', value: formatRupiah(_rutin!.nominal))),
+                      _StatusBadge(status: _rutin!.status),
+                    ],
+                  ),
+                  _InfoRow(label: 'Tanggal setor', value: 'Tanggal ${_rutin!.tanggalSetor}'),
+                  if (_rutin!.terakhirDijalankanPeriode != null)
+                    _InfoRow(label: 'Terakhir berjalan', value: _rutin!.terakhirDijalankanPeriode!),
+                  if (_rutin!.status == 'DihentikanDiajukan')
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text('Pengajuan berhenti sedang menunggu persetujuan pengurus.',
+                          style: TextStyle(fontSize: 12, color: KkcsColors.textSecondary)),
+                    ),
+                  if (_rutin!.status == 'Aktif') ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _stopSukarelaRutin(_rutin!.id),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: KkcsColors.danger,
+                        side: const BorderSide(color: KkcsColors.danger, width: 1.4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                      label: const Text('Ajukan Berhenti', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ],
                 ],
               ],
             ),

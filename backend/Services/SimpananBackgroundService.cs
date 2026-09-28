@@ -59,6 +59,12 @@ public class SimpananBackgroundService(IServiceScopeFactory scopeFactory, ILogge
         }
         if (jatuhTempo.Count > 0) await db.SaveChangesAsync(stoppingToken);
 
+        // Jalankan setoran Sukarela Rutin yang jatuh tempo bulan ini (idempoten via TerakhirDijalankanPeriode).
+        var periodeIni = $"{DateTime.Now:yyyy-MM}";
+        var jumlahRutin = await SukarelaRutinRunner.JalankanPeriodeAsync(db, simpananService, jurnalService, periodeIni);
+        if (jumlahRutin > 0)
+            logger.LogInformation("Menjalankan {Jumlah} setoran Sukarela Rutin periode {Periode}.", jumlahRutin, periodeIni);
+
         // Tutup buku bunga Simpanan Sukarela bulan sebelumnya (idempoten).
         var periodeBungaLalu = BungaSukarela.PeriodeBulanLalu();
         var (akunBunga, bruto, pajak, neto) = await BungaSukarela.PostingAsync(

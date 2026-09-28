@@ -12,11 +12,13 @@ type AnggotaDirektoriItem = { id: number; namaLengkap: string; nomorIndukKaryawa
 type BerjangkaRingkas = { nomorSertifikat: string; produkNama: string; nominal: number; tenorBulan: number; status: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null }
 type PinjamanRingkas = { nomorPinjaman: string; pokok: number; tenorBulan: number; angsuranPerBulan: number; sisaPokok: number; angsuranTerbayar: number; status: string; tanggalMulai: string; lunasPada: string | null }
 type BelanjaRingkas = { nomorTransaksi: string; produkNama: string; jenis: string; jumlah: number; total: number; metodePembayaran: string; status: string; diajukanPada: string }
+type RiwayatSimpanan = { jenisSimpanan: string; jenis: string; nominal: number; saldoSetelah: number; keterangan: string | null; tanggalTransaksi: string }
 type AnggotaDetail = {
   id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; nomorTelepon: string | null; alamat: string | null
   peran: string; statusKeanggotaan: string; aktif: boolean; dibuatPada: string; disetujuiPada: string | null
-  saldoPokok: number; saldoWajib: number; saldoSukarela: number; totalSimpanan: number
+  saldoPokok: number; saldoWajib: number; saldoSukarela: number; saldoBerjangka: number; totalSimpanan: number
   berjangka: BerjangkaRingkas[]; pinjaman: PinjamanRingkas[]; belanja: BelanjaRingkas[]; totalTagihanKreditBelum: number
+  riwayatSimpanan: RiwayatSimpanan[]
 }
 type Pendaftaran = { id: number; namaLengkap: string; nomorIndukKaryawan: string; email: string | null; statusKeanggotaan: string; dibuatPada: string }
 type DashboardTren = { label: string; pendapatan: number; beban: number; labaBersih: number }
@@ -38,18 +40,19 @@ type DashboardRingkasan = {
 type Konfigurasi = { simpananPokokNominal: number; simpananWajibNominal: number; tanggalTagihWajib: number; bungaSukarelaTahunan: number; bungaDepositoTahunan: number; tarifPph: number; tarifPphShu: number; diperbaruiPada: string }
 type TagihanWajib = { id: number; namaAnggota: string; nomorIndukKaryawan: string; periode: string; nominal: number; jatuhTempo: string; status: string; catatanReview: string | null; dibuatPada: string; diprosesPada: string | null }
 type BungaSukarelaTerakhir = { periode: string; bruto: number; pajak: number; neto: number }
-type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number; bungaTerakhir: BungaSukarelaTerakhir | null }
+type TransaksiSukarela = { id: number; namaAnggota: string; nomorIndukKaryawan: string; jenis: string; nominal: number; catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null; saldoSukarela: number; bungaTerakhir: BungaSukarelaTerakhir | null; buktiTransferUrl: string | null }
 type ProdukBerjangka = { id: number; nama: string; nominal: number; tenorBulan: number; aktif: boolean }
-type SimpananBerjangka = { id: number; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; nomorSertifikat: string; nominal: number; tenorBulan: number; status: string; catatanReview: string | null; diajukanPada: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null; dicairkanPada: string | null; estimasiBunga: number; estimasiPajak: number; estimasiBungaNeto: number; sudahDicairkan: boolean; pencairanDiajukan: boolean; pencairanDiajukanPada: string | null; alasanPencairan: string | null }
+type SukarelaRutinAdmin = { id: number; namaAnggota: string; nomorIndukKaryawan: string; nominal: number; tanggalSetor: number; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null; terakhirDijalankanPeriode: string | null }
+type SimpananBerjangka = { id: number; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; nomorSertifikat: string; nominal: number; tenorBulan: number; status: string; catatanReview: string | null; diajukanPada: string; tanggalMulai: string | null; tanggalJatuhTempo: string | null; dicairkanPada: string | null; estimasiBunga: number; estimasiPajak: number; estimasiBungaNeto: number; sudahDicairkan: boolean; pencairanDiajukan: boolean; pencairanDiajukanPada: string | null; alasanPencairan: string | null; buktiTransferUrl: string | null }
 type Produk = { id: number; kode: string; nama: string; deskripsi: string | null; jenis: string; harga: number; stok: number; satuan: string; fotoUrl: string | null; sumber: string; diajukanOleh: string | null; status: string; aktif: boolean; catatanReview: string | null }
 type PembelianProduk = { id: number; nomorTransaksi: string; namaPembeli: string; nomorIndukKaryawan: string; produkNama: string; jenis: string; jumlah: number; hargaSatuan: number; total: number; metodePembayaran: string; status: string; catatan: string | null; catatanReview: string | null; diajukanPada: string; diprosesPada: string | null }
 type TagihanKredit = { id: number; pembelianProdukId: number; penggunaId: number; nomorTransaksi: string; namaAnggota: string; nomorIndukKaryawan: string; produkNama: string; total: number; status: string; dibuatPada: string; lunasPada: string | null }
 type EratOpsi = { id: number; label: string; jumlah: number }
 type EratAgenda = { id: number; judul: string; deskripsi: string | null; status: string; mulaiPada: string | null; selesaiPada: string | null; dibuatPada: string; totalSuara: number; opsi: EratOpsi[] }
 type RatDoc = { id: number; tahun: number; judul: string; deskripsi: string | null; fileUrl: string; diterbitkanPada: string; aktif: boolean }
-type PayrollItem = { jenis: 'Wajib' | 'Kredit' | 'Cicilan'; id: number; keterangan: string; nominal: number }
-type PayrollBaris = { penggunaId: number; nama: string; nik: string; simpananWajib: number; tagihanKredit: number; cicilanPinjaman: number; totalPotongan: number; items: PayrollItem[] }
-type PayrollRekap = { periode: string; baris: PayrollBaris[]; totalWajib: number; totalKredit: number; totalCicilanPinjaman: number; totalPotongan: number }
+type PayrollItem = { jenis: 'Wajib' | 'Kredit' | 'Cicilan' | 'SukarelaRutin'; id: number; keterangan: string; nominal: number }
+type PayrollBaris = { penggunaId: number; nama: string; nik: string; simpananWajib: number; tagihanKredit: number; cicilanPinjaman: number; sukarelaRutin: number; totalPotongan: number; items: PayrollItem[] }
+type PayrollRekap = { periode: string; baris: PayrollBaris[]; totalWajib: number; totalKredit: number; totalCicilanPinjaman: number; totalSukarelaRutin: number; totalPotongan: number }
 type Akun = { id: number; kode: string; nama: string; tipe: string; saldoNormal: string; sistem: boolean; aktif: boolean }
 type JurnalBarisT = { akunId: number; kodeAkun: string; namaAkun: string; debit: number; kredit: number }
 type Jurnal = { id: number; nomorJurnal: string; tanggal: string; keterangan: string; sumber: string; referensiModul: string | null; referensiId: string | null; dicatatOleh: string | null; baris: JurnalBarisT[] }
@@ -88,6 +91,7 @@ type LoanApplication = {
   id: number; nomorPengajuan: string; namaAnggota: string; nomorIndukKaryawan: string
   nominal: number; tenorBulan: number; bungaTahunan: number; estimasiCicilanBulanan: number; estimasiTotalJasa: number
   tujuan: string; status: string; catatanReview: string | null; dibuatPada: string; diputuskanPada: string | null
+  suratRekomendasiUrl: string | null
 }
 type LoanInstallment = {
   angsuranKe: number; jatuhTempo: string; pokok: number; jasa: number; total: number; jenis: string; status: string
@@ -103,6 +107,7 @@ type PaymentRequest = {
   id: number; pinjamanId: number; nomorPinjaman: string; namaAnggota: string; nomorIndukKaryawan: string
   jenis: string; jumlahDiajukan: number; jasaDibebaskan: number | null; angsuranKe: number | null
   catatan: string | null; status: string; catatanReview: string | null; diajukanPada: string; diputuskanPada: string | null
+  buktiTransferUrl: string | null
 }
 
 type View = 'dashboard' | 'anggota' | 'simpanpinjam' | 'katalog' | 'erat' | 'akuntansi' | 'akun' | 'audit' | 'migrasi' | 'panduan'
@@ -998,8 +1003,13 @@ function PendaftaranView({ token, onExpired }: { token: string; onExpired: () =>
 
 function AnggotaDirektoriView({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [anggota, setAnggota] = useState<AnggotaDirektoriItem[]>([])
+  const [totalAnggota, setTotalAnggota] = useState(0)
+  const [totalSimpananSemua, setTotalSimpananSemua] = useState(0)
   const [query, setQuery] = useState('')
+  const [queryTerapan, setQueryTerapan] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [halaman, setHalaman] = useState(1)
+  const ukuran = 15
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -1007,41 +1017,42 @@ function AnggotaDirektoriView({ token, onExpired }: { token: string; onExpired: 
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const response = await fetch(`${API_BASE}/api/admin/anggota/direktori`, { headers: { Authorization: `Bearer ${token}` } })
+      const params = new URLSearchParams({ halaman: String(halaman), ukuran: String(ukuran) })
+      if (queryTerapan.trim()) params.set('cari', queryTerapan.trim())
+      if (roleFilter !== 'all') params.set('peran', roleFilter)
+      const response = await fetch(`${API_BASE}/api/admin/anggota/direktori?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
       if (response.status === 401) { onExpired(); return }
       if (!response.ok) throw new Error('Gagal memuat direktori anggota.')
       setAnggota(await response.json())
+      setTotalAnggota(Number(response.headers.get('X-Total-Count') ?? '0'))
+      setTotalSimpananSemua(Number(response.headers.get('X-Total-Simpanan') ?? '0'))
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
-  }, [token, onExpired])
+  }, [token, onExpired, halaman, queryTerapan, roleFilter])
   useEffect(() => { void load() }, [load])
 
-  const filtered = useMemo(() => anggota.filter((item) => {
-    const needle = query.toLowerCase()
-    const matchesQuery = !needle || [item.namaLengkap, item.nomorIndukKaryawan, item.email ?? ''].some((value) => value.toLowerCase().includes(needle))
-    const matchesRole = roleFilter === 'all' || item.peran === roleFilter
-    return matchesQuery && matchesRole
-  }), [anggota, query, roleFilter])
-
-  const totalSimpananSemua = anggota.reduce((sum, item) => sum + item.totalSimpanan, 0)
+  const filtered = anggota
+  const totalHalaman = Math.max(1, Math.ceil(totalAnggota / ukuran))
+  const terapkanPencarian = () => { setQueryTerapan(query); setHalaman(1) }
 
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Direktori anggota</h2><p>Daftar anggota aktif beserta total saldo simpanan. Klik satu baris untuk melihat rincian lengkap.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
     {error && <div className="alert error"><X size={17} />{error}</div>}
     <section className="stat-grid">
-      <StatCard label="Anggota aktif" value={anggota.length} icon={<Users size={20} />} tone="teal" />
+      <StatCard label="Anggota aktif" value={totalAnggota} icon={<Users size={20} />} tone="teal" />
       <StatCard label="Total simpanan seluruh anggota" value={totalSimpananSemua} icon={<PiggyBank size={20} />} tone="green" money />
     </section>
 
     <section className="table-panel">
-      <div className="panel-heading"><div><h2>Daftar anggota</h2><p>Total simpanan = pokok + wajib + sukarela + berjangka aktif.</p></div><span className="record-count">{filtered.length} data</span></div>
+      <div className="panel-heading"><div><h2>Daftar anggota</h2><p>Total simpanan = pokok + wajib + sukarela + berjangka aktif.</p></div><span className="record-count">{totalAnggota} data</span></div>
       <div className="filters">
         <label className="search-box">
           <Search size={17} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari nama, NIK, atau email..." />
-          {query && <button className="icon-button" style={{ padding: 4 }} onClick={() => setQuery('')}><X size={14} /></button>}
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && terapkanPencarian()} placeholder="Cari nama, NIK, atau email..." />
+          {query && <button className="icon-button" style={{ padding: 4 }} onClick={() => { setQuery(''); setQueryTerapan(''); setHalaman(1) }}><X size={14} /></button>}
         </label>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <button className="toggle-button" onClick={terapkanPencarian}>Cari</button>
+        <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setHalaman(1) }}>
           <option value="all">Semua Peran</option>
           <option value="Anggota">Anggota</option>
           <option value="Pengurus">Pengurus</option>
@@ -1056,7 +1067,14 @@ function AnggotaDirektoriView({ token, onExpired }: { token: string; onExpired: 
           <td className="align-right" style={{ fontWeight: 700, color: '#083344' }}>{rupiah(item.totalSimpanan)}</td>
           <td>{tanggal(item.dibuatPada)}</td>
         </tr>)}
-      </tbody></table>{!loading && filtered.length === 0 && <div className="empty-state">Tidak ada anggota yang cocok dengan pencarian.</div>}</div>
+      </tbody></table>{!loading && filtered.length === 0 && <div className="empty-state">Tidak ada anggota yang cocok dengan pencarian.</div>}
+      {totalHalaman > 1 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--line)', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>Halaman {halaman} dari {totalHalaman}</span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="toggle-button" disabled={halaman <= 1} onClick={() => setHalaman((h) => Math.max(1, h - 1))}>Sebelumnya</button>
+          <button className="toggle-button" disabled={halaman >= totalHalaman} onClick={() => setHalaman((h) => Math.min(totalHalaman, h + 1))}>Berikutnya</button>
+        </div>
+      </div>}</div>
     </section>
 
     {selectedId !== null && <AnggotaDetailModal id={selectedId} token={token} onExpired={onExpired} onClose={() => setSelectedId(null)} />}
@@ -1094,7 +1112,10 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
               <div className="modal-profile-info">
                 <span className="modal-avatar">{detail.namaLengkap.charAt(0).toUpperCase()}</span>
                 <div className="modal-profile-text">
-                  <h2>{detail.namaLengkap}</h2>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {detail.namaLengkap}
+                    <button className="icon-button" onClick={() => void unduhTemplate(token, `/api/admin/anggota/${detail.id}/detail/pdf`, `Laporan-Anggota-${detail.nomorIndukKaryawan}.pdf`, onExpired)} title="Export PDF" style={{ width: 28, height: 28, color: '#0891b2', background: '#ecfeff' }}><Download size={15} /></button>
+                  </h2>
                   <div className="modal-chips-row">
                     <span className="mono" style={{ fontSize: 11, background: '#f1f5f9', padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
                       NIK {detail.nomorIndukKaryawan}
@@ -1124,11 +1145,12 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
 
             <div className="modal-body">
               <div className="modal-section-title"><Wallet size={16} /> Komponen simpanan</div>
-              <div className="stat-grid" style={{ marginBottom: 24 }}>
-                <StatCard label="Simpanan Pokok" value={detail.saldoPokok} icon={<PiggyBank size={18} />} tone="teal" money />
-                <StatCard label="Simpanan Wajib" value={detail.saldoWajib} icon={<PiggyBank size={18} />} tone="blue" money />
-                <StatCard label="Simpanan Sukarela" value={detail.saldoSukarela} icon={<PiggyBank size={18} />} tone="amber" money />
-                <StatCard label="Total simpanan" value={detail.totalSimpanan} icon={<Wallet size={18} />} tone="green" money />
+              <div className="stat-grid" style={{ marginBottom: 24, gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+                <StatCard label="Simpanan Pokok" value={detail.saldoPokok} icon={<PiggyBank size={16} />} tone="teal" money />
+                <StatCard label="Simpanan Wajib" value={detail.saldoWajib} icon={<PiggyBank size={16} />} tone="blue" money />
+                <StatCard label="Simpanan Sukarela" value={detail.saldoSukarela} icon={<PiggyBank size={16} />} tone="amber" money />
+                <StatCard label="Simpanan Berjangka" value={detail.saldoBerjangka} icon={<Clock size={16} />} tone="dark" money />
+                <StatCard label="Total simpanan" value={detail.totalSimpanan} icon={<Wallet size={16} />} tone="green" money />
               </div>
 
               {detail.berjangka.length > 0 && (
@@ -1188,6 +1210,26 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                   </tbody>
                 </table>
                 {detail.belanja.length === 0 && <div className="empty-state">Belum pernah berbelanja di katalog.</div>}
+              </div>
+
+              <div className="modal-section-title" style={{ marginTop: 24 }}><PiggyBank size={16} /> Riwayat Simpanan</div>
+              <div className="table-scroll">
+                <table>
+                  <thead><tr><th>Tanggal</th><th>Jenis Simpanan</th><th>Transaksi</th><th className="align-right">Nominal</th><th className="align-right">Saldo Setelah</th><th>Keterangan</th></tr></thead>
+                  <tbody>
+                    {detail.riwayatSimpanan.map((r, i) => (
+                      <tr key={i}>
+                        <td>{tanggal(r.tanggalTransaksi)}</td>
+                        <td>{r.jenisSimpanan}</td>
+                        <td><span className={`role-pill mini ${r.jenis === 'Tarik' ? 'admin' : 'tosca'}`}>{r.jenis}</span></td>
+                        <td className="align-right" style={{ fontWeight: 700 }}>{rupiah(r.nominal)}</td>
+                        <td className="align-right">{rupiah(r.saldoSetelah)}</td>
+                        <td>{r.keterangan ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {detail.riwayatSimpanan.length === 0 && <div className="empty-state">Belum ada riwayat mutasi simpanan.</div>}
               </div>
               {detail.totalTagihanKreditBelum > 0 && (
                 <div className="alert error" style={{ marginTop: 18, color: '#9a3412', background: '#fff7ed', borderColor: '#fed7aa' }}>
@@ -1418,6 +1460,7 @@ function AkunView({ token, onExpired }: { token: string; onExpired: () => void }
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.message ?? 'Gagal mereset akses.')
       setResetInfo({ nama: user.namaLengkap, password: data.passwordSementara })
+      window.setTimeout(() => setResetInfo((current) => current?.nama === user.namaLengkap ? null : current), 60000)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal mereset akses.') }
     finally { setBusyId(0) }
   }
@@ -2196,16 +2239,16 @@ function DbAuditDetailModal({ item, onClose }: { item: DbAuditLogEntry; onClose:
 }
 
 type NeracaAwalBaris = { baris: number; kodeAkun: string; namaAkun: string | null; debit: number; kredit: number; error: string | null }
-type NeracaAwalPreview = { baris: NeracaAwalBaris[]; totalDebit: number; totalKredit: number; balanced: boolean }
+type NeracaAwalPreview = { baris: NeracaAwalBaris[]; totalDebit: number; totalKredit: number; balanced: boolean; signature: string }
 type SimpananMigrasiBaris = { baris: number; nik: string; nama: string | null; penggunaId: number | null; saldoPokok: number; saldoWajib: number; error: string | null }
-type SimpananMigrasiPreview = { baris: SimpananMigrasiBaris[]; totalPokok: number; totalWajib: number; jumlahValid: number; jumlahError: number }
+type SimpananMigrasiPreview = { baris: SimpananMigrasiBaris[]; totalPokok: number; totalWajib: number; jumlahValid: number; jumlahError: number; signature: string }
 type PinjamanMigrasiBaris = { baris: number; nik: string; nama: string | null; penggunaId: number | null; nominal: number; tenorBulan: number; tanggalMulai: string | null; angsuranSudahDibayar: number; sisaPokok: number; angsuranPerBulan: number; error: string | null }
-type PinjamanMigrasiPreview = { baris: PinjamanMigrasiBaris[]; totalSisaPokok: number; jumlahValid: number; jumlahError: number }
+type PinjamanMigrasiPreview = { baris: PinjamanMigrasiBaris[]; totalSisaPokok: number; jumlahValid: number; jumlahError: number; signature: string }
 type TagihanKreditMigrasiBaris = { baris: number; nik: string; nama: string | null; penggunaId: number | null; keterangan: string; total: number; tenorBulan: number; tanggalMulai: string | null; angsuranSudahDibayar: number; sisaTagihan: number; error: string | null }
-type TagihanKreditMigrasiPreview = { baris: TagihanKreditMigrasiBaris[]; totalSisaTagihan: number; jumlahValid: number; jumlahError: number }
+type TagihanKreditMigrasiPreview = { baris: TagihanKreditMigrasiBaris[]; totalSisaTagihan: number; jumlahValid: number; jumlahError: number; signature: string }
 type JurnalHarianBaris = { baris: number; kodeAkun: string; namaAkun: string | null; debit: number; kredit: number; nik: string | null; penggunaId: number | null; efekSaldo: string | null; error: string | null }
 type JurnalHarianVoucher = { noBukti: string; tanggal: string | null; keterangan: string | null; baris: JurnalHarianBaris[]; totalDebit: number; totalKredit: number; balanced: boolean }
-type JurnalHarianPreview = { voucher: JurnalHarianVoucher[]; jumlahValid: number; jumlahError: number; totalVoucher: number }
+type JurnalHarianPreview = { voucher: JurnalHarianVoucher[]; jumlahValid: number; jumlahError: number; totalVoucher: number; signature: string }
 
 async function unduhTemplate(token: string, url: string, namaFile: string, onExpired: () => void) {
   const response = await fetch(`${API_BASE}${url}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -2433,7 +2476,7 @@ function NeracaAwalImporter({ token, onExpired }: { token: string; onExpired: ()
     if (!window.confirm(`Import Neraca Awal ${preview.baris.length} baris sebagai jurnal umum tanggal ${tanggal}? Tindakan ini tidak bisa dibatalkan dari UI.`)) return
     setBusy(true); setError('')
     try {
-      const body = { tanggal, keterangan, baris: preview.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit })) }
+      const body = { tanggal, keterangan, baris: preview.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit })), signature: preview.signature }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/neraca-awal/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (response.status === 401) { onExpired(); return }
       const data = await response.json()
@@ -2507,7 +2550,7 @@ function SimpananMigrasiImporter({ token, onExpired }: { token: string; onExpire
     if (!window.confirm(`Import Simpanan Pokok & Wajib untuk ${preview.jumlahValid} anggota tanggal ${tanggal}? Baris berisi error akan dilewati.`)) return
     setBusy(true); setError('')
     try {
-      const body = { tanggal, baris: preview.baris.filter((b) => !b.error && b.penggunaId).map((b) => ({ penggunaId: b.penggunaId, saldoPokok: b.saldoPokok, saldoWajib: b.saldoWajib })) }
+      const body = { tanggal, baris: preview.baris.filter((b) => !b.error && b.penggunaId).map((b) => ({ penggunaId: b.penggunaId, saldoPokok: b.saldoPokok, saldoWajib: b.saldoWajib })), signature: preview.signature }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/simpanan/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (response.status === 401) { onExpired(); return }
       const data = await response.json()
@@ -2581,7 +2624,8 @@ function PinjamanMigrasiImporter({ token, onExpired }: { token: string; onExpire
         tanggal, baris: preview.baris.filter((b) => !b.error && b.penggunaId).map((b) => ({
           penggunaId: b.penggunaId, nominal: b.nominal, tenorBulan: b.tenorBulan, tanggalMulai: b.tanggalMulai,
           angsuranSudahDibayar: b.angsuranSudahDibayar, sisaPokokOverride: null
-        }))
+        })),
+        signature: preview.signature
       }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/pinjaman/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (response.status === 401) { onExpired(); return }
@@ -2657,7 +2701,8 @@ function TagihanKreditMigrasiImporter({ token, onExpired }: { token: string; onE
         tanggal, baris: preview.baris.filter((b) => !b.error && b.penggunaId).map((b) => ({
           penggunaId: b.penggunaId, keterangan: b.keterangan, total: b.total, tenorBulan: b.tenorBulan,
           tanggalMulai: b.tanggalMulai, angsuranSudahDibayar: b.angsuranSudahDibayar, sisaPokokOverride: null
-        }))
+        })),
+        signature: preview.signature
       }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/tagihan-kredit/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (response.status === 401) { onExpired(); return }
@@ -2733,7 +2778,8 @@ function JurnalHarianMigrasiImporter({ token, onExpired }: { token: string; onEx
         voucher: preview.voucher.filter((v) => v.balanced).map((v) => ({
           noBukti: v.noBukti, tanggal: v.tanggal, keterangan: v.keterangan ?? v.noBukti,
           baris: v.baris.map((b) => ({ kodeAkun: b.kodeAkun, debit: b.debit, kredit: b.kredit, penggunaId: b.penggunaId, efekSaldo: b.efekSaldo }))
-        }))
+        })),
+        signature: preview.signature
       }
       const response = await fetch(`${API_BASE}/api/admin/migrasi/jurnal-harian/komit`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (response.status === 401) { onExpired(); return }
@@ -3368,7 +3414,14 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   const [notice, setNotice] = useState('')
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null)
   const [loanQuery, setLoanQuery] = useState('')
+  const [loanQueryTerapan, setLoanQueryTerapan] = useState('')
   const [loanStatusFilter, setLoanStatusFilter] = useState<'all' | 'Aktif' | 'Lunas'>('all')
+  const [loanHalaman, setLoanHalaman] = useState(1)
+  const LOAN_UKURAN = 15
+  const [loanTotalCount, setLoanTotalCount] = useState(0)
+  const [countAktif, setCountAktif] = useState(0)
+  const [countLunas, setCountLunas] = useState(0)
+  const [totalSisaPokok, setTotalSisaPokok] = useState(0)
   const [tertutup, setTertutup] = useState<Record<string, boolean>>({})
   const toggleBox = (key: string) => setTertutup((t) => ({ ...t, [key]: !t[key] }))
 
@@ -3377,19 +3430,26 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
+      const pinjamanParams = new URLSearchParams({ halaman: String(loanHalaman), ukuran: String(LOAN_UKURAN) })
+      if (loanQueryTerapan.trim()) pinjamanParams.set('cari', loanQueryTerapan.trim())
+      if (loanStatusFilter !== 'all') pinjamanParams.set('status', loanStatusFilter)
       const [pengajuanResponse, pinjamanResponse, pembayaranResponse] = await Promise.all([
         fetch(`${API_BASE}/api/admin/pinjaman/pengajuan`, { headers: authHeaders }),
-        fetch(`${API_BASE}/api/admin/pinjaman`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/admin/pinjaman?${pinjamanParams.toString()}`, { headers: authHeaders }),
         fetch(`${API_BASE}/api/admin/pinjaman/pembayaran`, { headers: authHeaders }),
       ])
       if ([pengajuanResponse, pinjamanResponse, pembayaranResponse].some((r) => r.status === 401)) { onExpired(); return }
       if (!pengajuanResponse.ok || !pinjamanResponse.ok || !pembayaranResponse.ok) throw new Error(pengajuanResponse.status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat data pinjaman.')
       setApplications(await pengajuanResponse.json())
       setLoans(await pinjamanResponse.json())
+      setLoanTotalCount(Number(pinjamanResponse.headers.get('X-Total-Count') ?? '0'))
+      setCountAktif(Number(pinjamanResponse.headers.get('X-Count-Aktif') ?? '0'))
+      setCountLunas(Number(pinjamanResponse.headers.get('X-Count-Lunas') ?? '0'))
+      setTotalSisaPokok(Number(pinjamanResponse.headers.get('X-Total-SisaPokok') ?? '0'))
       setPayments(await pembayaranResponse.json())
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
-  }, [authHeaders, onExpired])
+  }, [authHeaders, onExpired, loanHalaman, loanQueryTerapan, loanStatusFilter])
   useEffect(() => { void load() }, [load])
 
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 3200) }
@@ -3428,8 +3488,6 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
 
   const pending = applications.filter((item) => item.status === 'Diajukan')
   const pendingPayments = payments.filter((item) => item.status === 'Diajukan')
-  const activeLoans = loans.filter((item) => item.status === 'Aktif')
-  const totalSisaPokok = activeLoans.reduce((sum, item) => sum + item.sisaPokok, 0)
 
   useEffect(() => {
     if (selectedLoan) {
@@ -3438,17 +3496,9 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
     }
   }, [loans, selectedLoan])
 
-  const filteredLoans = useMemo(() => {
-    return loans.filter((loan) => {
-      const q = loanQuery.trim().toLowerCase()
-      const matchQuery = !q ||
-        loan.namaAnggota.toLowerCase().includes(q) ||
-        loan.nomorIndukKaryawan.toLowerCase().includes(q) ||
-        loan.nomorPinjaman.toLowerCase().includes(q)
-      const matchStatus = loanStatusFilter === 'all' || loan.status === loanStatusFilter
-      return matchQuery && matchStatus
-    })
-  }, [loans, loanQuery, loanStatusFilter])
+  const filteredLoans = loans
+  const loanTotalHalaman = Math.max(1, Math.ceil(loanTotalCount / LOAN_UKURAN))
+  const terapkanPencarianLoan = () => { setLoanQueryTerapan(loanQuery); setLoanHalaman(1) }
 
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Persetujuan pinjaman & pembayaran</h2><p>Anggota mengajukan pinjaman, pembayaran angsuran, dan pelunasan dipercepat dari aplikasi — pengurus menyetujui di sini.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
@@ -3457,7 +3507,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
     <section className="stat-grid">
       <StatCard label="Pengajuan pinjaman" value={pending.length} icon={<HandCoins size={20} />} tone="amber" />
       <StatCard label="Pengajuan pembayaran" value={pendingPayments.length} icon={<Zap size={20} />} tone="amber" />
-      <StatCard label="Pinjaman aktif" value={activeLoans.length} icon={<Wallet size={20} />} tone="teal" />
+      <StatCard label="Pinjaman aktif" value={countAktif} icon={<Wallet size={20} />} tone="teal" />
       <StatCard label="Total sisa pokok" value={totalSisaPokok} icon={<Banknote size={20} />} tone="blue" money />
     </section>
 
@@ -3468,12 +3518,13 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
           <button className="icon-button" title={tertutup.pembayaran ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pembayaran')}>{tertutup.pembayaran ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
         </span>
       </div>
-      {!tertutup.pembayaran && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      {!tertutup.pembayaran && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Bukti</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {payments.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td className="mono">{item.nomorPinjaman}</td>
           <td>{item.jenis === 'Pelunasan' ? <span className="role-pill admin"><Zap size={11} /> Pelunasan</span> : <span className="role-pill">Angsuran {item.angsuranKe ? `ke-${item.angsuranKe}` : ''}</span>}</td>
           <td>{rupiah(item.jumlahDiajukan)}{item.jenis === 'Pelunasan' && <><br /><small style={{ color: 'var(--muted)' }}>jasa {rupiah(item.jasaDibebaskan ?? 0)} dibebaskan</small></>}</td>
+          <td>{item.buktiTransferUrl ? <a href={`${API_BASE}${item.buktiTransferUrl}`} target="_blank" rel="noreferrer" className="toggle-button" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Eye size={12} /> Lihat</a> : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
           <td>{tanggal(item.diajukanPada)}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
@@ -3489,7 +3540,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pinjaman aktif &amp; lunas</h2><p>Pantau progres angsuran pinjaman anggota. Klik baris data untuk membuka rincian lengkap &amp; riwayat angsuran.</p></div>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <span className="record-count">{filteredLoans.length} pinjaman</span>
+          <span className="record-count">{loanTotalCount} pinjaman</span>
           <button className="icon-button" title={tertutup.pinjaman ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pinjaman')}>{tertutup.pinjaman ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
         </span>
       </div>
@@ -3501,16 +3552,18 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
               <input
                 value={loanQuery}
                 onChange={(event) => setLoanQuery(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && terapkanPencarianLoan()}
                 placeholder="Cari peminjam, NIK, atau nomor pinjaman..."
               />
             </label>
+            <button className="toggle-button" onClick={terapkanPencarianLoan}>Cari</button>
             <select
               value={loanStatusFilter}
-              onChange={(event) => setLoanStatusFilter(event.target.value as 'all' | 'Aktif' | 'Lunas')}
+              onChange={(event) => { setLoanStatusFilter(event.target.value as 'all' | 'Aktif' | 'Lunas'); setLoanHalaman(1) }}
             >
-              <option value="all">Semua status ({loans.length})</option>
-              <option value="Aktif">Aktif ({loans.filter((l) => l.status === 'Aktif').length})</option>
-              <option value="Lunas">Lunas ({loans.filter((l) => l.status === 'Lunas').length})</option>
+              <option value="all">Semua status ({countAktif + countLunas})</option>
+              <option value="Aktif">Aktif ({countAktif})</option>
+              <option value="Lunas">Lunas ({countLunas})</option>
             </select>
           </div>
 
@@ -3595,7 +3648,16 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
             {!loading && filteredLoans.length === 0 && (
               <div className="empty-state">
                 <Wallet size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} />
-                <div>{loans.length === 0 ? 'Belum ada pinjaman aktif atau lunas.' : 'Tidak ada pinjaman yang cocok dengan filter pencarian.'}</div>
+                <div>{loanTotalCount === 0 ? 'Belum ada pinjaman aktif atau lunas.' : 'Tidak ada pinjaman yang cocok dengan filter pencarian.'}</div>
+              </div>
+            )}
+            {loanTotalHalaman > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--line)', flexWrap: 'wrap', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>Halaman {loanHalaman} dari {loanTotalHalaman}</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="toggle-button" disabled={loanHalaman <= 1} onClick={() => setLoanHalaman((h) => Math.max(1, h - 1))}>Sebelumnya</button>
+                  <button className="toggle-button" disabled={loanHalaman >= loanTotalHalaman} onClick={() => setLoanHalaman((h) => Math.min(loanTotalHalaman, h + 1))}>Berikutnya</button>
+                </div>
               </div>
             )}
           </div>
@@ -3610,13 +3672,14 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
           <button className="icon-button" title={tertutup.pengajuan ? 'Perbesar' : 'Perkecil'} onClick={() => toggleBox('pengajuan')}>{tertutup.pengajuan ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
         </span>
       </div>
-      {!tertutup.pengajuan && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      {!tertutup.pengajuan && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Rekomendasi SDM</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {applications.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
           <td>{rupiah(item.estimasiCicilanBulanan)}<br /><small style={{ color: 'var(--muted)' }}>jasa {(item.bungaTahunan * 100).toFixed(2)}%/th</small></td>
           <td>{rupiah(item.estimasiTotalJasa)}</td>
           <td style={{ whiteSpace: 'normal', maxWidth: 180 }}>{item.tujuan}</td>
+          <td>{item.suratRekomendasiUrl ? <a href={`${API_BASE}${item.suratRekomendasiUrl}`} target="_blank" rel="noreferrer" className="toggle-button" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Eye size={12} /> Lihat</a> : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
             ? <span style={{ display: 'inline-flex', gap: 6 }}>
@@ -3953,6 +4016,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
   const [konfigurasi, setKonfigurasi] = useState<Konfigurasi | null>(null)
   const [wajib, setWajib] = useState<TagihanWajib[]>([])
   const [sukarela, setSukarela] = useState<TransaksiSukarela[]>([])
+  const [sukarelaRutin, setSukarelaRutin] = useState<SukarelaRutinAdmin[]>([])
   const [berjangka, setBerjangka] = useState<SimpananBerjangka[]>([])
   const [produk, setProduk] = useState<ProdukBerjangka[]>([])
   const [loading, setLoading] = useState(false)
@@ -3978,16 +4042,17 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
         fetch(`${API_BASE}/api/admin/konfigurasi`, { headers }),
         fetch(`${API_BASE}/api/admin/simpanan/wajib`, { headers }),
         fetch(`${API_BASE}/api/admin/simpanan/sukarela`, { headers }),
+        fetch(`${API_BASE}/api/admin/simpanan/sukarela-rutin`, { headers }),
         fetch(`${API_BASE}/api/admin/simpanan/berjangka`, { headers }),
         fetch(`${API_BASE}/api/admin/simpanan/berjangka/produk`, { headers }),
       ])
       if (responses.some((r) => r.status === 401)) { onExpired(); return }
       if (responses.some((r) => !r.ok)) throw new Error(responses[0].status === 403 ? 'Akun ini belum memiliki akses admin.' : 'Gagal memuat data simpanan.')
-      const [k, w, s, b, p] = await Promise.all(responses.map((r) => r.json()))
+      const [k, w, s, sr, b, p] = await Promise.all(responses.map((r) => r.json()))
       setKonfigurasi(k); setPokokInput(String(k.simpananPokokNominal)); setWajibInput(String(k.simpananWajibNominal))
       setBungaSukarelaInput((k.bungaSukarelaTahunan * 100).toString()); setBungaDepositoInput((k.bungaDepositoTahunan * 100).toString())
       setPphInput((k.tarifPph * 100).toString())
-      setWajib(w); setSukarela(s); setBerjangka(b); setProduk(p)
+      setWajib(w); setSukarela(s); setSukarelaRutin(sr); setBerjangka(b); setProduk(p)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Terjadi kesalahan jaringan.') }
     finally { setLoading(false) }
   }, [headers, onExpired])
@@ -4110,7 +4175,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
           <Calculator size={14} /> Hitung bunga bulan lalu
         </button>
       </div>
-      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Saldo saat ini</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Saldo saat ini</th><th>Bukti</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {sukarela.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>
@@ -4125,6 +4190,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
               <div style={{ color: 'var(--muted)' }}>Neto: <span style={{ color: '#2d8155', fontWeight: 700 }}>+{rupiah(item.bungaTerakhir.neto)}</span></div>
             </div>}
           </td>
+          <td>{item.buktiTransferUrl ? <a href={`${API_BASE}${item.buktiTransferUrl}`} target="_blank" rel="noreferrer" className="toggle-button" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Eye size={12} /> Lihat</a> : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
           <td>{tanggal(item.diajukanPada)}</td>
           <td><span className={`status-pill ${item.status === 'Disetujui' ? 'active' : item.status === 'Ditolak' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
           <td className="align-right">{item.status === 'Diajukan'
@@ -4162,9 +4228,33 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
       </tbody></table>{!loading && produk.length === 0 && <div className="empty-state"><Database size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada paket berjangka.</div></div>}</div>
     </section>
 
+    <section className="table-panel" style={{ marginBottom: 22 }}>
+      <div className="panel-heading"><div><h2>Sukarela Rutin</h2><p>Instruksi setoran sukarela otomatis bulanan. Sekali disetujui, sistem akan menyetor sendiri tiap bulan pada tanggal yang dipilih — sampai anggota mengajukan berhenti dan disetujui pengurus.</p></div><span className="record-count">{sukarelaRutin.filter((r) => r.status === 'Diajukan' || r.status === 'DihentikanDiajukan').length} menunggu</span></div>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal/bulan</th><th>Tanggal setor</th><th>Terakhir jalan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+        {sukarelaRutin.map((item) => <tr key={item.id}>
+          <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
+          <td>{rupiah(item.nominal)}</td>
+          <td>Tgl {item.tanggalSetor}</td>
+          <td>{item.terakhirDijalankanPeriode ?? '—'}</td>
+          <td><span className={`status-pill ${item.status === 'Aktif' ? 'active' : item.status === 'Ditolak' || item.status === 'Dihentikan' ? 'rejected' : 'waiting'}`}><i />{item.status}</span></td>
+          <td className="align-right">
+            {item.status === 'Diajukan' && <span style={{ display: 'inline-flex', gap: 6 }}>
+              <button className="toggle-button activate" disabled={busyId === `sr-${item.id}`} onClick={() => putusan(`sr-${item.id}`, `/api/admin/simpanan/sukarela-rutin/${item.id}/putusan`, true, 'Sukarela Rutin')}>Setujui</button>
+              <button className="toggle-button deactivate" disabled={busyId === `sr-${item.id}`} onClick={() => putusan(`sr-${item.id}`, `/api/admin/simpanan/sukarela-rutin/${item.id}/putusan`, false, 'Sukarela Rutin')}>Tolak</button>
+            </span>}
+            {item.status === 'DihentikanDiajukan' && <span style={{ display: 'inline-flex', gap: 6 }}>
+              <button className="toggle-button deactivate" disabled={busyId === `sr-${item.id}`} onClick={() => putusan(`sr-${item.id}`, `/api/admin/simpanan/sukarela-rutin/${item.id}/putusan-berhenti`, true, 'permintaan berhenti Sukarela Rutin')}>Hentikan</button>
+              <button className="toggle-button activate" disabled={busyId === `sr-${item.id}`} onClick={() => putusan(`sr-${item.id}`, `/api/admin/simpanan/sukarela-rutin/${item.id}/putusan-berhenti`, false, 'permintaan berhenti Sukarela Rutin')}>Tolak, tetap aktif</button>
+            </span>}
+            {(item.status === 'Aktif' || item.status === 'Ditolak' || item.status === 'Dihentikan') && <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}
+          </td>
+        </tr>)}
+      </tbody></table>{!loading && sukarelaRutin.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada instruksi Sukarela Rutin.</div></div>}</div>
+    </section>
+
     <section className="table-panel">
       <div className="panel-heading"><div><h2>Pengajuan Simpanan Berjangka</h2><p>Setujui untuk mengunci dana; cairkan saat jatuh tempo. Pencairan dipercepat (diajukan anggota) → hanya pokok, bunga hangus.</p></div><span className="record-count">{berjangkaMenunggu} menunggu · {pencairanMenunggu} minta cair</span></div>
-      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Paket</th><th>Nominal</th><th>Est. bunga</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
+      <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Paket</th><th>Nominal</th><th>Est. bunga</th><th>Bukti</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
         {berjangka.map((item) => <tr key={item.id} style={item.pencairanDiajukan ? { background: '#fffbeb' } : undefined}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorSertifikat}</small></td>
@@ -4176,6 +4266,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
               <div>{item.sudahDicairkan ? 'Neto' : 'Est. neto'}: <span style={{ color: '#2d8155', fontWeight: 600 }}>{rupiah(item.estimasiBungaNeto)}</span></div>
             </div>
           </td>
+          <td>{item.buktiTransferUrl ? <a href={`${API_BASE}${item.buktiTransferUrl}`} target="_blank" rel="noreferrer" className="toggle-button" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Eye size={12} /> Lihat</a> : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
           <td>{item.tanggalJatuhTempo ? tanggal(item.tanggalJatuhTempo) : '—'}</td>
           <td>
             <span className={`status-pill ${item.status === 'Aktif' || item.status === 'Dicairkan' ? 'active' : item.status === 'Ditolak' ? 'rejected' : item.status === 'Diajukan' ? 'waiting' : 'inactive'}`}><i />{item.status}</span>
@@ -5129,6 +5220,18 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
     finally { setBusyId('') }
   }
 
+  const setujuiSukarelaRutin = async () => {
+    if (!window.confirm(`Proses SEMUA setoran Sukarela Rutin periode ${periode} (total ${rupiah(rekap?.totalSukarelaRutin ?? 0)})?`)) return
+    setBusyId('sukarela-rutin'); setError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/simpanan/sukarela-rutin/setujui-periode`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ periode }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.message ?? 'Gagal memproses Sukarela Rutin.')
+      flash(data.message ?? 'Berhasil.'); await load()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Gagal memproses Sukarela Rutin.') }
+    finally { setBusyId('') }
+  }
+
   return <div className="content-wrap">
     <section className="welcome-row">
       <div><h2>Tagihan Anggota (potong gaji)</h2><p>Rekap otomatis Simpanan Wajib + Tagihan Kredit produk + Cicilan Pinjaman per anggota untuk periode terpilih. Setujui, lalu ekspor CSV.</p></div>
@@ -5142,6 +5245,7 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
       <StatCard label="Simpanan Wajib" value={rekap?.totalWajib ?? 0} icon={<PiggyBank size={20} />} tone="blue" money />
       <StatCard label="Tagihan Kredit" value={rekap?.totalKredit ?? 0} icon={<HandCoins size={20} />} tone="amber" money />
       <StatCard label="Cicilan Pinjaman" value={rekap?.totalCicilanPinjaman ?? 0} icon={<Banknote size={20} />} tone="blue" money />
+      <StatCard label="Sukarela Rutin" value={rekap?.totalSukarelaRutin ?? 0} icon={<RefreshCw size={20} />} tone="dark" money />
       <StatCard label="Total potongan" value={rekap?.totalPotongan ?? 0} icon={<Receipt size={20} />} tone="green" money />
     </section>
 
@@ -5162,15 +5266,16 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
           <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalWajib > 0)} onClick={() => void setujuiWajib()}>Setujui Simpanan Wajib</button>
           <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalKredit > 0)} onClick={() => void setujuiKredit()}>Setujui Tagihan Kredit</button>
           <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalCicilanPinjaman > 0)} onClick={() => void setujuiCicilan()}>Setujui Angsuran Cicilan</button>
+          <button className="toggle-button activate" disabled={busyId !== '' || !(rekap && rekap.totalSukarelaRutin > 0)} onClick={() => void setujuiSukarelaRutin()}>Setujui Sukarela Rutin</button>
         </div>
       </div>
-      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>NIK</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Cicilan Pinjaman</th><th>Total Potongan</th></tr></thead><tbody>
+      <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Cicilan Pinjaman</th><th>Sukarela Rutin</th><th>Total Potongan</th></tr></thead><tbody>
         {rekap?.baris.map((b) => <tr key={b.penggunaId} className="clickable-row" onClick={() => setDetailId(b.penggunaId)}>
-          <td><div className="user-cell"><span className="avatar tosca-avatar">{b.nama.charAt(0).toUpperCase()}</span><strong>{b.nama}</strong></div></td>
-          <td className="mono">{b.nik || '—'}</td>
+          <td><div className="user-cell"><span className="avatar tosca-avatar">{b.nama.charAt(0).toUpperCase()}</span><div><strong>{b.nama}</strong><div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{b.nik || '—'}</div></div></div></td>
           <td>{b.simpananWajib > 0 ? rupiah(b.simpananWajib) : '—'}</td>
           <td>{b.tagihanKredit > 0 ? rupiah(b.tagihanKredit) : '—'}</td>
           <td>{b.cicilanPinjaman > 0 ? rupiah(b.cicilanPinjaman) : '—'}</td>
+          <td>{b.sukarelaRutin > 0 ? rupiah(b.sukarelaRutin) : '—'}</td>
           <td style={{ fontWeight: 700, color: '#083344' }}>{rupiah(b.totalPotongan)}</td>
         </tr>)}
       </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}</div>
@@ -5205,6 +5310,7 @@ function PayrollDetailModal({ baris, token, onExpired, onClose, onChanged }: {
   const wajibItems = baris?.items.filter((i) => i.jenis === 'Wajib') ?? []
   const kreditItems = baris?.items.filter((i) => i.jenis === 'Kredit') ?? []
   const cicilanItems = baris?.items.filter((i) => i.jenis === 'Cicilan') ?? []
+  const sukarelaRutinItems = baris?.items.filter((i) => i.jenis === 'SukarelaRutin') ?? []
   const semuaItems = [...wajibItems, ...kreditItems, ...cicilanItems]
 
   // Setuju = tandai potongan ini diproses (dikreditkan / dilunasi). Tolak untuk Simpanan Wajib benar-benar
@@ -5303,6 +5409,19 @@ function PayrollDetailModal({ baris, token, onExpired, onClose, onChanged }: {
                 <div style={{ marginBottom: 20 }}>
                   <div className="modal-section-title"><Banknote size={15} /> Cicilan Pinjaman</div>
                   {cicilanItems.map((item) => <PayrollItemRow key={item.id} item={item} busy={busyId !== ''} onSetuju={() => void setuju(item)} onTolak={() => void tolak(item)} />)}
+                </div>
+              )}
+
+              {sukarelaRutinItems.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div className="modal-section-title"><RefreshCw size={15} /> Sukarela Rutin</div>
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px' }}>Diproses otomatis sistem tiap bulan — informasi saja, tidak perlu disetujui manual.</p>
+                  {sukarelaRutinItems.map((item) => (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: 13 }}>{item.keterangan}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{rupiah(item.nominal)}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -7143,8 +7262,9 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
       ringkasan: 'Satu menu, tiga tab: dari calon anggota mendaftar sampai potongan gajinya direkap.',
       poin: [
         'Tab "Pendaftaran" — setujui atau tolak calon anggota baru yang mendaftar lewat aplikasi. Setelah disetujui, Simpanan Pokok (nominalnya diatur di Simpan Pinjam → Konfigurasi) otomatis dikreditkan dan jurnal Kas/Simpanan Pokok langsung tercatat.',
-        'Tab "Direktori Anggota" — cari anggota aktif, klik namanya untuk pop-up detail lengkap: rincian saldo tiap jenis simpanan, riwayat simpanan berjangka, riwayat lengkap pinjaman (termasuk progres angsuran), dan riwayat belanja katalog.',
-        'Tab "Tagihan Anggota" — rekap otomatis 3 jenis potongan gaji: Simpanan Wajib yang belum ditagih, Tagihan Kredit produk yang belum lunas, dan Cicilan Pinjaman yang jatuh tempo bulan itu. Klik satu baris anggota untuk buka pop-up rinci per item — bisa Setuju/Tolak satu-satu atau pakai tombol "Setujui semua" per kategori di atas tabel.',
+        'Tab "Direktori Anggota" — cari anggota aktif, klik namanya untuk pop-up detail lengkap: 5 kartu ringkasan saldo (Pokok/Wajib/Sukarela/Berjangka/Total), riwayat simpanan berjangka, riwayat mutasi simpanan terbaru, riwayat lengkap pinjaman (termasuk progres angsuran), dan riwayat belanja katalog. Klik ikon unduh (biru, di sebelah nama anggota) untuk cetak/ekspor seluruh isi pop-up ini jadi PDF.',
+        'Tab "Tagihan Anggota" — rekap otomatis 4 jenis potongan gaji: Simpanan Wajib yang belum ditagih, Tagihan Kredit produk yang belum lunas, Cicilan Pinjaman yang jatuh tempo bulan itu, dan Sukarela Rutin aktif milik anggota (setoran sukarela otomatis bulanan). Klik satu baris anggota untuk buka pop-up rinci per item — bisa Setuju/Tolak satu-satu atau pakai tombol "Setujui semua" per kategori di atas tabel. Kolom & baris Sukarela Rutin di pop-up bersifat informasi saja (tidak perlu disetujui manual per anggota).',
+        'Tombol "Setujui Sukarela Rutin" di baris Aksi Massal akan memicu sistem memproses semua setoran Sukarela Rutin yang jatuh tempo periode berjalan — berguna kalau Anda mau memastikan setorannya sudah tercatat segera, tanpa menunggu proses otomatis latar belakang (yang berjalan tiap 6 jam).',
         'Setelah semua potongan disetujui, klik "Ekspor CSV" untuk dikirim ke bagian penggajian — sistem tidak lagi mensyaratkan langkah "kirim ke SDM" terpisah, cukup approve lalu ekspor.',
       ],
       tips: 'Anggota baru wajib disetujui dulu di tab Pendaftaran sebelum muncul di Direktori maupun bisa ikut transaksi lain (simpanan, pinjaman, belanja).',
@@ -7157,11 +7277,13 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
       poin: [
         'Tab "Simpanan" bagian Konfigurasi — atur nominal Simpanan Pokok & Wajib, suku bunga tahunan Sukarela/Deposito, serta Tarif PPh Bunga (untuk Sukarela & Deposito). Tarif PPh khusus SHU diatur terpisah di halaman Akuntansi ▸ SHU (defaultnya 15%, beda dari PPh bunga).',
         'Simpanan Wajib ditagih otomatis tiap bulan pada tanggal yang Anda atur — setujui satu-satu atau pakai "Setujui semua periode ini" untuk memproses sekaligus.',
-        'Simpanan Sukarela: setoran/penarikan anggota disetujui di sini. Bunga dihitung metode saldo harian (per hari: saldo × suku bunga ÷ 365) dan hanya bisa ditutup untuk BULAN YANG SUDAH LEWAT — klik "Hitung bunga bulan lalu" untuk memicunya. Bunga bulan berjalan sengaja tidak bisa dihitung karena saldo hariannya belum final (anggota masih bisa setor/tarik lagi).',
-        'Simpanan Berjangka (deposito): buat paket (nominal + tenor) di panel "Paket Simpanan Berjangka", lalu setujui pengajuan anggota untuk mengaktifkannya. Saat jatuh tempo, cairkan untuk memberi pokok + bunga neto (dipotong PPh). Kalau anggota minta cair LEBIH CEPAT dari jatuh tempo, anggota hanya menerima pokok — bunga hangus sepenuhnya sebagai konsekuensi pencairan dipercepat.',
-        'Tab "Pinjaman" — tinjau pengajuan pinjaman baru; menyetujui otomatis mencairkan dana dan membuat jadwal angsuran bulanan (pokok + jasa) sesuai tenor. Proses juga pembayaran angsuran reguler, atau pelunasan dipercepat (anggota cukup bayar sisa pokok, jasa sisa dibebaskan penuh).',
+        'Simpanan Sukarela: setoran/penarikan anggota disetujui di sini. Setiap pengajuan setor WAJIB dilampiri bukti transfer (foto/PDF) oleh anggota — klik "Lihat" di kolom Bukti pada tabel untuk memeriksanya sebelum menyetujui. Bunga dihitung metode saldo harian (per hari: saldo × suku bunga ÷ 365) dan hanya bisa ditutup untuk BULAN YANG SUDAH LEWAT — klik "Hitung bunga bulan lalu" untuk memicunya. Bunga bulan berjalan sengaja tidak bisa dihitung karena saldo hariannya belum final (anggota masih bisa setor/tarik lagi).',
+        'Panel "Sukarela Rutin" — anggota bisa mengajukan mode menabung sukarela otomatis bulanan (nominal + tanggal setor tetap). Setujui/tolak pengajuan instruksi barunya di sini; setelah Aktif, sistem akan menyetor otomatis tiap bulan pada tanggal yang dipilih tanpa perlu approve satu-satu (ikut muncul juga sebagai informasi potongan gaji di tab "Tagihan Anggota"). Kalau anggota minta berhenti, statusnya jadi "Diajukan berhenti" — tinggal Setujui (instruksi dihentikan) atau Tolak (tetap aktif seperti semula).',
+        'Simpanan Berjangka (deposito): buat paket (nominal + tenor) di panel "Paket Simpanan Berjangka", lalu setujui pengajuan anggota untuk mengaktifkannya — setiap pengajuan WAJIB dilampiri bukti transfer, sama seperti Simpanan Sukarela. Saat jatuh tempo, cairkan untuk memberi pokok + bunga neto (dipotong PPh). Kalau anggota minta cair LEBIH CEPAT dari jatuh tempo, anggota hanya menerima pokok — bunga hangus sepenuhnya sebagai konsekuensi pencairan dipercepat.',
+        'Tab "Pinjaman" — pengajuan pinjaman kini melalui tahap Draft dulu: anggota mengisi nominal & tenor lalu mencetak draftnya untuk dibawa ke SDM, meminta surat rekomendasi (di luar aplikasi), lalu mengunggah surat itu lewat aplikasi. Anggota yang masih di status Draft (belum unggah rekomendasi) TIDAK muncul di antrian pengajuan Anda — hanya yang sudah berstatus "Diajukan" (rekomendasi sudah diunggah) yang perlu ditinjau. Klik "Lihat" pada kolom "Rekomendasi SDM" untuk memeriksa suratnya sebelum menyetujui.',
+        'Menyetujui pengajuan pinjaman otomatis mencairkan dana dan membuat jadwal angsuran bulanan (pokok + jasa) sesuai tenor. Proses juga pembayaran angsuran reguler, atau pelunasan dipercepat (anggota cukup bayar sisa pokok, jasa sisa dibebaskan penuh) — pengajuan pelunasan dipercepat WAJIB dilampiri bukti transfer juga, sama seperti setoran simpanan.',
       ],
-      tips: 'Bunga simpanan sukarela dan bunga deposito sama-sama otomatis dipotong PPh sebelum masuk ke saldo anggota — nominalnya selalu ditampilkan terpisah (bruto, PPh, neto) di tabelnya supaya transparan.',
+      tips: 'Bunga simpanan sukarela dan bunga deposito sama-sama otomatis dipotong PPh sebelum masuk ke saldo anggota — nominalnya selalu ditampilkan terpisah (bruto, PPh, neto) di tabelnya supaya transparan. Untuk semua jenis setoran/pelunasan yang mewajibkan bukti transfer, selalu periksa buktinya dulu sebelum klik Setuju.',
       target: 'simpanpinjam',
     },
     {

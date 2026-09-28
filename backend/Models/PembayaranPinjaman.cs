@@ -16,6 +16,9 @@ public class PembayaranPinjaman
 
     public string? Catatan { get; set; }
 
+    // Wajib diisi untuk Jenis=Pelunasan (bukti transfer anggota ke koperasi).
+    public string? BuktiTransferUrl { get; set; }
+
     // Diajukan | Disetujui | Ditolak
     public string Status { get; set; } = "Diajukan";
 

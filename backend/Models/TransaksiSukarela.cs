@@ -11,6 +11,9 @@ public class TransaksiSukarela
 
     public string? Catatan { get; set; }
 
+    // Wajib diisi untuk Jenis=Setor (bukti transfer anggota ke koperasi).
+    public string? BuktiTransferUrl { get; set; }
+
     // Diajukan | Disetujui | Ditolak
     public string Status { get; set; } = "Diajukan";
 

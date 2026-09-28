@@ -202,3 +202,37 @@ public static class TagihanWajibGenerator
         return target.Count;
     }
 }
+
+/// <summary>Menjalankan setoran Sukarela Rutin yang jatuh tempo. Idempoten per (instruksi, periode) via TerakhirDijalankanPeriode.</summary>
+public static class SukarelaRutinRunner
+{
+    public static async Task<int> JalankanPeriodeAsync(KkcsDbContext db, SimpananService simpananService, JurnalService jurnalService, string periode)
+    {
+        var jatuhTempo = await db.SukarelaRutin
+            .Include(item => item.Pengguna)
+            .Where(item => item.Status == "Aktif" && item.TanggalSetor <= DateTime.Now.Day && item.TerakhirDijalankanPeriode != periode)
+            .ToListAsync();
+
+        foreach (var rutin in jatuhTempo)
+        {
+            var sukarela = await simpananService.DapatkanAtauBuatAsync(rutin.PenggunaId, "SUKARELA");
+            SimpananService.Catat(sukarela, "Setor", rutin.Nominal, "Setoran sukarela rutin (otomatis)");
+            db.TransaksiSukarela.Add(new TransaksiSukarela
+            {
+                PenggunaId = rutin.PenggunaId,
+                Jenis = "Setor",
+                Nominal = rutin.Nominal,
+                Catatan = "Sukarela Rutin (otomatis)",
+                Status = "Disetujui",
+                DiprosesPada = DateTime.UtcNow
+            });
+            rutin.TerakhirDijalankanPeriode = periode;
+            await jurnalService.PostingOtomatisAsync(DateTime.UtcNow.Date,
+                $"Setoran sukarela rutin — {rutin.Pengguna.NamaLengkap}", "Simpanan", $"sukarela-rutin:{rutin.Id}:{periode}",
+                [BarisJurnal.D(KodeAkun.Kas, rutin.Nominal), BarisJurnal.K(KodeAkun.SimpananSukarela, rutin.Nominal)]);
+        }
+
+        if (jatuhTempo.Count > 0) await db.SaveChangesAsync();
+        return jatuhTempo.Count;
+    }
+}

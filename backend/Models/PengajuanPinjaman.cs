@@ -18,7 +18,12 @@ public class PengajuanPinjaman
 
     public string Tujuan { get; set; } = string.Empty;
 
-    public string Status { get; set; } = "Diajukan";
+    // Draft (baru diisi, belum ada rekomendasi SDM) | Diajukan (rekomendasi sudah diunggah) |
+    // Disetujui | Ditolak
+    public string Status { get; set; } = "Draft";
+
+    // Diisi anggota setelah mengunggah surat rekomendasi dari SDM — syarat pindah dari Draft ke Diajukan.
+    public string? SuratRekomendasiUrl { get; set; }
 
     public string? CatatanReview { get; set; }
 
