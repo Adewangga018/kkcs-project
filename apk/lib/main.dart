@@ -506,6 +506,23 @@ class AuthService {
     }
   }
 
+  /// Unduh manual book panduan anggota (PDF) lalu buka dengan viewer PDF bawaan perangkat.
+  Future<void> downloadAndOpenManualBookAnggota() async {
+    final token = await _getToken();
+    final response = await _sendRequest(() => http.get(
+          Uri.parse('$baseUrl/api/panduan/anggota/pdf'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    _ensureSuccess(response);
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/Manual-Book-Anggota-KKCS.pdf');
+    await file.writeAsBytes(response.bodyBytes);
+    final result = await OpenFilex.open(file.path);
+    if (result.type != ResultType.done) {
+      throw Exception('Tidak bisa membuka PDF: ${result.message}');
+    }
+  }
+
   Future<void> uploadLoanRecommendation({required int pengajuanId, required PlatformFile file}) async {
     final token = await _getToken();
     final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/pinjaman/$pengajuanId/rekomendasi'))
@@ -1440,6 +1457,14 @@ class _HomePageState extends State<HomePage> {
         ),
         title: const Text('Beranda KKCS'),
         actions: [
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PanduanAnggotaPage()),
+            ),
+            icon: const Icon(Icons.menu_book_outlined),
+            tooltip: 'Panduan Anggota',
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
@@ -1545,6 +1570,238 @@ class _HomePageState extends State<HomePage> {
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Simpan Pinjam'),
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Katalog'),
           NavigationDestination(icon: Icon(Icons.how_to_vote_outlined), label: 'E-RAT'),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanduanModul {
+  const _PanduanModul({required this.icon, required this.judul, required this.ringkasan, required this.poin});
+
+  final IconData icon;
+  final String judul;
+  final String ringkasan;
+  final List<String> poin;
+}
+
+const _panduanAnggotaModules = [
+  _PanduanModul(
+    icon: Icons.how_to_reg_outlined,
+    judul: 'Daftar & Masuk Aplikasi',
+    ringkasan: 'Langkah pertama sebelum bisa menikmati semua layanan koperasi lewat aplikasi.',
+    poin: [
+      'Buka aplikasi lalu pilih "Daftar" — isi data diri (NIK, nama lengkap, email, nomor telepon) dan buat password.',
+      'Pendaftaran Anda akan ditinjau oleh pengurus koperasi. Selama menunggu, status keanggotaan Anda tertulis "Menunggu Persetujuan" dan sebagian fitur belum bisa diakses.',
+      'Setelah disetujui pengurus, Simpanan Pokok Anda otomatis tercatat dan seluruh fitur aplikasi bisa langsung digunakan — cukup masuk (login) dengan NIK & password yang sudah dibuat.',
+      'Lupa password? Hubungi pengurus/admin koperasi untuk direset — Anda akan mendapat password sementara yang wajib diganti setelah login pertama.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.home_outlined,
+    judul: 'Beranda',
+    ringkasan: 'Ringkasan kondisi keanggotaan Anda begitu membuka aplikasi.',
+    poin: [
+      'Kartu "Transparansi" menampilkan ringkasan saldo simpanan, pinjaman aktif, dan informasi keanggotaan Anda secara langsung dari sistem koperasi.',
+      'Bagian "Pengumuman" menampilkan info terbaru dari pengurus koperasi — ketuk salah satu untuk langsung dibawa ke menu terkait.',
+      'Bagian "Produk Terbaru" menampilkan barang terbaru di Katalog koperasi.',
+      'Gunakan navigasi di bagian bawah layar (Beranda, Simpan Pinjam, Katalog, E-RAT) untuk berpindah antar layanan utama.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.savings_outlined,
+    judul: 'Simpanan',
+    ringkasan: 'Kelola simpanan Anda: Wajib (otomatis), Sukarela, Sukarela Rutin, dan Berjangka (deposito).',
+    poin: [
+      'Simpanan Pokok & Wajib dikelola otomatis oleh koperasi (potong gaji) — Anda cukup memantau saldonya, tidak perlu mengajukan apa-apa.',
+      'Simpanan Sukarela — ajukan Setor atau Tarik kapan saja. Untuk Setor, Anda WAJIB melampirkan foto/PDF bukti transfer saat mengajukan; pengurus akan meninjau dan menyetujuinya.',
+      'Sukarela Rutin — mode menabung otomatis bulanan. Tentukan nominal & tanggal setor tiap bulan, lalu ajukan; setelah disetujui pengurus, sistem akan menyetor otomatis tiap bulan tanpa perlu mengajukan ulang. Ingin berhenti? Ajukan "Berhenti" dan tunggu persetujuan pengurus.',
+      'Simpanan Berjangka (deposito) — pilih salah satu paket (nominal + tenor) yang disediakan koperasi, lampirkan bukti transfer, lalu ajukan. Setelah jatuh tempo, Anda bisa mencairkannya untuk menerima pokok + bunga (dipotong pajak). Mencairkan LEBIH CEPAT dari jatuh tempo membuat bunga hangus — Anda hanya menerima pokok.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.account_balance_wallet_outlined,
+    judul: 'Pinjaman',
+    ringkasan: 'Alur pengajuan pinjaman melalui tahap Draft dan surat rekomendasi SDM sebelum diproses pengurus.',
+    poin: [
+      'Isi nominal & tenor pinjaman yang diinginkan lalu simpan sebagai Draft.',
+      'Cetak/unduh draft tersebut dari aplikasi, lalu bawa ke bagian SDM di kantor Anda untuk meminta surat rekomendasi (proses ini dilakukan di luar aplikasi).',
+      'Setelah mendapat surat rekomendasi dari SDM, unggah foto/PDF surat itu lewat aplikasi — status pengajuan Anda berubah menjadi "Diajukan" dan mulai ditinjau pengurus koperasi.',
+      'Setelah disetujui pengurus, dana otomatis cair dan jadwal angsuran bulanan langsung terbentuk.',
+      'Bayar angsuran reguler tiap bulan, atau ajukan Pelunasan Dipercepat (Anda hanya perlu membayar sisa pokok, jasa sisa dibebaskan) — kedua jenis pembayaran ini WAJIB melampirkan bukti transfer saat mengajukan.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.storefront_outlined,
+    judul: 'Katalog',
+    ringkasan: 'Toko koperasi — belanja produk koperasi atau titip barang Anda sendiri untuk dijual.',
+    poin: [
+      'Pilih produk di Katalog, lalu beli dengan metode Tunai (bayar langsung) atau Kredit (potong gaji, dicicil lewat Tagihan Kredit).',
+      'Ingin menjual barang lewat katalog koperasi? Ajukan "Titip Barang" — pengurus akan meninjau sebelum barang Anda tayang di katalog.',
+      'Pantau riwayat belanja dan status Tagihan Kredit Anda di menu Akun.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.how_to_vote_outlined,
+    judul: 'E-RAT (Rapat Anggota Tahunan)',
+    ringkasan: 'Ikuti Rapat Anggota Tahunan koperasi secara digital, kapan saja dan di mana saja.',
+    poin: [
+      'Tab Voting — berikan suara Anda untuk agenda yang sedang dibuka pengurus (misalnya pemilihan pengurus atau persetujuan program kerja).',
+      'Tab Dokumen — unduh arsip dokumen resmi RAT (laporan tahunan, dll).',
+      'Tab Laporan RAT — baca laporan RAT tahun berjalan begitu ditayangkan pengurus: kondisi keuangan koperasi, kegiatan, dan pembagian SHU tahun itu.',
+    ],
+  ),
+  _PanduanModul(
+    icon: Icons.person_outline,
+    judul: 'Akun Saya',
+    ringkasan: 'Kelola data pribadi dan keamanan akun Anda.',
+    poin: [
+      'Ubah foto profil, email, dan nomor telepon lewat menu Akun.',
+      'Ganti password secara berkala demi keamanan akun Anda.',
+      'Lihat ringkasan status keanggotaan dan riwayat aktivitas Anda di koperasi.',
+    ],
+  ),
+];
+
+class PanduanAnggotaPage extends StatefulWidget {
+  const PanduanAnggotaPage({super.key});
+
+  @override
+  State<PanduanAnggotaPage> createState() => _PanduanAnggotaPageState();
+}
+
+class _PanduanAnggotaPageState extends State<PanduanAnggotaPage> {
+  bool _mengunduh = false;
+  int? _terbuka = 0;
+
+  Future<void> _unduhManualBook() async {
+    setState(() => _mengunduh = true);
+    try {
+      await AuthService().downloadAndOpenManualBookAnggota();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _mengunduh = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: KkcsColors.background,
+      appBar: AppBar(title: const Text('Panduan Anggota')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Text(
+            'Pelajari cara menggunakan aplikasi KKCS, mulai dari pendaftaran sampai mengajukan pinjaman.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: KkcsColors.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _mengunduh ? null : _unduhManualBook,
+              icon: _mengunduh
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.download_outlined),
+              label: Text(_mengunduh ? 'Mengunduh...' : 'Unduh Manual Book (PDF)'),
+              style: FilledButton.styleFrom(
+                backgroundColor: KkcsColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          for (var i = 0; i < _panduanAnggotaModules.length; i++) ...[
+            _PanduanModulCard(
+              modul: _panduanAnggotaModules[i],
+              terbuka: _terbuka == i,
+              onTap: () => setState(() => _terbuka = _terbuka == i ? null : i),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PanduanModulCard extends StatelessWidget {
+  const _PanduanModulCard({required this.modul, required this.terbuka, required this.onTap});
+
+  final _PanduanModul modul;
+  final bool terbuka;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: KkcsColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: KkcsColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: KkcsColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+                    child: Icon(modul.icon, color: KkcsColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(modul.judul, style: const TextStyle(fontWeight: FontWeight.w800, color: KkcsColors.textPrimary, fontSize: 14.5)),
+                        const SizedBox(height: 2),
+                        Text(modul.ringkasan, style: const TextStyle(color: KkcsColors.textSecondary, fontSize: 12, height: 1.3)),
+                      ],
+                    ),
+                  ),
+                  Icon(terbuka ? Icons.expand_less : Icons.expand_more, color: KkcsColors.textMuted),
+                ],
+              ),
+            ),
+          ),
+          if (terbuka)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final p in modul.poin)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 5),
+                            child: Icon(Icons.circle, size: 5, color: KkcsColors.primary),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(p, style: const TextStyle(fontSize: 12.5, height: 1.4, color: KkcsColors.textPrimary))),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
         ],
       ),
     );

@@ -63,17 +63,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/debug/test-logo-pdf", () =>
-{
-    var bytes = Document.Create(c => c.Page(p =>
-    {
-        p.Size(QuestPDF.Helpers.PageSizes.A4);
-        p.Header().Column(col => KoperasiPdfHeader.Gambar(col, "Tes"));
-        p.Content().Text("tes");
-    })).GeneratePdf();
-    return Results.File(bytes, "application/pdf", "tes.pdf");
-});
-
 app.UseHttpsRedirection();
 app.UseCors("FlutterDevelopment");
 app.UseStaticFiles();
@@ -185,6 +174,10 @@ app.MapGet("/api/auth/me", async (ClaimsPrincipal principal, KkcsDbContext db) =
         ? Results.NotFound()
         : Results.Ok(ToUserResponse(pengguna));
 }).RequireAuthorization();
+
+app.MapGet("/api/panduan/anggota/pdf", () =>
+    Results.File(PanduanAnggotaPdf.Buat(), "application/pdf", "Manual-Book-Anggota-KKCS.pdf"))
+    .RequireAuthorization();
 
 app.MapGet("/api/admin/pengguna", async (KkcsDbContext db, HttpResponse response, int? halaman, int? ukuran) =>
 {
@@ -2724,6 +2717,10 @@ app.MapGet("/api/admin/anggota/{id:int}/detail/pdf", async (int id, KkcsDbContex
     var pdf = AnggotaDetailPdf.Buat(detail);
     return Results.File(pdf, "application/pdf", $"Laporan-Anggota-{detail.NomorIndukKaryawan}.pdf");
 }).RequireAuthorization("Pengurus");
+
+app.MapGet("/api/admin/panduan/pdf", () =>
+    Results.File(PanduanPengurusPdf.Buat(), "application/pdf", "Manual-Book-Pengurus-KKCS.pdf"))
+    .RequireAuthorization("Pengurus");
 
 // ── Admin: Simpanan Wajib ────────────────────────────────────────────────────
 app.MapGet("/api/admin/simpanan/wajib", async (KkcsDbContext db) =>

@@ -226,7 +226,7 @@ function App() {
       {view === 'akun' && isAdmin && <AkunView token={token} onExpired={handleExpired} />}
       {view === 'audit' && isAdmin && <AuditTrailView token={token} onExpired={handleExpired} />}
       {view === 'migrasi' && isAdmin && <MigrasiView token={token} onExpired={handleExpired} />}
-      {view === 'panduan' && <PanduanView isAdmin={isAdmin} goto={goto} />}
+      {view === 'panduan' && <PanduanView isAdmin={isAdmin} goto={goto} token={token} onExpired={handleExpired} />}
     </main>
   </div>
 }
@@ -7237,7 +7237,7 @@ type PanduanItem = {
   kategori: 'operasional' | 'finansial' | 'admin'
 }
 
-function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View) => void }) {
+function PanduanView({ isAdmin, goto, token, onExpired }: { isAdmin: boolean; goto: (target: View) => void; token: string; onExpired: () => void }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<'all' | 'operasional' | 'finansial' | 'admin'>('all')
 
@@ -7382,6 +7382,14 @@ function PanduanView({ isAdmin, goto }: { isAdmin: boolean; goto: (target: View)
             Pelajari alur kerja operasional, pembukuan akuntansi standar, hingga manajemen hak akses pengguna.
             Cari panduan spesifik atau navigasi cepat ke menu terkait di bawah.
           </p>
+          <button
+            type="button"
+            className="toggle-button activate"
+            style={{ height: 38, padding: '0 16px', marginBottom: 18, display: 'inline-flex', alignItems: 'center', gap: 7 }}
+            onClick={() => void unduhTemplate(token, '/api/admin/panduan/pdf', 'Manual-Book-Pengurus-KKCS.pdf', onExpired)}
+          >
+            <Download size={14} />Unduh Manual Book (PDF)
+          </button>
           <div className="panduan-search-bar">
             <Search size={18} color="#0891b2" />
             <input
