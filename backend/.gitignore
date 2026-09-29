@@ -1,0 +1,3 @@
+# Konfigurasi production berisi connection string & secret asli — JANGAN pernah dikomit.
+appsettings.Production.json
+appsettings.*.local.json
