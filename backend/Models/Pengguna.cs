@@ -26,4 +26,10 @@ public class Pengguna
     public DateTime? DisetujuiPada { get; set; }
 
     public DateTime DibuatPada { get; set; } = DateTime.UtcNow;
+
+    // Rate-limit login: dihitung naik tiap password salah, dinolkan saat login berhasil.
+    public int PercobaanLoginGagal { get; set; } = 0;
+
+    // Terkunci sampai kapan setelah terlalu banyak percobaan gagal beruntun. Null = tidak terkunci.
+    public DateTime? TerkunciSampai { get; set; }
 }

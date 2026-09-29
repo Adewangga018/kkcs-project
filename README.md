@@ -152,7 +152,7 @@ Hasil build ada di folder `admin/dist`.
 
 ## 5. Checklist Setelah Deploy
 
-- [ ] Login admin/pengurus dari Admin Console berhasil (token JWT diterima)
+- [ ] Login admin/pengurus dari Admin Console b erhasil (token JWT diterima)
 - [ ] Coba satu fitur upload file (misal ajukan Simpanan Sukarela dari app mobile atau cek panel bukti transfer) — pastikan folder `wwwroot/uploads` bisa ditulisi
 - [ ] Coba unduh salah satu PDF (Laporan Anggota / Manual Book Pengurus) — pastikan logo KKCS muncul (butuh `wwwroot/logo-kkcs.png` ikut ter-publish)
 - [ ] Cek `dotnet ef database update` sudah menjalankan SEMUA migrasi (jumlah tabel di `db-kkcs` sesuai jumlah model — kalau ragu, bandingkan dengan database development)

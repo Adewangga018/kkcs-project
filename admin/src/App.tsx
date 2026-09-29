@@ -121,6 +121,29 @@ const rupiah = (value: number) => `Rp ${Math.round(value).toLocaleString('id-ID'
 const tanggal = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value))
 const waktu = (value: string) => new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value.endsWith('Z') ? value : `${value}Z`))
 
+const PER_PAGE = 15
+
+function usePager<T>(items: T[], perPage: number = PER_PAGE) {
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
+  const pageSafe = Math.min(page, totalPages)
+  const pageItems = useMemo(() => items.slice((pageSafe - 1) * perPage, pageSafe * perPage), [items, pageSafe, perPage])
+  return { page: pageSafe, setPage, totalPages, pageItems }
+}
+
+function Pager({ page, totalPages, total, onChange, label = 'entri' }: { page: number; totalPages: number; total: number; onChange: (page: number) => void; label?: string }) {
+  if (total === 0) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--line)', flexWrap: 'wrap', gap: 8 }}>
+      <span style={{ fontSize: 12, color: 'var(--muted)' }}>Halaman {page} dari {totalPages} · {total} {label}</span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button className="toggle-button" disabled={page <= 1} onClick={() => onChange(Math.max(1, page - 1))}>Sebelumnya</button>
+        <button className="toggle-button" disabled={page >= totalPages} onClick={() => onChange(Math.min(totalPages, page + 1))}>Berikutnya</button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('kkcs_admin_token') ?? '')
   const [peran, setPeran] = useState<Peran | null>(null)
@@ -166,7 +189,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nomorIndukKaryawan: loginNIK, password: loginPassword }) })
       const data = await response.json()
-      if (!response.ok) throw new Error('NIK atau password admin salah.')
+      if (!response.ok) throw new Error(data.message ?? 'NIK atau password admin salah.')
       if (!['Admin', 'Pengurus'].includes(data.user.peran)) throw new Error('Akun ini bukan akun admin atau pengurus.')
       localStorage.setItem('kkcs_admin_token', data.token); setToken(data.token)
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Gagal masuk.') }
@@ -945,6 +968,7 @@ function PendaftaranView({ token, onExpired }: { token: string; onExpired: () =>
   const [busyId, setBusyId] = useState(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const pendaftaranPager = usePager(pendaftaran)
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -983,7 +1007,7 @@ function PendaftaranView({ token, onExpired }: { token: string; onExpired: () =>
     <section className="table-panel">
       <div className="panel-heading"><div><h2>Pengajuan keanggotaan</h2><p>Anggota mendaftar lewat aplikasi; setujui untuk mengaktifkan akun.</p></div><span className="record-count">{pendingPendaftaran.length} menunggu</span></div>
       <div className="table-scroll"><table><thead><tr><th>Calon anggota</th><th>NIK</th><th>Email</th><th>Daftar</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {pendaftaran.map((calon) => <tr key={calon.id}>
+        {pendaftaranPager.pageItems.map((calon) => <tr key={calon.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{calon.namaLengkap.charAt(0).toUpperCase()}</span><strong>{calon.namaLengkap}</strong></div></td>
           <td className="mono">{calon.nomorIndukKaryawan}</td>
           <td>{calon.email ?? '—'}</td>
@@ -996,7 +1020,8 @@ function PendaftaranView({ token, onExpired }: { token: string; onExpired: () =>
               </span>
             : <small style={{ color: 'var(--muted)' }}>—</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && pendaftaran.length === 0 && <div className="empty-state"><UserCheck size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pendaftaran anggota baru.</div></div>}</div>
+      </tbody></table>{!loading && pendaftaran.length === 0 && <div className="empty-state"><UserCheck size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pendaftaran anggota baru.</div></div>}
+      <Pager page={pendaftaranPager.page} totalPages={pendaftaranPager.totalPages} total={pendaftaran.length} onChange={pendaftaranPager.setPage} label="pendaftaran" /></div>
     </section>
   </div>
 }
@@ -1101,6 +1126,10 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
     return () => { batal = true }
   }, [id, token, onExpired])
 
+  const pinjamanPager = usePager(detail?.pinjaman ?? [])
+  const belanjaPager = usePager(detail?.belanja ?? [])
+  const riwayatSimpananPager = usePager(detail?.riwayatSimpanan ?? [])
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card wide" onClick={(e) => e.stopPropagation()}>
@@ -1179,7 +1208,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                 <table>
                   <thead><tr><th>No. Pinjaman</th><th className="align-right">Pokok</th><th className="align-right">Sisa</th><th>Angsuran</th><th>Status</th><th>Mulai</th></tr></thead>
                   <tbody>
-                    {detail.pinjaman.map((p) => (
+                    {pinjamanPager.pageItems.map((p) => (
                       <tr key={p.nomorPinjaman}>
                         <td className="mono">{p.nomorPinjaman}</td>
                         <td className="align-right">{rupiah(p.pokok)}</td>
@@ -1192,6 +1221,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                   </tbody>
                 </table>
                 {detail.pinjaman.length === 0 && <div className="empty-state">Belum pernah mengajukan pinjaman.</div>}
+                <Pager page={pinjamanPager.page} totalPages={pinjamanPager.totalPages} total={detail.pinjaman.length} onChange={pinjamanPager.setPage} label="pinjaman" />
               </div>
 
               <div className="modal-section-title"><Store size={16} /> Riwayat belanja katalog</div>
@@ -1199,7 +1229,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                 <table>
                   <thead><tr><th>No. Transaksi</th><th>Produk</th><th>Jenis</th><th className="align-right">Total</th><th>Metode</th><th>Status</th><th>Tanggal</th></tr></thead>
                   <tbody>
-                    {detail.belanja.map((b) => (
+                    {belanjaPager.pageItems.map((b) => (
                       <tr key={b.nomorTransaksi}>
                         <td className="mono">{b.nomorTransaksi}</td><td>{b.produkNama}</td><td>{b.jenis}</td>
                         <td className="align-right" style={{ fontWeight: 700 }}>{rupiah(b.total)}</td><td>{b.metodePembayaran}</td>
@@ -1210,6 +1240,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                   </tbody>
                 </table>
                 {detail.belanja.length === 0 && <div className="empty-state">Belum pernah berbelanja di katalog.</div>}
+                <Pager page={belanjaPager.page} totalPages={belanjaPager.totalPages} total={detail.belanja.length} onChange={belanjaPager.setPage} label="transaksi" />
               </div>
 
               <div className="modal-section-title" style={{ marginTop: 24 }}><PiggyBank size={16} /> Riwayat Simpanan</div>
@@ -1217,7 +1248,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                 <table>
                   <thead><tr><th>Tanggal</th><th>Jenis Simpanan</th><th>Transaksi</th><th className="align-right">Nominal</th><th className="align-right">Saldo Setelah</th><th>Keterangan</th></tr></thead>
                   <tbody>
-                    {detail.riwayatSimpanan.map((r, i) => (
+                    {riwayatSimpananPager.pageItems.map((r, i) => (
                       <tr key={i}>
                         <td>{tanggal(r.tanggalTransaksi)}</td>
                         <td>{r.jenisSimpanan}</td>
@@ -1230,6 +1261,7 @@ function AnggotaDetailModal({ id, token, onExpired, onClose }: { id: number; tok
                   </tbody>
                 </table>
                 {detail.riwayatSimpanan.length === 0 && <div className="empty-state">Belum ada riwayat mutasi simpanan.</div>}
+                <Pager page={riwayatSimpananPager.page} totalPages={riwayatSimpananPager.totalPages} total={detail.riwayatSimpanan.length} onChange={riwayatSimpananPager.setPage} label="mutasi" />
               </div>
               {detail.totalTagihanKreditBelum > 0 && (
                 <div className="alert error" style={{ marginTop: 18, color: '#9a3412', background: '#fff7ed', borderColor: '#fed7aa' }}>
@@ -1424,6 +1456,8 @@ function AkunView({ token, onExpired }: { token: string; onExpired: () => void }
   }), [users, query, statusFilter, roleFilter])
   const activeCount = users.filter((user) => user.aktif).length
   const roles = [...new Set(users.map((user) => user.peran))]
+  const usersPager = usePager(filteredUsers)
+  useEffect(() => { usersPager.setPage(1) }, [query, statusFilter, roleFilter, usersPager.setPage])
 
   const toggleUser = async (user: AdminUser) => {
     setError('')
@@ -1619,7 +1653,7 @@ function AkunView({ token, onExpired }: { token: string; onExpired: () => void }
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {usersPager.pageItems.map((user) => (
                 <tr key={user.id} className="tr-interactive" onClick={() => setSelectedUser(user)}>
                   <td>
                     <div className="user-cell">
@@ -1672,6 +1706,7 @@ function AkunView({ token, onExpired }: { token: string; onExpired: () => void }
             </tbody>
           </table>
           {!loading && filteredUsers.length === 0 && <div className="empty-state">Tidak ada pengguna yang cocok dengan filter.</div>}
+          <Pager page={usersPager.page} totalPages={usersPager.totalPages} total={filteredUsers.length} onChange={usersPager.setPage} label="akun" />
         </div>
       </section>
 
@@ -1829,7 +1864,7 @@ function AuditTrailView({ token, onExpired }: { token: string; onExpired: () => 
   const [data, setData] = useState<AuditLogEntry[]>([])
   const [total, setTotal] = useState(0)
   const [halaman, setHalaman] = useState(1)
-  const ukuran = 30
+  const ukuran = PER_PAGE
   const [modulList, setModulList] = useState<string[]>([])
   const [modulFilter, setModulFilter] = useState('')
   const [cari, setCari] = useState('')
@@ -2836,7 +2871,7 @@ function DbAuditLogPanel({ token, onExpired }: { token: string; onExpired: () =>
   const [data, setData] = useState<DbAuditLogEntry[]>([])
   const [total, setTotal] = useState(0)
   const [halaman, setHalaman] = useState(1)
-  const ukuran = 30
+  const ukuran = PER_PAGE
   const [tabelList, setTabelList] = useState<string[]>([])
   const [tabelFilter, setTabelFilter] = useState('')
   const [cari, setCari] = useState('')
@@ -3424,6 +3459,8 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
   const [totalSisaPokok, setTotalSisaPokok] = useState(0)
   const [tertutup, setTertutup] = useState<Record<string, boolean>>({})
   const toggleBox = (key: string) => setTertutup((t) => ({ ...t, [key]: !t[key] }))
+  const applicationsPager = usePager(applications)
+  const paymentsPager = usePager(payments)
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
 
@@ -3519,7 +3556,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
         </span>
       </div>
       {!tertutup.pembayaran && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Pinjaman</th><th>Jenis</th><th>Jumlah diajukan</th><th>Bukti</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {payments.map((item) => <tr key={item.id}>
+        {paymentsPager.pageItems.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td className="mono">{item.nomorPinjaman}</td>
           <td>{item.jenis === 'Pelunasan' ? <span className="role-pill admin"><Zap size={11} /> Pelunasan</span> : <span className="role-pill">Angsuran {item.angsuranKe ? `ke-${item.angsuranKe}` : ''}</span>}</td>
@@ -3534,7 +3571,8 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
               </span>
             : <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && payments.length === 0 && <div className="empty-state"><Zap size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pembayaran dari anggota.</div></div>}</div>}
+      </tbody></table>{!loading && payments.length === 0 && <div className="empty-state"><Zap size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pembayaran dari anggota.</div></div>}
+      <Pager page={paymentsPager.page} totalPages={paymentsPager.totalPages} total={payments.length} onChange={paymentsPager.setPage} label="pengajuan" /></div>}
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
@@ -3673,7 +3711,7 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
         </span>
       </div>
       {!tertutup.pengajuan && <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Cicilan/bln</th><th>Total jasa</th><th>Tujuan</th><th>Rekomendasi SDM</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {applications.map((item) => <tr key={item.id}>
+        {applicationsPager.pageItems.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
           <td>{rupiah(item.estimasiCicilanBulanan)}<br /><small style={{ color: 'var(--muted)' }}>jasa {(item.bungaTahunan * 100).toFixed(2)}%/th</small></td>
@@ -3688,7 +3726,8 @@ function LoansView({ token, onExpired }: { token: string; onExpired: () => void 
               </span>
             : <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && applications.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pinjaman.</div></div>}</div>}
+      </tbody></table>{!loading && applications.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan pinjaman.</div></div>}
+      <Pager page={applicationsPager.page} totalPages={applicationsPager.totalPages} total={applications.length} onChange={applicationsPager.setPage} label="pengajuan" /></div>}
     </section>
 
     {selectedLoan && (
@@ -4031,6 +4070,10 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
   const [produkNama, setProdukNama] = useState('')
   const [produkNominal, setProdukNominal] = useState('')
   const [produkTenor, setProdukTenor] = useState('12')
+  const wajibPager = usePager(wajib)
+  const sukarelaPager = usePager(sukarela)
+  const sukarelaRutinPager = usePager(sukarelaRutin)
+  const berjangkaPager = usePager(berjangka)
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
   const flash = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(''), 3200) }
@@ -4150,7 +4193,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
         </button>
       </div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Periode</th><th>Nominal</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {wajib.map((item) => <tr key={item.id}>
+        {wajibPager.pageItems.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{item.periode}</td>
           <td>{rupiah(item.nominal)}</td>
@@ -4163,7 +4206,8 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
               </span>
             : <small style={{ color: 'var(--muted)' }}>{item.diprosesPada ? tanggal(item.diprosesPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && wajib.length === 0 && <div className="empty-state"><Receipt size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada tagihan wajib. Klik "Buat tagihan bulan ini".</div></div>}</div>
+      </tbody></table>{!loading && wajib.length === 0 && <div className="empty-state"><Receipt size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada tagihan wajib. Klik "Buat tagihan bulan ini".</div></div>}
+      <Pager page={wajibPager.page} totalPages={wajibPager.totalPages} total={wajib.length} onChange={wajibPager.setPage} label="tagihan" /></div>
     </section>
 
     <BungaSimpananGuide konfigurasi={konfigurasi} />
@@ -4176,7 +4220,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
         </button>
       </div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal</th><th>Saldo saat ini</th><th>Bukti</th><th>Diajukan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {sukarela.map((item) => <tr key={item.id}>
+        {sukarelaPager.pageItems.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>
             <span className={`role-pill ${item.jenis === 'Tarik' ? 'admin' : ''}`} style={{ marginBottom: 3, display: 'inline-block' }}>{item.jenis}</span>
@@ -4200,7 +4244,8 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
               </span>
             : <small style={{ color: 'var(--muted)' }}>{item.diprosesPada ? tanggal(item.diprosesPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && sukarela.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan simpanan sukarela.</div></div>}</div>
+      </tbody></table>{!loading && sukarela.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan simpanan sukarela.</div></div>}
+      <Pager page={sukarelaPager.page} totalPages={sukarelaPager.totalPages} total={sukarela.length} onChange={sukarelaPager.setPage} label="pengajuan" /></div>
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
@@ -4231,7 +4276,7 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Sukarela Rutin</h2><p>Instruksi setoran sukarela otomatis bulanan. Sekali disetujui, sistem akan menyetor sendiri tiap bulan pada tanggal yang dipilih — sampai anggota mengajukan berhenti dan disetujui pengurus.</p></div><span className="record-count">{sukarelaRutin.filter((r) => r.status === 'Diajukan' || r.status === 'DihentikanDiajukan').length} menunggu</span></div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Nominal/bulan</th><th>Tanggal setor</th><th>Terakhir jalan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {sukarelaRutin.map((item) => <tr key={item.id}>
+        {sukarelaRutinPager.pageItems.map((item) => <tr key={item.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{rupiah(item.nominal)}</td>
           <td>Tgl {item.tanggalSetor}</td>
@@ -4249,13 +4294,14 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
             {(item.status === 'Aktif' || item.status === 'Ditolak' || item.status === 'Dihentikan') && <small style={{ color: 'var(--muted)' }}>{item.diputuskanPada ? tanggal(item.diputuskanPada) : '—'}</small>}
           </td>
         </tr>)}
-      </tbody></table>{!loading && sukarelaRutin.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada instruksi Sukarela Rutin.</div></div>}</div>
+      </tbody></table>{!loading && sukarelaRutin.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada instruksi Sukarela Rutin.</div></div>}
+      <Pager page={sukarelaRutinPager.page} totalPages={sukarelaRutinPager.totalPages} total={sukarelaRutin.length} onChange={sukarelaRutinPager.setPage} label="instruksi" /></div>
     </section>
 
     <section className="table-panel">
       <div className="panel-heading"><div><h2>Pengajuan Simpanan Berjangka</h2><p>Setujui untuk mengunci dana; cairkan saat jatuh tempo. Pencairan dipercepat (diajukan anggota) → hanya pokok, bunga hangus.</p></div><span className="record-count">{berjangkaMenunggu} menunggu · {pencairanMenunggu} minta cair</span></div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Paket</th><th>Nominal</th><th>Est. bunga</th><th>Bukti</th><th>Jatuh tempo</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {berjangka.map((item) => <tr key={item.id} style={item.pencairanDiajukan ? { background: '#fffbeb' } : undefined}>
+        {berjangkaPager.pageItems.map((item) => <tr key={item.id} style={item.pencairanDiajukan ? { background: '#fffbeb' } : undefined}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{item.namaAnggota.charAt(0).toUpperCase()}</span><div><strong>{item.namaAnggota}</strong><small className="mono">{item.nomorIndukKaryawan}</small></div></div></td>
           <td>{item.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{item.nomorSertifikat}</small></td>
           <td>{rupiah(item.nominal)}<br /><small style={{ color: 'var(--muted)' }}>{item.tenorBulan} bln</small></td>
@@ -4286,7 +4332,8 @@ function SavingsView({ token, onExpired, isAdmin }: { token: string; onExpired: 
             {(item.status === 'Ditolak' || item.status === 'Dicairkan') && <small style={{ color: 'var(--muted)' }}>—</small>}
           </td>
         </tr>)}
-      </tbody></table>{!loading && berjangka.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan simpanan berjangka.</div></div>}</div>
+      </tbody></table>{!loading && berjangka.length === 0 && <div className="empty-state"><PiggyBank size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada pengajuan simpanan berjangka.</div></div>}
+      <Pager page={berjangkaPager.page} totalPages={berjangkaPager.totalPages} total={berjangka.length} onChange={berjangkaPager.setPage} label="pengajuan" /></div>
     </section>
   </div>
 }
@@ -4390,6 +4437,11 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
   }, [tagihan])
   const rekapTampil = rekapAnggota === 'semua' ? rekap : rekap.filter((g) => String(g.penggunaId) === rekapAnggota)
   const totalOutstanding = rekapTampil.reduce((s, g) => s + g.totalBelum, 0)
+  const produkKoperasiPager = usePager(produkKoperasi)
+  const pengajuanTitipanPager = usePager(pengajuanTitipan)
+  const pembelianPager = usePager(pembelian)
+  const rekapPager = usePager(rekapTampil)
+  useEffect(() => { rekapPager.setPage(1) }, [rekapAnggota, rekapPager.setPage])
 
   return <div className="content-wrap">
     <section className="welcome-row"><div><h2>Katalog produk koperasi</h2><p>Input produk jual/sewa, setujui titipan anggota, proses pembelian & tagihan kredit.</p></div><div className="sync-label"><Activity size={16} /> {loading ? 'Memuat data...' : 'Data tersinkron'} <button className="icon-button" onClick={() => void load()} title="Muat ulang"><RefreshCw size={16} /></button></div></section>
@@ -4436,7 +4488,7 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
         <button className="submit-button" style={{ height: 38, padding: '0 18px', display: 'inline-flex', alignItems: 'center', gap: 6 }} disabled={busyId === 'save-produk'} onClick={saveProduk}>{editId ? <CheckCircle2 size={14} /> : <Store size={14} />} {editId ? 'Simpan' : 'Tambah'}</button>
       </div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Produk</th><th>Jenis</th><th>Harga</th><th>Stok</th><th>Sumber</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {produkKoperasi.map((p) => <tr key={p.id}>
+        {produkKoperasiPager.pageItems.map((p) => <tr key={p.id}>
           <td><div className="user-cell">
             {p.fotoUrl
               ? <img src={`${API_BASE}${p.fotoUrl}`} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', border: '1px solid #cffafe', flexShrink: 0 }} />
@@ -4458,13 +4510,14 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
             <button className={`toggle-button ${p.aktif ? 'deactivate' : 'activate'}`} disabled={busyId === `t-${p.id}`} onClick={() => void call(`t-${p.id}`, `/api/admin/produk/${p.id}/status`, 'PATCH', { aktif: !p.aktif })}>{p.aktif ? 'Sembunyikan' : 'Tampilkan'}</button>
           </span></td>
         </tr>)}
-      </tbody></table>{!loading && produkKoperasi.length === 0 && <div className="empty-state"><Store size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada produk.</div></div>}</div>
+      </tbody></table>{!loading && produkKoperasi.length === 0 && <div className="empty-state"><Store size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada produk.</div></div>}
+      <Pager page={produkKoperasiPager.page} totalPages={produkKoperasiPager.totalPages} total={produkKoperasi.length} onChange={produkKoperasiPager.setPage} label="produk" /></div>
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pengajuan titipan anggota</h2><p>Menyetujui = barang menjadi milik koperasi dan tampil di katalog.</p></div><span className="record-count">{pengajuanTitipan.length} menunggu</span></div>
       <div className="table-scroll"><table><thead><tr><th>Produk</th><th>Anggota</th><th>Jenis</th><th>Harga usulan</th><th>Stok</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {pengajuanTitipan.map((p) => <tr key={p.id}>
+        {pengajuanTitipanPager.pageItems.map((p) => <tr key={p.id}>
           <td><div className="user-cell">
             {p.fotoUrl ? <img src={`${API_BASE}${p.fotoUrl}`} alt="" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', border: '1px solid #cffafe', flexShrink: 0 }} /> : <span className="avatar tosca-avatar">{p.nama.charAt(0).toUpperCase()}</span>}
             <div><strong>{p.nama}</strong><small>{p.deskripsi ?? '—'}</small></div>
@@ -4478,13 +4531,14 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
             <button className="toggle-button deactivate" disabled={busyId === `pg-${p.id}`} onClick={() => putusanPengajuan(p, false)}>Tolak</button>
           </span></td>
         </tr>)}
-      </tbody></table>{!loading && pengajuanTitipan.length === 0 && <div className="empty-state"><UserPlus size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pengajuan titipan.</div></div>}</div>
+      </tbody></table>{!loading && pengajuanTitipan.length === 0 && <div className="empty-state"><UserPlus size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pengajuan titipan.</div></div>}
+      <Pager page={pengajuanTitipanPager.page} totalPages={pengajuanTitipanPager.totalPages} total={pengajuanTitipan.length} onChange={pengajuanTitipanPager.setPage} label="pengajuan" /></div>
     </section>
 
     <section className="table-panel" style={{ marginBottom: 22 }}>
       <div className="panel-heading"><div><h2>Pembelian & penyewaan anggota</h2><p>Tunai → langsung selesai. Kredit → membuat tagihan hutang.</p></div><span className="record-count">{pembelianMenunggu.length} menunggu</span></div>
       <div className="table-scroll table-compact"><table><thead><tr><th>Anggota</th><th>Produk</th><th>Jenis</th><th>Total</th><th>Metode</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {pembelian.map((p) => <tr key={p.id}>
+        {pembelianPager.pageItems.map((p) => <tr key={p.id}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{p.namaPembeli.charAt(0).toUpperCase()}</span><div><strong>{p.namaPembeli}</strong><small className="mono">{p.nomorIndukKaryawan}</small></div></div></td>
           <td>{p.produkNama}<br /><small className="mono" style={{ color: 'var(--muted)' }}>{p.nomorTransaksi}</small></td>
           <td>{p.jenis}<br /><small style={{ color: 'var(--muted)' }}>{p.jumlah}x</small></td>
@@ -4498,7 +4552,8 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
               </span>
             : <small style={{ color: 'var(--muted)' }}>{p.diprosesPada ? tanggal(p.diprosesPada) : '—'}</small>}</td>
         </tr>)}
-      </tbody></table>{!loading && pembelian.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada transaksi.</div></div>}</div>
+      </tbody></table>{!loading && pembelian.length === 0 && <div className="empty-state"><HandCoins size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada transaksi.</div></div>}
+      <Pager page={pembelianPager.page} totalPages={pembelianPager.totalPages} total={pembelian.length} onChange={pembelianPager.setPage} label="transaksi" /></div>
     </section>
 
     <section className="table-panel">
@@ -4520,7 +4575,7 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
         )}
       </div>
       <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Belum lunas</th><th>Sudah lunas</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {rekapTampil.flatMap((g) => [
+        {rekapPager.pageItems.flatMap((g) => [
           <tr key={g.penggunaId}>
             <td><div className="user-cell"><span className="avatar tosca-avatar">{g.nama.charAt(0).toUpperCase()}</span><div><strong>{g.nama}</strong><small className="mono">{g.nik}</small></div></div></td>
             <td style={{ color: g.totalBelum > 0 ? '#b45309' : 'var(--muted)', fontWeight: g.totalBelum > 0 ? 700 : 400 }}>{rupiah(g.totalBelum)}</td>
@@ -4550,7 +4605,8 @@ function CatalogView({ token, onExpired }: { token: string; onExpired: () => voi
             </div>
           </td></tr>,
         ])}
-      </tbody></table>{!loading && rekapTampil.length === 0 && <div className="empty-state"><Banknote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada tagihan kredit.</div></div>}</div>
+      </tbody></table>{!loading && rekapTampil.length === 0 && <div className="empty-state"><Banknote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada tagihan kredit.</div></div>}
+      <Pager page={rekapPager.page} totalPages={rekapPager.totalPages} total={rekapTampil.length} onChange={rekapPager.setPage} label="anggota" /></div>
     </section>
   </div>
 }
@@ -4570,6 +4626,8 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
   const [docTahun, setDocTahun] = useState(String(new Date().getFullYear()))
   const [docDeskripsi, setDocDeskripsi] = useState('')
   const [docFile, setDocFile] = useState<File | null>(null)
+  const agendaPager = usePager(agenda)
+  const dokumenPager = usePager(dokumen)
 
   const jsonHeaders = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
   const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
@@ -4671,7 +4729,7 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
         <button className="submit-button" style={{ height: 38, padding: '0 18px', alignSelf: 'end' }} disabled={busyId === 'new-agenda'} onClick={createAgenda}><PlusCircle size={15} style={{ verticalAlign: -2, marginRight: 6 }} />Buat draf</button>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Agenda</th><th>Pilihan & suara</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {agenda.map((a) => {
+        {agendaPager.pageItems.map((a) => {
           const adaSuara = a.totalSuara > 0
           return <tr key={a.id}>
             <td style={{ whiteSpace: 'normal', maxWidth: 260 }}>
@@ -4696,7 +4754,8 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
             </span></td>
           </tr>
         })}
-      </tbody></table>{!loading && agenda.length === 0 && <div className="empty-state"><Vote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada agenda voting.</div></div>}</div>
+      </tbody></table>{!loading && agenda.length === 0 && <div className="empty-state"><Vote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada agenda voting.</div></div>}
+      <Pager page={agendaPager.page} totalPages={agendaPager.totalPages} total={agenda.length} onChange={agendaPager.setPage} label="agenda" /></div>
     </section>
     </>}
 
@@ -4720,7 +4779,7 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
         <button className="submit-button" style={{ height: 38, padding: '0 18px' }} disabled={busyId === 'upload-doc'} onClick={uploadDoc}><Upload size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Unggah</button>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Dokumen</th><th>Tahun</th><th>Diterbitkan</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {dokumen.map((d) => <tr key={d.id}>
+        {dokumenPager.pageItems.map((d) => <tr key={d.id}>
           <td>
             <strong style={{ color: '#083344' }}>{d.judul}</strong>
             {d.aktif && dokumen[0] && d.tahun === dokumen[0].tahun && <span className="role-pill tosca" style={{ marginLeft: 8, fontSize: 10, padding: '2px 8px', verticalAlign: 1 }}>Dilihat anggota</span>}
@@ -4735,7 +4794,8 @@ function EratView({ token, onExpired }: { token: string; onExpired: () => void }
             <button className="toggle-button deactivate" disabled={busyId === `d-${d.id}`} onClick={() => void call(`d-${d.id}`, `/api/admin/erat/laporan/${d.id}`, 'DELETE', undefined, `Hapus dokumen "${d.judul}" permanen?`)}><Trash2 size={13} style={{ verticalAlign: -1, marginRight: 4 }} />Hapus</button>
           </span></td>
         </tr>)}
-      </tbody></table>{!loading && dokumen.length === 0 && <div className="empty-state"><FileText size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada dokumen RAT.</div></div>}</div>
+      </tbody></table>{!loading && dokumen.length === 0 && <div className="empty-state"><FileText size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Belum ada dokumen RAT.</div></div>}
+      <Pager page={dokumenPager.page} totalPages={dokumenPager.totalPages} total={dokumen.length} onChange={dokumenPager.setPage} label="dokumen" /></div>
     </section>}
 
     {tab === 'laporan' && <LaporanRatPanel token={token} onExpired={onExpired} />}
@@ -5150,6 +5210,8 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [detailId, setDetailId] = useState<number | null>(null)
+  const payrollPager = usePager(rekap?.baris ?? [])
+  useEffect(() => { payrollPager.setPage(1) }, [periode, payrollPager.setPage])
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
   const flash = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(''), 3200) }
@@ -5270,7 +5332,7 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
         </div>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Anggota</th><th>Simpanan Wajib</th><th>Tagihan Kredit</th><th>Cicilan Pinjaman</th><th>Sukarela Rutin</th><th>Total Potongan</th></tr></thead><tbody>
-        {rekap?.baris.map((b) => <tr key={b.penggunaId} className="clickable-row" onClick={() => setDetailId(b.penggunaId)}>
+        {payrollPager.pageItems.map((b) => <tr key={b.penggunaId} className="clickable-row" onClick={() => setDetailId(b.penggunaId)}>
           <td><div className="user-cell"><span className="avatar tosca-avatar">{b.nama.charAt(0).toUpperCase()}</span><div><strong>{b.nama}</strong><div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{b.nik || '—'}</div></div></div></td>
           <td>{b.simpananWajib > 0 ? rupiah(b.simpananWajib) : '—'}</td>
           <td>{b.tagihanKredit > 0 ? rupiah(b.tagihanKredit) : '—'}</td>
@@ -5278,7 +5340,8 @@ function PayrollView({ token, onExpired }: { token: string; onExpired: () => voi
           <td>{b.sukarelaRutin > 0 ? rupiah(b.sukarelaRutin) : '—'}</td>
           <td style={{ fontWeight: 700, color: '#083344' }}>{rupiah(b.totalPotongan)}</td>
         </tr>)}
-      </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}</div>
+      </tbody></table>{!loading && (!rekap || rekap.baris.length === 0) && <div className="empty-state">Tidak ada potongan gaji untuk periode ini.</div>}
+      <Pager page={payrollPager.page} totalPages={payrollPager.totalPages} total={rekap?.baris.length ?? 0} onChange={payrollPager.setPage} label="anggota" /></div>
     </section>
 
     {detailId !== null && <PayrollDetailModal
@@ -5847,6 +5910,9 @@ function ShuTabelRincian({
     )
   }, [filtered])
 
+  const shuPager = usePager(filtered)
+  useEffect(() => { shuPager.setPage(1) }, [search, shuPager.setPage])
+
   return (
     <div className="shu-table-wrapper">
       <div className="shu-table-toolbar">
@@ -5917,7 +5983,7 @@ function ShuTabelRincian({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r, idx) => {
+            {shuPager.pageItems.map((r, idx) => {
               return (
                 <tr
                   key={r.penggunaId}
@@ -5925,7 +5991,7 @@ function ShuTabelRincian({
                   title="Klik untuk melihat rincian rumus & slip SHU anggota ini"
                 >
                   <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: 10.5, padding: '5px 4px' }}>
-                    {idx + 1}
+                    {(shuPager.page - 1) * PER_PAGE + idx + 1}
                   </td>
                   <td style={{ padding: '5px 6px' }}>
                     <div className="user-cell" style={{ gap: 6 }}>
@@ -6009,6 +6075,7 @@ function ShuTabelRincian({
           )}
         </table>
       </div>
+      <Pager page={shuPager.page} totalPages={shuPager.totalPages} total={filtered.length} onChange={shuPager.setPage} label="anggota" />
     </div>
   )
 }
@@ -6146,11 +6213,13 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
   const [dariKas, setDariKas] = useState(startOfYearISO())
   const [sampaiKas, setSampaiKas] = useState(todayISO())
 
-  const [jurnalPage, setJurnalPage] = useState(1)
-  const JURNAL_PER_PAGE = 15
-  const jurnalTotalPages = Math.max(1, Math.ceil(jurnal.length / JURNAL_PER_PAGE))
-  const jurnalPageSafe = Math.min(jurnalPage, jurnalTotalPages)
-  const jurnalHalaman = jurnal.slice((jurnalPageSafe - 1) * JURNAL_PER_PAGE, jurnalPageSafe * JURNAL_PER_PAGE)
+  const jurnalPager = usePager(jurnal)
+  const jurnalHalaman = jurnalPager.pageItems
+  const jurnalPageSafe = jurnalPager.page
+  const jurnalTotalPages = jurnalPager.totalPages
+  const setJurnalPage = jurnalPager.setPage
+  const akunPager = usePager(akun)
+  const arusKasPager = usePager(arusKas?.baris ?? [])
 
   const [jTanggal, setJTanggal] = useState(todayISO())
   const [jKeterangan, setJKeterangan] = useState('')
@@ -6175,7 +6244,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
     const response = await fetch(`${API_BASE}/api/admin/akuntansi/jurnal`, { headers })
     if (response.status === 401) { onExpired(); return }
     if (response.ok) { setJurnal(await response.json()); setJurnalPage(1) }
-  }, [headers, onExpired])
+  }, [headers, onExpired, setJurnalPage])
 
   const loadNeraca = useCallback(async () => {
     const response = await fetch(`${API_BASE}/api/admin/akuntansi/neraca?tanggal=${tanggalNeraca}`, { headers })
@@ -6448,14 +6517,15 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
         <StatCard label="Saldo akhir" value={arusKas.saldoAkhir} icon={<Banknote size={20} />} tone="blue" money />
       </section>
       <div className="table-scroll"><table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Modul</th><th>Masuk</th><th>Keluar</th></tr></thead><tbody>
-        {arusKas.baris.map((b, i) => <tr key={i}>
+        {arusKasPager.pageItems.map((b, i) => <tr key={i}>
           <td>{tanggal(b.tanggal)}</td>
           <td style={{ whiteSpace: 'normal', maxWidth: 280 }}>{b.keterangan}</td>
           <td><span className={`role-pill mini ${b.modul ? 'tosca' : ''}`}>{b.modul ?? '—'}</span></td>
           <td><strong style={{ color: '#0891b2' }}>{b.masuk > 0 ? rupiah(b.masuk) : '—'}</strong></td>
           <td><span style={{ color: '#dc2626' }}>{b.keluar > 0 ? rupiah(b.keluar) : '—'}</span></td>
         </tr>)}
-      </tbody></table>{arusKas.baris.length === 0 && <div className="empty-state"><Banknote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pergerakan kas pada rentang ini.</div></div>}</div>
+      </tbody></table>{arusKas.baris.length === 0 && <div className="empty-state"><Banknote size={32} style={{ margin: '0 auto 8px', color: '#0891b2', opacity: 0.6 }} /><div>Tidak ada pergerakan kas pada rentang ini.</div></div>}
+      <Pager page={arusKasPager.page} totalPages={arusKasPager.totalPages} total={arusKas.baris.length} onChange={arusKasPager.setPage} label="mutasi" /></div>
     </section>}
 
     {tab === 'akun' && <section className="table-panel">
@@ -6478,7 +6548,7 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
         </button>
       </div>
       <div className="table-scroll"><table><thead><tr><th>Kode</th><th>Nama</th><th>Tipe</th><th>Saldo Normal</th><th>Status</th><th className="align-right">Aksi</th></tr></thead><tbody>
-        {akun.map((a) => <tr key={a.id}>
+        {akunPager.pageItems.map((a) => <tr key={a.id}>
           <td className="mono">{a.kode}</td>
           <td>{a.nama}{a.sistem && <span className="role-pill mini admin" style={{ marginLeft: 6 }}>Sistem</span>}</td>
           <td><span className={`role-pill mini ${a.tipe === 'Aset' || a.tipe === 'Pendapatan' ? 'tosca' : a.tipe === 'Liabilitas' ? 'amber' : a.tipe === 'Ekuitas' ? 'admin' : ''}`} style={a.tipe === 'Beban' ? { background: '#fef2f2', color: '#991b1b' } : undefined}>{a.tipe}</span></td>
@@ -6486,7 +6556,8 @@ function AkuntansiView({ token, onExpired, tab, setTab }: { token: string; onExp
           <td><span className={`status-pill ${a.aktif ? 'active' : 'inactive'}`}><i />{a.aktif ? 'Aktif' : 'Nonaktif'}</span></td>
           <td className="align-right">{!a.sistem && <button className={`toggle-button ${a.aktif ? 'deactivate' : 'activate'}`} disabled={busyId === `akun-${a.id}`} onClick={() => void toggleAkun(a)}>{a.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>}</td>
         </tr>)}
-      </tbody></table></div>
+      </tbody></table>
+      <Pager page={akunPager.page} totalPages={akunPager.totalPages} total={akun.length} onChange={akunPager.setPage} label="akun" /></div>
     </section>}
   </div>
 }

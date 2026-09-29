@@ -147,12 +147,39 @@ app.MapPost("/api/auth/register", async (RegisterRequest request, KkcsDbContext 
 
 app.MapPost("/api/auth/login", async (LoginRequest request, KkcsDbContext db, JwtTokenService tokenService) =>
 {
+    const int BatasPercobaanGagal = 5;
+    var durasiKunci = TimeSpan.FromMinutes(15);
+
     var nik = request.NomorIndukKaryawan.Trim();
     var pengguna = await db.Pengguna.FirstOrDefaultAsync(item => item.NomorIndukKaryawan == nik && item.Aktif);
+
+    if (pengguna is not null && pengguna.TerkunciSampai is not null)
+    {
+        if (pengguna.TerkunciSampai > DateTime.UtcNow)
+        {
+            var sisaMenit = (int)Math.Ceiling((pengguna.TerkunciSampai.Value - DateTime.UtcNow).TotalMinutes);
+            return Results.Json(new { message = $"Terlalu banyak percobaan login gagal. Akun terkunci sementara, coba lagi dalam {sisaMenit} menit." }, statusCode: 423);
+        }
+        // Waktu kunci sudah lewat — buka kunci otomatis di percobaan berikutnya.
+        pengguna.TerkunciSampai = null;
+        pengguna.PercobaanLoginGagal = 0;
+    }
+
     if (pengguna is null || !BCrypt.Net.BCrypt.Verify(request.Password, pengguna.PasswordHash))
     {
+        if (pengguna is not null)
+        {
+            pengguna.PercobaanLoginGagal += 1;
+            if (pengguna.PercobaanLoginGagal >= BatasPercobaanGagal)
+                pengguna.TerkunciSampai = DateTime.UtcNow.Add(durasiKunci);
+            await db.SaveChangesAsync();
+        }
         return Results.Unauthorized();
     }
+
+    pengguna.PercobaanLoginGagal = 0;
+    pengguna.TerkunciSampai = null;
+    await db.SaveChangesAsync();
 
     return Results.Ok(new AuthResponse(
         tokenService.CreateToken(pengguna),
