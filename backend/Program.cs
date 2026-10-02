@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -52,6 +53,15 @@ builder.Services.AddCors(options =>
     options.AddPolicy("FlutterDevelopment", policy =>
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("X-Total-Count", "X-Total-Simpanan", "X-Count-Aktif", "X-Count-Lunas", "X-Total-SisaPokok"));
 });
+// Backend jalan di belakang Nginx (reverse proxy) saat deploy — Nginx terima HTTPS dari luar lalu
+// teruskan ke Kestrel via HTTP biasa di localhost. Tanpa ini, Kestrel mengira semua request HTTP
+// murni dan UseHttpsRedirection() di bawah akan salah redirect / Request.Scheme salah di log audit.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
@@ -63,6 +73,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors("FlutterDevelopment");
 app.UseStaticFiles();

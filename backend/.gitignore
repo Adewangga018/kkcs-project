@@ -1,3 +1,11 @@
 # Konfigurasi production berisi connection string & secret asli — JANGAN pernah dikomit.
 appsettings.Production.json
 appsettings.*.local.json
+
+# Hasil build/publish/migration bundle — file besar, sengaja dibuat lokal untuk deploy manual,
+# bukan source code. migrate-bundle sendiri pernah >100MB dan bikin push ke GitHub ditolak.
+publish-prod/
+migrate-bundle
+bin/Release/
+obj/Release/
+*.bak
